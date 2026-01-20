@@ -129,6 +129,41 @@ const OrderProductList = () => {
 	};
 
 	const columns = [
+		//add a column for method_title, that it is payment method
+		{
+			title: 'Payment Method',
+			dataIndex: 'method_title',
+			key: 'method_title',
+			sorter: (a, b) => a.method_title?.localeCompare(b.method_title),
+			sortOrder: sortedInfo.columnKey === 'method_title' && sortedInfo.order,
+		},
+		
+		//add a column for shipping_description and shipping_amount
+		{
+			title: 'Shipping Description',
+			dataIndex: 'shipping_description',
+			key: 'shipping_description',
+			sorter: (a, b) =>
+				a.shipping_description?.localeCompare(b.shipping_description),
+			sortOrder:
+				sortedInfo.columnKey === 'shipping_description' && sortedInfo.order,
+		},
+		{
+			title: 'Shipping Amount',
+			dataIndex: 'shipping_amount',
+			key: 'shipping_amount',
+			sorter: (a, b) => a.shipping_amount - b.shipping_amount,
+			sortOrder: sortedInfo.columnKey === 'shipping_amount' && sortedInfo.order,
+		},
+		//add a column for base_total_due
+		{
+			title: 'base_total_due',
+			dataIndex: 'base_total_due',
+			key: 'base_total_due',
+			sorter: (a, b) => a.base_total_due - b.base_total_due,
+			sortOrder: sortedInfo.columnKey === 'base_total_due' && sortedInfo.order,
+
+		},
 		{
 			title: 'Order_id',
 			dataIndex: 'entity_id',
@@ -141,7 +176,18 @@ const OrderProductList = () => {
 			dataIndex: 'created_at',
 			key: 'created_at',
 			sorter: (a, b) => a.created_at?.localeCompare(b.created_at),
-			sortOrder: sortedInfo.columnKey === 'created_at' && sortedInfo.order,
+			sortOrder: sortedInfo.
+			columnKey === 'created_at' && sortedInfo.order,
+		},
+		//add region
+		{
+			title: 'Region',
+			dataIndex: 'region',
+			key: 'region',
+			sorter: (a, b) => a.region?.localeCompare(b.region),
+			sortOrder: sortedInfo.columnKey === 'region' && sortedInfo.order,
+		
+			
 		},
 		{
 			title: 'Email',

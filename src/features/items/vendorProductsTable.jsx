@@ -2,45 +2,20 @@ import React, {useState, useEffect} from 'react';
 import { Table, Input } from 'antd';
 import axios from 'axios';
 
-// const data = [
-//   {
-//     sku: 'BST-56820-15',
-//     name: 'BESTOP Trektop NX With Tinted Windows In Black Denim For 1997-06 Jeep Wrangler TJ Models 56820-15',
-//     price: 1444.95,
-//     image: 'https://www.justjeeps.com/pub/media/catalog/product//5/6/56820-15.jpg',
-//     vendorProducts: [
-//       {
-//         product_sku: 'BST-56820-15',
-//         vendor_sku: 'BES56820-15',
-//         vendor_cost: 1003.57,
-//         vendor_inventory: 7,
-//         vendor: {
-//           name: 'Meyer',
-//         },
-//       },
-//       {
-//         product_sku: 'BST-56820-15',
-//         vendor_sku: 'D345682015',
-//         vendor_cost: 956.27,
-//         vendor_inventory: 1,
-//         vendor: {
-//           name: 'Keystone',
-//         },
-//       },
-//     ],
-//     competitorProducts: [],
-//   },
-// ];
 
 const SkuTable = () => {
   const [data, setData] = useState([]);
-  const BACKEND_URL = "https://jj-api-backend.herokuapp.com";
-  // const BACKEND_URL = "http://localhost:8080";
+  // const BACKEND_URL = "https://jj-api-backend.herokuapp.com";
+  // const BACKEND_URL = "  https://1ff8-2607-fea8-58df-feb0-242d-ae03-2e-322c.ngrok-free.app";
+
+  const BACKEND_URL = "http://localhost:8080"; 
+  const API_URL = import.meta.env.VITE_API_URL;
+
 
   useEffect(() => {
     const getProductbysku = async () => {
       try {
-         await axios.get(`${BACKEND_URL}`/api/products/BST-56820-15``)
+         await axios.get(`${API_URL}`/api/products/BST-56820-15``)
         .then(res => {
           const responseData = res.data;
           console.log('Data from backend ....:', responseData);
@@ -113,7 +88,7 @@ const SkuTable = () => {
         const { price, vendorProducts } = record;
         return vendorProducts.map((vendorProduct) => {
           const { vendor_cost } = vendorProduct;
-          const margin = ((price - vendor_cost) / price) * 100;
+          const margin = ((price - vendor_cost) / vendor_cost) * 100;
           return <div key={vendorProduct.vendor_id}>{`${margin.toFixed(2)}%`}</div>;
         });
       },
@@ -184,6 +159,7 @@ const SkuTable = () => {
       dataIndex: 'vendorProducts',
       key: 'vendor_id',
       render: (vendorProducts) =>
+      
         vendorProducts.map((vendorProduct) => (
           <div key={vendorProduct.id}>{vendorProduct.vendor.name}</div>
         )),
@@ -204,7 +180,7 @@ const SkuTable = () => {
         const { price, vendorProducts } = record;
         return vendorProducts.map((vendorProduct) => {
           const { vendor_cost } = vendorProduct;
-          const margin = ((price - vendor_cost) / price) * 100;
+          const margin = ((price - vendor_cost) / vendor_cost) * 100;
           return <div key={vendorProduct.vendor_id}>{`${margin.toFixed(2)}%`}</div>;
         });
       },
@@ -219,7 +195,7 @@ const SkuTable = () => {
         )),
     },
     {
-      title: 'Vendor SKU   ',
+      title: 'Vendor SKU',
       dataIndex: 'vendorProducts',
       key: 'vendor_sku',
       render: (vendorProducts) =>

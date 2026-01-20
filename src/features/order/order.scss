@@ -27,3 +27,71 @@
   font-size: 18px !important;
   // color: white !important;
   }
+
+// 📱 Make table responsive on small screens
+.table-wrapper {
+  width: 100%;
+
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; // smooth scroll on iOS
+  padding-bottom: 1rem;
+}
+
+// 📊 Make dashboard cards responsive
+.dashboard-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+
+  .card {
+    flex: 1 1 250px;
+    min-width: 250px;
+    max-width: 100%;
+    padding: 1rem;
+    border-radius: 10px;
+    text-align: center;
+  }
+}
+
+// 🧠 Add some global responsiveness
+@media (max-width: 768px) {
+  .dashboard-cards {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .card {
+    width: 100%;
+  }
+
+  .ant-table {
+    font-size: 14px;
+  }
+
+  .ant-table-thead .ant-table-cell {
+    font-size: 16px !important;
+  }
+
+  .ant-table-row {
+    font-size: 16px;
+    height: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .ant-table {
+    font-size: 12px;
+  }
+
+  .ant-table-cell {
+    padding: 8px !important;
+  }
+
+  .ant-btn {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}
+
+

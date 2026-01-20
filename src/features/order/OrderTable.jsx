@@ -24,6 +24,14 @@ import { Edit, Trash, Save, Reload } from "../../icons";
 import Popup from "./Popup";
 import TableTop from "../tabletop/TableTop";
 import "./order.scss";
+import { ExclamationCircleOutlined } from "@ant-design/icons";
+import {
+  QuestionCircleOutlined,
+  IssuesCloseOutlined,
+  CheckCircleOutlined,
+  StopOutlined
+} from "@ant-design/icons";
+
 
 const OrderTable = () => {
   const [orders, setOrders] = useState([]);
@@ -43,8 +51,224 @@ const OrderTable = () => {
     useState(null);
   const { Option } = Select;
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const BACKEND_URL = "https://jj-api-backend.herokuapp.com";
+
+  // State to manage the current order's currency
+  const [currentCurrency, setCurrentCurrency] = useState(null);
+  const [showNotSetOnly, setShowNotSetOnly] = useState(false);
+  const [showPmOnly, setShowPmOnly] = useState(false);
+
+
+
+
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  // const BACKEND_URL = "https://jj-api-backend.herokuapp.com";
+  
+    // const BACKEND_URL = "  https://fbc3-2607-fea8-58df-feb0-242d-ae03-2e-322c.ngrok-free.app";
+
   // const BACKEND_URL = "http://localhost:8080";
+
+  console.log("🌍 API_URL from env:", API_URL);
+
+  // cache so we don't re-hit the server for the same SKU
+const brandCacheRef = useRef({});
+
+const getBrandForSku = async (sku) => {
+  if (!sku) return "";
+  if (brandCacheRef.current[sku]) return brandCacheRef.current[sku];
+  try {
+    const { data } = await axios.get(`${API_URL}/api/products/${encodeURIComponent(sku)}/brand`);
+    const brand = data?.brand || "";
+    brandCacheRef.current[sku] = brand;
+    return brand;
+  } catch {
+    return "";
+  }
+};
+
+// Pull weight from wherever your backend puts it (adjust the fallbacks if needed)
+const getWeight = (item) => {
+  const raw =
+    item?.product?.weight ??          // typical
+    item?.product?.weight_lbs ??      // if you named it like this
+    item?.weight ??                   // fallback if item has it at top level
+    null;
+
+  const n = parseFloat(raw);
+  return Number.isFinite(n) ? n : null;
+};
+
+
+ // map vendor "labels" you use on orders → their email (edit as needed)
+const vendorEmailMap = {
+  keystone: "purchasing@keystone.com",
+  meyer: "orders@meyerdistributing.com",
+  omix: "orders@omix-ada.com",
+  quadratec: "purchasing@quadratec.com",
+};
+
+const DEFAULT_PURCHASING_EMAIL = "purchasing@justjeeps.com";
+
+
+// "QTC-92806-9022" -> "92806-9022"
+// "KEN-30477"      -> "30477"
+const formatSkuForEmail = (sku) => {
+  if (!sku) return "";
+  const s = String(sku).trim();
+  const i = s.indexOf("-");
+  return i >= 0 ? s.slice(i + 1) : s;
+};
+
+
+ // Pretty country label from 2-letter code
+const countryLabel = (code) => {
+  const map = { CA: "Canada", US: "United States" };
+  return map[code?.toUpperCase?.()] || code || "";
+};
+
+// Builds the ship-to block from your new inline shipping_* columns
+const buildShipToBlock = (order) => {
+  const fullName =
+    [order?.shipping_firstname, order?.shipping_lastname]
+      .filter(Boolean)
+      .join(" ")
+    || [order?.customer_firstname, order?.customer_lastname]
+      .filter(Boolean)
+      .join(" ")
+    || "Customer";
+
+  const lines = [
+    fullName,
+    order?.shipping_company,                 // 👈 added company here
+    order?.shipping_street1,
+    order?.shipping_street2,
+    order?.shipping_street3,
+    [order?.shipping_city || order?.city, order?.shipping_region || order?.region, order?.shipping_postcode]
+      .filter(Boolean)
+      .join(", "),
+    countryLabel(order?.shipping_country_id) || "Canada",
+    order?.shipping_telephone ? `T: ${order.shipping_telephone}` : null,
+  ].filter(Boolean);
+
+  return lines.join("\n");
+};
+
+// Subject unchanged
+const buildEmailSubject = (order) =>
+  `Order ${order?.increment_id || ""} `;
+
+// Underline text in plain text emails using Unicode combining low line
+const underline = (s) => s.split("").map(ch => ch + "\u0332").join("");
+
+// One product line: "qty x BRAND 92806-9022"
+const buildItemLine = (item, brand = "") => {
+  const qty = Number(item?.qty_ordered ?? 1);
+  const formattedSku = formatSkuForEmail(item?.sku);
+  return `${qty} x ${brand ? brand + " " : ""}${formattedSku}`;
+};
+
+
+
+// Then in your body builder:
+const buildEmailBody = (order, item, brand = "") => {
+  const qty   = Number(item?.qty_ordered ?? 1);
+  const sku   = formatSkuForEmail(item?.sku);
+  const line  = `${qty} x ${brand ? brand + " " : ""}${sku}`;
+  const emph  = underline("ETA, cost, and shipping cost"); // 👈 underlined phrase
+
+  return (
+`Could you please confirm the ${emph} for the items listed below?
+
+${line}
+
+Ship to:
+${buildShipToBlock(order)}
+
+Thank you,`
+  );
+};
+
+// DS template (with Ship to:)
+const buildBody_DS = (order, item, brand = "") => {
+  const line = buildItemLine(item, brand);
+  const emph = underline("ETA, cost, and shipping cost");
+  return (
+`Could you please confirm the ${emph} for the item listed below?
+
+${line}
+
+Ship to:
+${buildShipToBlock(order)}
+
+Thank you,`
+  );
+};
+
+// Ship-to-Store template (short & simple, no address)
+const buildBody_Store = (item, brand = "") => {
+  const line = buildItemLine(item, brand);
+  const emph = underline("ETA and cost");
+  return (
+`Could you please confirm the ${emph} for the item listed below?
+${line}
+
+Thank you,`
+  );
+};
+
+
+
+// Simple brand inference from item name if DB brand is missing
+const STOP = new Set(["for","fits","with","without","and","&","the","a","an"]);
+const inferBrandFromName = (name) => {
+  if (!name) return "";
+  const t = name.trim().split(/\s+/);
+  // special case
+  if (/^dv8$/i.test(t[0]) && t[1]?.toLowerCase()==="off" && t[2]?.toLowerCase()==="road")
+    return "DV8 Off Road";
+  const out = [];
+  for (const raw of t) {
+    const w = raw.replace(/[^\w]/g, "");
+    if (!w) break;
+    if (/\d/.test(w)) break;
+    if (STOP.has(w.toLowerCase())) break;
+    out.push(w);
+    if (out.length === 2) break;
+  }
+  return out.join(" ");
+};
+
+// Prefer DB brand; otherwise infer from item name
+const getBrandSync = (item) =>
+  (item?.product?.brand_name && item.product.brand_name.trim()) ||
+  inferBrandFromName(item?.name) || "";
+
+
+
+// All item lines for an order (uses brand per item)
+const buildAllItemLines = (order) =>
+  (order?.items || []).map(it => buildItemLine(it, getBrandSync(it))).join("\n");
+
+// DS template (all items, includes Ship to)
+const buildBodyAll_DS = (order) => (
+`Could you please confirm the ${underline("ETA, cost, and shipping cost")} for the items listed below?
+
+${buildAllItemLines(order)}
+
+Ship to:
+${buildShipToBlock(order)}
+
+Thank you,`
+);
+
+// Ship-to-Store template (all items, short)
+const buildBodyAll_Store = (order) => (
+`Could you please confirm the ${underline("ETA and cost")} for the items listed below?
+${buildAllItemLines(order)}
+
+Thank you,`
+);
+
 
 
 
@@ -56,7 +280,7 @@ const OrderTable = () => {
   //load all data
   const loadData = useCallback(async () => {
     setLoading(true);
-    const response = await axios.get(`${BACKEND_URL}/api/orders`); //orderProductsJoin.json 
+    const response = await axios.get(`${API_URL}/api/orders`); //orderProductsJoin.json 
     setOriginalOrders(response.data);
     setOrders(response.data);
     setLoading(false);
@@ -66,7 +290,7 @@ const OrderTable = () => {
   const handleSeedOrders = async () => {
     setLoading(true);
     try {
-      await axios.get(`${BACKEND_URL}/api/seed-orders`);
+      await axios.get(`${API_URL}/api/seed-orders`);
       loadData(); // fetch the updated orders
     } catch (error) {
       console.error(error);
@@ -90,7 +314,7 @@ const OrderTable = () => {
     });
     const id = record.entity_id;
     return axios
-      .post(`${BACKEND_URL}/api/orders/${id}/delete`, data)
+      .post(`${API_URL}/api/orders/${id}/delete`, data)
       .then((response) => {
         setOrders(response.data);
       });
@@ -99,7 +323,7 @@ const OrderTable = () => {
   const deleteOrder = async (order) => {
     const id = order.entity_id;
     const response = await axios.post(
-      `${BACKEND_URL}/api/orders/${id}/delete`
+      `${API_URL}/api/orders/${id}/delete`
     );
     setOrders(response.data);
   };
@@ -120,7 +344,7 @@ const OrderTable = () => {
   // delete backend order-product
   const deleteOrderItem = (id) => {
     return axios
-      .delete(`${BACKEND_URL}/${id}/delete`)
+      .delete(`${API_URL}/${id}/delete`)
       .then((response) => {
         setOrders(response.data);
       });
@@ -180,7 +404,7 @@ const OrderTable = () => {
     try {
       // create the purchase order
       const newPurchaseOrder = await axios.post(
-        `${BACKEND_URL}/api/purchase_orders`,
+        `${API_URL}/api/purchase_orders`,
         {
           vendor_id: vendor_id,
           user_id: 2,
@@ -191,7 +415,7 @@ const OrderTable = () => {
 
       // create the purchase order line item
       const newPurchaseOrderLineItem = await axios.post(
-        `${BACKEND_URL}/purchaseOrderLineItem`,
+        `${API_URL}/purchaseOrderLineItem`,
         {
           purchaseOrderId: newPurchaseOrder.data.id,
           vendorProductId: null,
@@ -216,7 +440,7 @@ const OrderTable = () => {
     console.log("subRowRecord", subRowRecord);
 
     return axios
-      .post(`${BACKEND_URL}/order_products/${id}/edit`, subRowRecord)
+      .post(`${API_URL}/order_products/${id}/edit`, subRowRecord)
       .then((data) => {
         let parentIndex;
         let parentItem;
@@ -292,7 +516,7 @@ const OrderTable = () => {
     } = formObj;
 
     return axios.post(
-      `${BACKEND_URL}/api/orders/${entity_id}/edit`,
+      `${API_URL}/api/orders/${entity_id}/edit`,
       formObj
     );
   };
@@ -410,36 +634,145 @@ const OrderTable = () => {
     window.location.reload(false);
   };
 
+
+
   //set up main column
   const columns = [
+
+
+
     {
-    	title: 'Order ID',
-    	dataIndex: 'increment_id',
-    	key: 'increment_id',
-    	align: 'center',
-    	sorter: (a, b) => a.increment_id - b.increment_id,
-    	sortOrder: sortedInfo.columnKey === 'increment_id' && sortedInfo.order,
-    	...getColumnSearchProps('increment_id'),
-    	render: (text, record) => {
-    		if (editingRow === record.key) {
-    			return (
-    				<Form.Item
-    					name='increment_id'
-    					rules={[
-    						{
-    							required: true,
-    							message: 'increment_id is required',
-    						},
-    					]}
-    				>
-    					<Input disabled={true} />
-    				</Form.Item>
-    			);
-    		} else {
-    			return <p>{text}</p>;
-    		}
-    	},
+      title: "Created_Date",
+      dataIndex: "created_at",
+      key: "created_at",
+      align: "center",
+      sorter: (a, b) => a.created_at?.localeCompare(b.created_at),
+      sortOrder: sortedInfo.columnKey === "created_at" && sortedInfo.order,
+      ...getColumnSearchProps("created_at"),
+        render: (text, record) => {
+          const date = new Date(text);
+          date.setHours(date.getHours() - 5); // Subtract 5 hours from UTC (EST - after DST ended)
+
+          const localTime = date.toLocaleString("en-CA", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+
+          if (editingRow === record.key) {
+            return (
+              <Form.Item
+                name="created_at"
+                rules={[{ required: true }]}
+              >
+                <Input disabled={true} />
+              </Form.Item>
+            );
+          } else {
+            return <p>{localTime}</p>;
+          }
+        }
+      // render: (text, record) => {
+      //   if (editingRow === record.key) {
+      //     return (
+      //       <Form.Item
+      //         name="created_at"
+      //         rules={[
+      //           {
+      //             required: true,
+      //           },
+      //         ]}
+      //       >
+      //         <Input disabled={true} />
+      //       </Form.Item>
+      //     );
+      //   } else {
+      //     return <p>{text}</p>;
+      //   }
+      // },
     },
+    {
+      title: "Order ID",
+      dataIndex: "increment_id",
+      key: "increment_id",
+      align: "center",
+      sorter: (a, b) => a.increment_id - b.increment_id,
+      sortOrder: sortedInfo.columnKey === "increment_id" && sortedInfo.order,
+      ...getColumnSearchProps("increment_id"),
+      render: (text, record) => {
+        if (editingRow === record.key) {
+          return (
+            <Form.Item
+              name="increment_id"
+              rules={[{ required: true, message: "increment_id is required" }]}
+            >
+              <Input disabled={true} />
+            </Form.Item>
+          );
+        } else {
+          const po = (record.custom_po_number || "").trim().toLowerCase();
+          const isExactlyNotSet = po === "not set";
+          const containsNotSet = po.includes("not set");
+          const isValid = !containsNotSet;
+    
+          const dotStyle = {
+            width: 15,
+            height: 15,
+            borderRadius: '50%',
+            display: 'inline-block',
+            marginLeft: 6,
+          };
+    
+          const showUSFlag = record.increment_id?.toString().startsWith("3");
+    
+          return (
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {showUSFlag && (
+                <span style={{ marginRight: 4 }} role="img" aria-label="US Flag">
+                  🇺🇸
+                </span>
+              )}
+              <a
+                href={`https://www.justjeeps.com/admin_19q7yi/sales/order/view/order_id/${record.entity_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: "#555",
+                  textDecoration: "underline",
+                  cursor: "pointer",
+                  fontWeight: 500,
+                  marginRight: 6,
+                }}
+              >
+                {text}
+              </a>
+    
+              {isValid ? (
+                <CheckCircleOutlined
+                  style={{ color: "#52c41a", fontSize: 16 }}
+                  title="PO assigned"
+                />
+              ) : isExactlyNotSet ? (
+                <span
+                  title="PO not set"
+                  style={{ ...dotStyle, backgroundColor: "red" }}
+                />
+              ) : (
+                <span
+                  title="PO partially set"
+                  style={{ ...dotStyle, backgroundColor: "#faad14" }}
+                />
+              )}
+            </span>
+          );
+        }
+      },
+    }
+    
+    ,
     // {
     //   title: "OrderId",
     //   dataIndex: "entity_id",
@@ -501,52 +834,257 @@ const OrderTable = () => {
         );
       },
     },
-
+    //create a new column for custom_po_number and weltpixel_fraud_score
     {
-      title: "Created_Date",
-      dataIndex: "created_at",
-      key: "created_at",
+      title: "PO#",
+      dataIndex: "custom_po_number",
+      key: "custom_po_number",
       align: "center",
-      sorter: (a, b) => a.created_at?.localeCompare(b.created_at),
-      sortOrder: sortedInfo.columnKey === "created_at" && sortedInfo.order,
-      ...getColumnSearchProps("created_at"),
+      sorter: (a, b) => a.custom_po_number?.localeCompare(b.custom_po_number),
+      sortOrder: sortedInfo.columnKey === "custom_po_number" && sortedInfo.order,
+      ...getColumnSearchProps("custom_po_number"),
       render: (text, record) => {
         if (editingRow === record.key) {
           return (
             <Form.Item
-              name="created_at"
+              name="custom_po_number"
               rules={[
                 {
                   required: true,
+                  message: "Custom PO Number is required",
                 },
               ]}
             >
-              <Input disabled={true} />
+              <Input />
             </Form.Item>
           );
         } else {
-          return <p>{text}</p>;
+          const isMissing = !text || text.trim() === "";
+          return (
+            <span style={{ color: isMissing ? 'red' : undefined, fontWeight: isMissing ? 'bold' : undefined }}>
+              {isMissing ? 'NOT SET' : text}
+            </span>
+
+          );
         }
       },
     },
+
+    // {
+    //   title: "PO#",
+    //   dataIndex: "custom_po_number",
+    //   key: "custom_po_number",
+    //   align: "center",
+    //   sorter: (a, b) => a.custom_po_number?.localeCompare(b.custom_po_number),
+    //   sortOrder: sortedInfo.columnKey === "custom_po_number" && sortedInfo.order,
+    //   ...getColumnSearchProps("custom_po_number"),
+    //   render: (text, record) => {
+    //     if (editingRow === record.key) {
+    //       return (
+    //         <Form.Item
+    //           name="custom_po_number"
+    //           rules={[
+    //             {
+    //               required: true,
+    //               message: "Custom PO Number is required",
+    //             },
+    //           ]}
+    //         >
+    //           <Input />
+    //         </Form.Item>
+    //       );
+    //     } else {
+    //       const isMissing = !text || text.trim().toLowerCase().startsWith("not set");
+    //       return (
+    //         <span
+    //           style={{
+    //             color: isMissing ? "red" : undefined,
+    //             fontWeight: isMissing ? 400 : undefined,
+    //             //size
+    //             fontSize: isMissing ? "18px" : undefined,
+    //             //bold
+    //             fontWeight: isMissing ? "bold" : undefined,
+    //             // fontStyle: isMissing ? "italic" : undefined,
+    //           }}
+    //         >
+    //           {isMissing ? "NOT SET" : text}
+    //         </span>
+    //       );
+    //     }
+    //   },
+    // },
+
     {
-      title: "Email",
-      dataIndex: "customer_email",
-      key: "customer_email",
+      title: "Fraud Score",
+      dataIndex: "weltpixel_fraud_score",
+      key: "weltpixel_fraud_score",
       align: "center",
-      editTable: true,
-      sorter: (a, b) => a.customer_email?.localeCompare(b.customer_email),
-      sortOrder: sortedInfo.columnKey === "customer_mail" && sortedInfo.order,
-      ...getColumnSearchProps("customer_email"),
+      sorter: (a, b) =>
+        a.weltpixel_fraud_score?.localeCompare(b.weltpixel_fraud_score),
+      sortOrder:
+        sortedInfo.columnKey === "weltpixel_fraud_score" && sortedInfo.order,
+      ...getColumnSearchProps("weltpixel_fraud_score"),
       render: (text, record) => {
         if (editingRow === record.key) {
           return (
             <Form.Item
-              name="customer_email"
+              name="weltpixel_fraud_score"
               rules={[
                 {
                   required: true,
-                  message: "Email is required",
+                  message: "Fraud Score is required",
+                },
+              ]}
+            >
+              <Input />
+            </Form.Item>
+          );
+        } else {
+          const score = parseFloat(text);
+          const grandTotal = parseFloat(record.grand_total);
+          const paymentMethod = (record.payment_method || "").trim();
+          const isPayPal = /paypal/i.test(paymentMethod); // Match anything PayPal-ish
+      
+          // ⛔️ Skip all checks for PayPal
+          if (isPayPal) {
+            return <p>{text}</p>;
+          }
+      
+          const isHighFraud = !isNaN(score) && score > 10;
+          const isQuebecHighValue =
+            record.region?.toLowerCase() === "quebec" &&
+            !isNaN(grandTotal) &&
+            grandTotal > 300;
+      
+          const showWarning = isHighFraud || isQuebecHighValue;
+      
+          return (
+            <p style={showWarning ? { color: "red", fontWeight: "bold" } : {}}>
+              {text}
+              {showWarning && (
+                <ExclamationCircleOutlined
+                  style={{ marginLeft: 6, color: "red" }}
+                  title={
+                    isHighFraud
+                      ? "High fraud score"
+                      : "Quebec order over $300"
+                  }
+                />
+              )}
+            </p>
+          );
+        }
+      }
+      
+    },
+
+            //region
+        {
+  title: "Region",
+  dataIndex: "region",
+  key: "region",
+  align: "center",
+  sorter: (a, b) => a.region?.localeCompare(b.region),
+  sortOrder: sortedInfo.columnKey === "region" && sortedInfo.order,
+  ...getColumnSearchProps("region"),
+  render: (text, record) => {
+    if (editingRow === record.key) {
+      return (
+        <Form.Item
+          name="region"
+          rules={[{ required: true, message: "Region is required" }]}
+        >
+          <Input />
+        </Form.Item>
+      );
+    } else {
+      // List of remote regions to flag
+      const flaggedRegions = [
+        "New Brunswick",
+        "Nova Scotia",
+        "Prince Edward Island",
+        "Newfoundland & Labrador",
+        "Newfoundland",
+        "Labrador",
+        "Yukon",
+        "Northwest Territories",
+        "Nunavut",
+        "Newfoundland and Labrador",
+        "Yukon Territory"
+      ];
+
+      const isFlagged = flaggedRegions.includes(text);
+
+      return (
+        <span style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {text}
+          {isFlagged && (
+            <ExclamationCircleOutlined
+              style={{ marginLeft: 6, color: "red", fontSize: 18 }}
+              title="Remote/Costly Region"
+            />
+          )}
+        </span>
+      );
+    }
+  },
+
+        },
+
+    
+
+        //method_title
+        {
+          title: "Payment Method",
+          dataIndex: "method_title",
+          key: "method_title",
+          align: "center",
+          sorter: (a, b) => a.method_title?.localeCompare(b.method_title),
+          sortOrder: sortedInfo.columnKey === "method_title" && sortedInfo.order,
+          ...getColumnSearchProps("method_title"),
+          render: (text, record) => {
+            if (editingRow === record.key) {
+              return (
+                <Form.Item
+                  name="method_title"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Method Title is required",
+                    },
+                  ]}
+                >
+                  <Input />
+                </Form.Item>
+              );
+            } else {
+              return <p>{text}</p>;
+            }
+          }
+    
+        },
+
+
+    //create a new column for shipping_description and shipping_amount 
+    {
+      title: "Shipping",
+      dataIndex: "shipping_description",
+      key: "shipping_description",
+      align: "center",
+      sorter: (a, b) =>
+        a.shipping_description?.localeCompare(b.shipping_description),
+      sortOrder:
+        sortedInfo.columnKey === "shipping_description" && sortedInfo.order,
+      ...getColumnSearchProps("shipping_description"),
+      render: (text, record) => {
+        if (editingRow === record.key) {
+          return (
+            <Form.Item
+              name="shipping_description"
+              rules={[
+                {
+                  required: true,
+                  message: "Shipping description is required",
                 },
               ]}
             >
@@ -558,6 +1096,96 @@ const OrderTable = () => {
         }
       },
     },
+    {
+      title: "Shipping Amount",
+      dataIndex: "shipping_amount",
+      key: "shipping_amount",
+      align: "center",
+      sorter: (a, b) => a.shipping_amount - b.shipping_amount,
+      sortOrder: sortedInfo.columnKey === "shipping_amount" && sortedInfo.order,
+      ...getColumnSearchProps("shipping_amount"),
+
+      render: (text, record) => {
+        if (editingRow === record.key) {
+          return (
+            <Form.Item
+              name="shipping_amount"
+              rules={[
+                {
+                  required: true,
+                  message: "Shipping amount is required",
+                },
+              ]}
+            >
+              <Input />
+            </Form.Item>
+          );
+        } else {
+          return <p>${text?.toFixed(2)}</p>;
+        }
+      },
+    },
+    
+    //create a new column for base_total_due
+    {
+      title: "Base Total Due",
+      dataIndex: "base_total_due",
+      key: "base_total_due",
+      align: "center",
+      sorter: (a, b) => a.base_total_due - b.base_total_due,
+      sortOrder: sortedInfo.columnKey === "base_total_due" && sortedInfo.order,
+      ...getColumnSearchProps("base_total_due"),
+      render: (text, record) => {
+        if (editingRow === record.key) {
+          return (
+            <Form.Item
+              name="base_total_due"
+              rules={[
+                {
+                  required: true,
+                  message: "Base total due is required",
+                },
+              ]}
+            >
+              <Input />
+            </Form.Item>
+          );
+        } else {
+          return <p>${text?.toFixed(2)}</p>;
+        }
+      }
+    },
+
+
+    // {
+    //   title: "Email",
+    //   dataIndex: "customer_email",
+    //   key: "customer_email",
+    //   align: "center",
+    //   editTable: true,
+    //   sorter: (a, b) => a.customer_email?.localeCompare(b.customer_email),
+    //   sortOrder: sortedInfo.columnKey === "customer_mail" && sortedInfo.order,
+    //   ...getColumnSearchProps("customer_email"),
+    //   render: (text, record) => {
+    //     if (editingRow === record.key) {
+    //       return (
+    //         <Form.Item
+    //           name="customer_email"
+    //           rules={[
+    //             {
+    //               required: true,
+    //               message: "Email is required",
+    //             },
+    //           ]}
+    //         >
+    //           <Input />
+    //         </Form.Item>
+    //       );
+    //     } else {
+    //       return <p>{text}</p>;
+    //     }
+    //   },
+    // },
     {
       title: "First Name ",
       dataIndex: "customer_firstname",
@@ -588,35 +1216,35 @@ const OrderTable = () => {
         }
       },
     },
-    {
-      title: "Last Name",
-      dataIndex: "customer_lastname",
-      key: "customer_lastname",
-      align: "center",
-      sorter: (a, b) => a.customer_lastname?.localeCompare(b.customer_lastname),
-      sortOrder:
-        sortedInfo.columnKey === "customer_lastname" && sortedInfo.order,
-      ...getColumnSearchProps("customer_lastname"),
-      render: (text, record) => {
-        if (editingRow === record.key) {
-          return (
-            <Form.Item
-              name="customer_lastname"
-              rules={[
-                {
-                  required: true,
-                  message: "Last name is required",
-                },
-              ]}
-            >
-              <Input />
-            </Form.Item>
-          );
-        } else {
-          return <p>{text}</p>;
-        }
-      },
-    },
+    // {
+    //   title: "Last Name",
+    //   dataIndex: "customer_lastname",
+    //   key: "customer_lastname",
+    //   align: "center",
+    //   sorter: (a, b) => a.customer_lastname?.localeCompare(b.customer_lastname),
+    //   sortOrder:
+    //     sortedInfo.columnKey === "customer_lastname" && sortedInfo.order,
+    //   ...getColumnSearchProps("customer_lastname"),
+    //   render: (text, record) => {
+    //     if (editingRow === record.key) {
+    //       return (
+    //         <Form.Item
+    //           name="customer_lastname"
+    //           rules={[
+    //             {
+    //               required: true,
+    //               message: "Last name is required",
+    //             },
+    //           ]}
+    //         >
+    //           <Input />
+    //         </Form.Item>
+    //       );
+    //     } else {
+    //       return <p>{text}</p>;
+    //     }
+    //   },
+    // },
     {
       title: "Total",
       dataIndex: "grand_total",
@@ -687,13 +1315,38 @@ const OrderTable = () => {
         }
       },
     },
+    // {
+    //   title: "Coupon Code",
+    //   dataIndex: "coupon_code",
+    //   key: "coupon_code",
+    //   align: "center",
+    //   sorter: (a, b) => a.coupon_code?.localeCompare(b.coupon_code),
+    //   sortOrder: sortedInfo.columnKey === "coupon_code" && sortedInfo.order,
+    // },
+
+
+
     {
-      title: "Coupon Code",
-      dataIndex: "coupon_code",
-      key: "coupon_code",
+      title: "Request ETA All",
+      key: "email_all",
       align: "center",
-      sorter: (a, b) => a.coupon_code?.localeCompare(b.coupon_code),
-      sortOrder: sortedInfo.columnKey === "coupon_code" && sortedInfo.order,
+      width: "12%",
+      render: (_, record /* order */) => {
+        const to = DEFAULT_PURCHASING_EMAIL; // or whoever should receive the “all items” email
+        const subject    = buildEmailSubject(record);
+        const bodyAllDS  = buildBodyAll_DS(record);
+        const bodyAllSto = buildBodyAll_Store(record);
+
+        const mailtoDS   = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyAllDS)}`;
+        const mailtoSto  = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyAllSto)}`;
+
+        return (
+          <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+            <Button size="middle" href={mailtoDS}  target="_self">Email ALL (DS)</Button>
+            <Button size="middle" href={mailtoSto} target="_self">Email ALL (Store)</Button>
+          </div>
+        );
+      },
     },
     // {
     //   title: "Actions",
@@ -758,22 +1411,109 @@ const OrderTable = () => {
     // },
   ];
 
-  //loop main column data
-  const data = orders.map((order) => ({
-    key: order.entity_id,
-    ...order,
-  }));
+  // loop main column data
+  // const data = orders.map((order) => ({
+  //   key: order.entity_id,
+  //   ...order,
+  // }));
+  console.log("ORDERS:", orders);
+console.log("TYPEOF orders:", typeof orders);
+console.log("IS ARRAY?", Array.isArray(orders));
+
+
+  // const data = Array.isArray(orders)
+  // ? orders.map((order) => ({
+  //     key: order.entity_id,
+  //     ...order,
+  //   }))
+  // : [];
+
+  const filteredOrders = showNotSetOnly
+  ? orders.filter(o => (o.custom_po_number || "").trim().toLowerCase() === "not set")
+  : showPmOnly
+  ? orders.filter(o => {
+      const po = (o.custom_po_number || "").toLowerCase();
+      return po.includes("pm") && po.includes("not set");
+    })
+  : orders;
+
+  const data = Array.isArray(filteredOrders)
+    ? filteredOrders.map((order) => ({
+        key: order.entity_id,
+        ...order,
+      }))
+    : [];
+
+  // Calculate extra metrics
+  // Helper to normalize date to Toronto local midnight
+const adjustToToronto = (dateStr) => {
+  const d = new Date(dateStr);
+  d.setHours(d.getHours() - 5); // ✅ shift UTC → Toronto (EST after DST ended)
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+};
+
+// Define boundaries in Toronto time
+    const nowToronto = new Date();
+    nowToronto.setHours(nowToronto.getHours() - 5); // Updated for EST
+    const startOfToday = new Date(nowToronto.getFullYear(), nowToronto.getMonth(), nowToronto.getDate());
+    const startOfYesterday = new Date(startOfToday);
+    startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+    const startOfLast7Days = new Date(startOfToday);
+    startOfLast7Days.setDate(startOfLast7Days.getDate() - 6);
+
+    // ✅ Metrics
+    const notSetOrdersCount = orders.filter(
+      o => (o.custom_po_number || "").trim().toLowerCase() === "not set"
+    ).length;
+
+    const ordersToday = orders.filter(o =>
+      adjustToToronto(o.created_at).getTime() === startOfToday.getTime()
+    ).length;
+
+    const ordersYesterday = orders.filter(o => {
+      const d = adjustToToronto(o.created_at).getTime();
+      return d === startOfYesterday.getTime();
+    }).length;
+
+    const ordersLast7Days = orders.filter(o =>
+      adjustToToronto(o.created_at) >= startOfLast7Days
+    ).length;
+
+    const gwOrdersCount = orders.filter(
+  o => (o.custom_po_number || "").toLowerCase().includes("gw")
+).length;
+
+    const pmOrdersCount = orders.filter(
+      o => {
+        const po = (o.custom_po_number || "").toLowerCase();
+        return po.includes("pm") && po.includes("not set");
+      }
+    ).length;
+
+
+
 
   // console.log('currentSku', currentSku);
   // console.log('currentOrderProductID', currentOrderProductID);
+
+
   //drawer;
-  const showDrawer = (sku, id, price) => {
-    setCurrentSku(sku);
-    setCurrentOrderProductID(id);
-    setCurrentOrderProductPrice(price);
-    console.log("all data", sku, id, price);
-    setOpen(true);
-  };
+  // const showDrawer = (sku, id, price) => {
+  //   setCurrentSku(sku);
+  //   setCurrentOrderProductID(id);
+  //   setCurrentOrderProductPrice(price);
+  //   console.log("all data", sku, id, price);
+  //   setOpen(true);
+  // };
+  const showDrawer = (sku, id, price, currency) => {
+  setCurrentSku(sku);
+  setCurrentOrderProductID(id);
+  setCurrentOrderProductPrice(price);
+  setCurrentCurrency(currency); // <-- new
+  setOpen(true);
+};
+
+
   const onClose = (record) => {
     console.log("record on close", record);
     setCurrentSku(null);
@@ -854,6 +1594,8 @@ const OrderTable = () => {
           );
         },
       },
+      
+
       {
         title: "Product",
         dataIndex: "name",
@@ -876,10 +1618,75 @@ const OrderTable = () => {
               </Form.Item>
             );
           } else {
-            return <p>{text}</p>;
+            // Create hyperlink if product URL is available
+            if (record.product && record.product.url_path) {
+              return (
+                <a
+                  href={record.product.url_path}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "#1890ff", textDecoration: "none" }}
+                >
+                  {text}
+                </a>
+              );
+            } else {
+              return <p>{text}</p>;
+            }
           }
         },
       },
+
+      {
+        title: "Black Friday Sale",
+        dataIndex: ["product", "black_friday_sale"],
+        key: "black_friday_sale",
+        align: "center",
+        render: (text, record) => {
+          const blackFridayValue = record.product?.black_friday_sale;
+          
+          if (!blackFridayValue) {
+            return <span style={{ color: "#999" }}>—</span>;
+          }
+
+          // Style based on discount percentage
+          let bgColor = "#f0f0f0";
+          let textColor = "#333";
+          
+          if (blackFridayValue.includes("30%off")) {
+            bgColor = "#ff4d4f";
+            textColor = "white";
+          } else if (blackFridayValue.includes("25%off")) {
+            bgColor = "#fa8c16";
+            textColor = "white";
+          } else if (blackFridayValue.includes("20%off")) {
+            bgColor = "#faad14";
+            textColor = "white";
+          } else if (blackFridayValue.includes("15%off")) {
+            bgColor = "#52c41a";
+            textColor = "white";
+          }
+
+          return (
+            <span 
+              style={{ 
+                backgroundColor: bgColor,
+                color: textColor,
+                padding: "6px 12px",
+                borderRadius: "6px",
+                fontSize: "14px",
+                fontWeight: "bold",
+                display: "inline-block",
+                minWidth: "60px",
+                textAlign: "center"
+              }}
+            >
+              {blackFridayValue}
+            </span>
+          );
+        },
+      },
+
       {
         title: "SKU",
         dataIndex: "sku",
@@ -902,31 +1709,6 @@ const OrderTable = () => {
             );
           } else {
             return <p>{text}</p>;
-          }
-        },
-      },
-      {
-        title: "Price",
-        dataIndex: "price",
-        key: "price",
-        align: "center",
-        render: (text, record) => {
-          if (editingRow === record.id) {
-            return (
-              <Form.Item
-                name="price"
-                rules={[
-                  {
-                    required: true,
-                    message: "price is required",
-                  },
-                ]}
-              >
-                <Input />
-              </Form.Item>
-            );
-          } else {
-            return <p>${text}</p>;
           }
         },
       },
@@ -955,134 +1737,19 @@ const OrderTable = () => {
           }
         },
       },
-      {
-        title: "Supplier",
-        dataIndex: "selected_supplier",
-        key: "selected_supplier",
-        align: "center",
-        render: (text, record) => {
-          if (editingRow === record.id) {
-            return (
-              <Form.Item
-                name="selected_supplier"
-                rules={[
-                  {
-                    required: true,
-                    message: "supplier is required",
-                  },
-                ]}
-              >
-                <Select placeholder="Select a supplier">
-                  <Option value="Keystone">Keystone</Option>
-                  <Option value="Meyer">Meyer</Option>
-                  <Option value="Omix">Omix</Option>
-                  <Option value="Quadratec">Quaddratec</Option>
-                </Select>
-              </Form.Item>
-            );
-          } else {
-            return <p>{text}</p>;
-          }
-        },
-      },
-      {
-        title: "SupplierCost",
-        dataIndex: "selected_supplier_cost",
-        key: "selected_supplier_cost",
-        align: "center",
-        render: (text, record) => {
-          if (editingRow === record.id) {
-            return (
-              <Form.Item
-                name="selected_supplier_cost"
-                rules={[
-                  {
-                    required: true,
-                    message: "selected_supplier_cost is required",
-                  },
-                ]}
-              >
-                <Input />
-              </Form.Item>
-            );
-          } else {
-            return <p>${text}</p>;
-          }
-        },
-      },
-      {
-        title: "TotalCost",
-        dataIndex: "total",
-        key: "total",
-        align: "center",
-        render: (text, record) => {
-          return <p>${record.qty_ordered * record.selected_supplier_cost}</p>;
-        },
-      },
-      {
-        title: "Margin%",
-        key: "margin",
-        align: "center",
-        render: (text, record) => {
-          const cost = record.selected_supplier_cost;
-          const price = record.price;
-          if (cost && price) {
-            const margin = ((price - cost) / price) * 100;
-            return <span>{margin.toFixed(2)}%</span>;
-          } else {
-            return <span></span>;
-          }
-        },
-      },
-      {
-        title: "Status",
-        dataIndex: "status",
-        key: "status",
-        align: "center",
-        render: (text, record) => {
-          if (editingRow === record.id) {
-            return (
-              <Form.Item
-                name="status"
-                rules={[
-                  {
-                    required: true,
-                    message: "status is required",
-                  },
-                ]}
-              >
-                <Select placeholder="Update Status">
-                  <Option value="Completed">
-                    <Badge status="success" text="Completed" />
-                  </Option>
-                  <Option value="No Stock">
-                    <Badge status="warning" text="No Stock" />
-                  </Option>
-                  <Option value="PO Created">
-                    <Badge status="processing" text="PO Created" />
-                  </Option>
-                  <Option value="Cancel">
-                    <Badge status="error" text="Cancel" />
-                  </Option>
-                </Select>
-              </Form.Item>
-            );
-          } else {
-            return <p>{text}</p>;
-          }
-        },
-      },
-      {
-        title: "Actions",
+
+            {
+        title: "Compare Vendor Costs",
         dataIndex: "operation",
         key: "operation",
         align: "center",
+        width: '10%',
         render: (_, recordSub) => {
           return (
             <>
               <Form.Item>
                 <Space size="small">
-                  <Tooltip title="Edit">
+                  {/* <Tooltip title="Edit">
                     <EditOutlined
                       style={{ color: "orange", fontSize: "25px" }}
                       onClick={() => {
@@ -1101,37 +1768,429 @@ const OrderTable = () => {
                         });
                       }}
                     />
-                  </Tooltip>
-                  <Tooltip title="Save">
+                  </Tooltip> */}
+                  {/* <Tooltip title="Save">
                     <SaveOutlined
                       style={{ color: "green", fontSize: "25px" }}
                       onClick={() => handleSaveSub(record.key)}
                     />
-                  </Tooltip>
+                  </Tooltip> */}
                   <Tooltip title="See Vendor Costs">
-                    <GlobalOutlined
-                      style={{ color: "blue", fontSize: "25px" }}
+                    <SearchOutlined
+                      style={{
+                        color: "blue",
+                        fontSize: "50px",
+                        cursor: "pointer",
+                        margin: "0 8px",
+                        transition: "transform 0.2s",
+
+                      }}
                       onClick={() => {
                         showDrawer(
                           recordSub.sku,
                           recordSub.id,
-                          recordSub.price
+                          recordSub.price,
+                          record.order_currency_code // <-- pass currency here
+
                         );
                       }}
                     />
                   </Tooltip>
-                  <Tooltip title="Add to PO">
+                  {/* <Tooltip title="Add to PO">
                     <ShoppingCartOutlined
                       style={{ color: "purple", fontSize: "25px" }}
                       onClick={() => createPurchaseOrder(recordSub)}
                     />
-                  </Tooltip>
+                  </Tooltip> */}
                 </Space>
               </Form.Item>
             </>
           );
         },
       },
+      {
+        title: "Price",
+        dataIndex: "price",
+        key: "price",
+        align: "center",
+        render: (text, record) => {
+          if (editingRow === record.id) {
+            return (
+              <Form.Item
+                name="price"
+                rules={[
+                  {
+                    required: true,
+                    message: "price is required",
+                  },
+                ]}
+              >
+                <Input />
+              </Form.Item>
+            );
+          } else {
+            return <p>${text}</p>;
+          }
+        },
+      },
+ 
+
+      {
+        title: "BIS",
+        dataIndex: "shippingFreight",
+        key: "shippingFreight",
+        align: "center",
+        render: (text, record) => {
+          const shipping = record.product?.shippingFreight;
+          const numericValue = parseFloat(shipping);
+      
+          return (
+            <span>
+              {!isNaN(numericValue) ? `$${numericValue.toFixed(2)}` : "—"}
+            </span>
+          );
+        },
+      },
+
+
+    {
+      title: "Weight (lbs)",
+      dataIndex: ["product", "weight"],   // ✅ read from product
+      key: "weight",
+      align: "center",
+      sorter: (a, b) =>
+        (a.product?.weight ?? -Infinity) - (b.product?.weight ?? -Infinity),
+      render: (value) => {
+        if (typeof value !== "number") return "—";
+
+        const overLimit = value >= 50;
+
+        return (
+          <span style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {value.toFixed(2)}
+            {overLimit && (
+              <ExclamationCircleOutlined
+                style={{ marginLeft: 6, color: "red", fontSize: 18 }}
+                title="Heavy item (over 50 lbs)"
+              />
+            )}
+          </span>
+        );
+      },
+    },
+
+
+// {
+//   title: "Request ETA",
+//   key: "request_eta",
+//   align: "center",
+//   width: "10%",
+//   render: (_, recordSub) => {
+//     const handleEmail = async () => {
+//       // pick vendor email
+//       const vendorKey = (
+//         recordSub?.selected_supplier ||
+//         recordSub?.vendorProduct?.vendor?.name ||
+//         ""
+//       ).toString().toLowerCase();
+//       const to = vendorEmailMap[vendorKey] || DEFAULT_PURCHASING_EMAIL;
+
+//       // ✅ get brand (prefer what came with the item; fallback to API)
+//       const brand =
+//         recordSub?.product?.brand_name ||
+//         (await getBrandForSku(recordSub.sku)) ||
+//         "";
+
+//       // build subject/body with BRAND + SKU
+//       const subject = buildEmailSubject(record);           // parent order
+//       const body    = buildEmailBody(record, recordSub, brand);
+
+//       // open default mail client
+//       window.location.href =
+//         `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+//     };
+
+//     return (
+//       <Button type="default" size="large" onClick={handleEmail}>
+//         Email Vendor
+//       </Button>
+//     );
+//   },
+// },
+
+{
+  title: "Request ETA",
+  key: "request_eta",
+  align: "center",
+  width: "12%",
+  render: (_, item) => {
+    // parent order is the `record` that expandedRowRender closes over
+    const order = record;
+
+    // who to email
+    const vendorKey = (item?.selected_supplier || item?.vendorProduct?.vendor?.name || "")
+      .toString()
+      .toLowerCase();
+    const to = vendorEmailMap[vendorKey] || DEFAULT_PURCHASING_EMAIL;
+
+    // brand (sync only — if you need async lookup, do it elsewhere and cache it)
+    const brand = item?.product?.brand_name || "";
+
+    // subject + bodies
+    const subject   = buildEmailSubject(order);
+    const bodyDS    = buildBody_DS(order, item, brand);
+    const bodyStore = buildBody_Store(item, brand);
+
+    // pre-encoded mailto URLs
+    const mailtoDS    = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyDS)}`;
+    const mailtoStore = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyStore)}`;
+
+    return (
+      <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+        <Button size="middle" href={mailtoDS} target="_self">Email (DropShip)</Button>
+        <Button size="middle" href={mailtoStore} target="_self">Email (Ship to Store)</Button>
+      </div>
+    );
+  },
+},
+
+
+
+
+      
+
+
+
+//** */
+  //vendor name, cost and margin
+
+  // {  
+  //   title: 'Vendor Name',  
+  //   dataIndex: 'entity_id', // or any other property that exists in the main table's data source  
+  //   key: 'vendor_id',  
+  //   render: (text, record) => {  
+  //    console.log('Record:', record); // Log the record object to the console  
+  //    const items = record.items;  
+  //    console.log('Items:', items); // Log the items property to the console  
+  //    return items && items.length > 0 ? (  
+  //     items.map((item) => (  
+  //       item.vendorProducts && item.vendorProducts.length > 0 ? (  
+  //        item.vendorProducts.map((vendorProduct) => (  
+  //         <div key={vendorProduct.id || vendorProduct.vendor_id}>  
+  //           {vendorProduct.vendor?.name || 'No Vendor Name'}  
+  //         </div>  
+  //        ))  
+  //       ) : (  
+  //        <div>No vendor data</div>  
+  //       )  
+  //     ))  
+  //    ) : (  
+  //     <div>No items</div>  
+  //    );  
+  //   },  
+  // },
+
+  // //vendor name but the data is retrieved from the vendorProducts array:   useEffect(() => {
+  //   const getProductBySku = async () => {
+  //     try {
+  //       if (searchTermSku && searchTermSku.sku) {
+  //         // Add null check
+  //         console.log("value", searchTermSku);
+  //         await axios
+  //           .get(`${BACKEND_URL}/api/products/${searchTermSku.sku}`)
+  //           .then((res) => {
+  //             const responseData = res.data;
+  //             console.log("Data from backend by sku:", responseData);
+  //             // Process the response data from backend if needed
+  //             setData([responseData]);
+  //           });
+  //       }
+  //     } catch (error) {
+  //       console.error("Failed to fetch data from backend:", error);
+  //     }
+  //   };
+  //   getProductBySku();
+  // }, [searchTermSku]);
+
+//vendor name with BACKEND_URL}/api/products/${searchTermSku.sku}
+
+
+
+// {
+//   title: 'Vendor Name',
+//   key: 'vendor_name',
+//   render: (record) => {
+//     const vendorProducts = record.product?.vendorProducts || [];
+//     return vendorProducts.length > 0 ? (
+//       vendorProducts.map(vp => (
+//         <div key={vp.id}>
+//           {vp.vendor?.name || 'N/A'}
+//         </div>
+//       ))
+//     ) : (
+//       <div>No vendor data</div>
+//     );
+//   }
+// }
+// ,
+  
+//   {
+//     title: 'Vendor Cost',
+//     dataIndex: 'vendorProducts',
+//     key: 'vendor_cost',
+//     render: (_, record) => {
+
+//       const { vendorProducts } = record;
+//       console.log('Record: vendor cost', record);  // Log for debug
+//       if (!vendorProducts || vendorProducts.length === 0) return <div>No vendor data</div>;
+  
+//       return vendorProducts.map((vendorProduct) => {
+//         const { vendor_cost } = vendorProduct;
+//         return <div key={vendorProduct.vendor_id || vendorProduct.id}>{vendor_cost ? `$${vendor_cost.toFixed(2)}` : 'N/A'}</div>;
+//       });
+//     }
+//   },
+  
+//   {
+//     title: 'Margin %',
+//     key: 'margin',
+//     render: (record) => {
+//       const { price, vendorProducts } = record;
+//       console.log('Price:', price, 'Vendor Products:', vendorProducts);  // Log for debug
+//       if (!vendorProducts || vendorProducts.length === 0) return <div>No margin data</div>;
+  
+//       return vendorProducts.map((vendorProduct) => {
+//         const { vendor_cost } = vendorProduct;
+//         if (price && vendor_cost) {
+//           const margin = ((price - vendor_cost) / price) * 100;
+//           return <div key={vendorProduct.vendor_id || vendorProduct.id}>{`${margin.toFixed(2)}%`}</div>;
+//         } else {
+//           return <div key={vendorProduct.vendor_id || vendorProduct.id}>Margin data unavailable</div>;
+//         }
+//       });
+//     },
+//   },
+
+
+
+      // {
+      //   title: "Supplier",
+      //   dataIndex: "selected_supplier",
+      //   key: "selected_supplier",
+      //   align: "center",
+      //   render: (text, record) => {
+      //     if (editingRow === record.id) {
+      //       return (
+      //         <Form.Item
+      //           name="selected_supplier"
+      //           rules={[
+      //             {
+      //               required: true,
+      //               message: "supplier is required",
+      //             },
+      //           ]}
+      //         >
+      //           <Select placeholder="Select a supplier">
+      //             <Option value="Keystone">Keystone</Option>
+      //             <Option value="Meyer">Meyer</Option>
+      //             <Option value="Omix">Omix</Option>
+      //             <Option value="Quadratec">Quaddratec</Option>
+      //           </Select>
+      //         </Form.Item>
+      //       );
+      //     } else {
+      //       return <p>{text}</p>;
+      //     }
+      //   },
+      // },
+      // {
+      //   title: "SupplierCost",
+      //   dataIndex: "selected_supplier_cost",
+      //   key: "selected_supplier_cost",
+      //   align: "center",
+      //   render: (text, record) => {
+      //     if (editingRow === record.id) {
+      //       return (
+      //         <Form.Item
+      //           name="selected_supplier_cost"
+      //           rules={[
+      //             {
+      //               required: true,
+      //               message: "selected_supplier_cost is required",
+      //             },
+      //           ]}
+      //         >
+      //           <Input />
+      //         </Form.Item>
+      //       );
+      //     } else {
+      //       return <p>${text}</p>;
+      //     }
+      //   },
+      // },
+      // {
+      //   title: "TotalCost",
+      //   dataIndex: "total",
+      //   key: "total",
+      //   align: "center",
+      //   render: (text, record) => {
+      //     return <p>${record.qty_ordered * record.selected_supplier_cost}</p>;
+      //   },
+      // },
+      // {
+      //   title: "Margin%",
+      //   key: "margin",
+      //   align: "center",
+      //   render: (text, record) => {
+      //     const cost = record.selected_supplier_cost;
+      //     const price = record.price;
+      //     if (cost && price) {
+      //       const margin = ((price - cost) / price) * 100;
+      //       return <span>{margin.toFixed(2)}%</span>;
+      //     } else {
+      //       return <span></span>;
+      //     }
+      //   },
+      // },
+      // {
+      //   title: "Status",
+      //   dataIndex: "status",
+      //   key: "status",
+      //   align: "center",
+      //   render: (text, record) => {
+      //     if (editingRow === record.id) {
+      //       return (
+      //         <Form.Item
+      //           name="status"
+      //           rules={[
+      //             {
+      //               required: true,
+      //               message: "status is required",
+      //             },
+      //           ]}
+      //         >
+      //           <Select placeholder="Update Status">
+      //             <Option value="Completed">
+      //               <Badge status="success" text="Completed" />
+      //             </Option>
+      //             <Option value="No Stock">
+      //               <Badge status="warning" text="No Stock" />
+      //             </Option>
+      //             <Option value="PO Created">
+      //               <Badge status="processing" text="PO Created" />
+      //             </Option>
+      //             <Option value="Cancel">
+      //               <Badge status="error" text="Cancel" />
+      //             </Option>
+      //           </Select>
+      //         </Form.Item>
+      //       );
+      //     } else {
+      //       return <p>{text}</p>;
+      //     }
+      //   },
+      // },
+
     ];
     const total_cost = record.items?.reduce(
       (acc, record) => acc + record.qty_ordered * record.selected_supplier_cost,
@@ -1157,10 +2216,10 @@ const OrderTable = () => {
               fontSize: "1.2rem",
             }}
           >
-            Total Sales : ${total_price?.toFixed(2)} <br />
+            {/* Total Sales : ${total_price?.toFixed(2)} <br />
             Total Cost : ${total_cost?.toFixed(2)} <br />
             Total Margin :{" "}
-            {(((total_price - total_cost) / total_price) * 100).toFixed(2)}%
+            {(((total_price - total_cost) / total_price) * 100).toFixed(2)}% */}
           </span>
         )}
       />
@@ -1169,33 +2228,48 @@ const OrderTable = () => {
 
   return (
     <>
+    
       <div className="container-fluid">
         <div className="container-xl">
-          <div className="container mb-3">
+          <div className="container mb-3" 
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '10px', marginTop: '5px' }}>  
+
             <Button 
-            type="primary" 
-            onClick={handleSeedOrders}
-            size="large"
-            style={{ 
-              backgroundColor: "#dc3545",
-              borderColor: "white",
-              color: "white",
-              fontSize: "1.5rem",
-              fontWeight: "600",
-              borderRadius: "5px",
-              height: "50px",
-              width: "200px", 
-              marginBottom: "20px",
-          }}
-            // fontFamily: "Montserrat", sans-serif;
-            //font size: 1.5rem;
-            //font weight: 600;
+              type="primary" 
+              onClick={handleSeedOrders}
+              size="large"
+              style={{ 
+                backgroundColor: "#dc3545",
+                borderColor: "white",
+                color: "white",
+                fontSize: "1.5rem",
+                fontWeight: "600",
+                borderRadius: "5px",
+                height: "60px",         // ✅ slightly taller to match card height
+                width: "200px",
+              }}
             >
               Update Orders
             </Button>
 
-            <TableTop orderCount={orders.length} />
+            <div style={{ flex: 1 }}>
+              <TableTop 
+                orderCount={orders.length} 
+                notSetCount={notSetOrdersCount}
+                todayCount={ordersToday}
+                yesterdayCount={ordersYesterday}
+                last7DaysCount={ordersLast7Days}
+                onNotSetClick={() => setShowNotSetOnly(prev => !prev)}
+                onPmClick={() => setShowPmOnly(prev => !prev)}
+                gwCount={gwOrdersCount}
+                pmCount={pmOrdersCount} 
+              />
+            </div>
           </div>
+
+
+
+          <div className="table-wrapper" style={{ overflowX: "auto" }}>
 
           <Form form={form}>
             <Table
@@ -1204,6 +2278,7 @@ const OrderTable = () => {
               dataSource={data}
               // scroll={{ y: 1500 }}
               bordered
+              // scroll={{ x: "max-content" }}
               rowKey={(record) => record.id}
               onChange={handleChange}
               size="large"
@@ -1236,17 +2311,31 @@ const OrderTable = () => {
               }}
               onRow={(record, rowIndex) => {
                 return {
-                  onClick: (event) => {
+                  onClick: () => {
                     setCurrentOrderProductID(record.id);
                     setCurrentSku(record.sku);
                     setCurrentOrderProductPrice(record.price);
+                    setCurrentCurrency(record.currency); // ✅ add this line
                   },
                 };
               }}
+              // onRow={(record, rowIndex) => {
+              //   return {
+              //     onClick: (event) => {
+              //       setCurrentOrderProductID(record.id);
+              //       setCurrentSku(record.sku);
+              //       setCurrentOrderProductPrice(record.price);
+              //     },
+              //   };
+              // }
+            
             />
           </Form>
+          </div>
+
+
         </div>
-        <div id="footer">© 2023, Helper.com, Inc. All Rights Reserved</div>
+        <div id="footer">© 2023, JustJeeps.com, Inc. All Rights Reserved</div>
       </div>
       {open && (
         <Popup
@@ -1255,6 +2344,8 @@ const OrderTable = () => {
           sku={currentSku}
           orderProductId={currentOrderProductID}
           orderProductPrice={currentOrderProductPrice}
+          currency={currentCurrency} // ✅ Add this line
+
         />
       )}
     </>

@@ -1,61 +1,104 @@
 import {
-	DollarCircleOutlined,
-	LikeOutlined,
-	CalendarOutlined,
+  DollarCircleOutlined,
+  LikeOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons';
 import { Card, Col, Row, Statistic } from 'antd';
 import { useDashboardData } from '../../hooks/useDashboardData';
 
-const TableTop = (orderCount) => {
-	console.log('orderCount', orderCount);
-	const { state } = useDashboardData();
-	return (
-		<Row gutter={16}>
-			<Col span={8}>
-				<Card bordered={false}>
-					<Statistic
-						title='Total Orders'
-						value={orderCount.orderCount}
-						precision={0}
-						valueStyle={{
-							color: '#3f8600',
-						}}
-						prefix={<LikeOutlined />}
-					/>
-				</Card>
-			</Col>
+const cardStyle = {
+  height: '120px',               // ✅ fixed height for all cards
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  textAlign: 'center',
+};
 
-			<Col span={8}>
-				<Card bordered={false}>
-					<Statistic
-						title='Today is AMAZING!'
-						value={new Date().toLocaleString() + ''}
-						// precision={2}
-						valueStyle={{
-							color: '#4B0082',
-						}}
-						prefix={<CalendarOutlined />}
-					/>
-				</Card>
-			</Col>
+const TableTop = ({ orderCount, notSetCount, todayCount, yesterdayCount, last7DaysCount, gwCount, pmCount, onNotSetClick, onPmClick }) => {
+  console.log('orderCount', orderCount);
+  const { state } = useDashboardData();
 
+  return (
+    <Row gutter={16}>
+      <Col span={4}>
+        {/* <Card bordered={false} style={cardStyle}>
+          <Statistic
+            title='Orders Pulled'
+            value={orderCount}
+            valueStyle={{ color: '#3f8600' }}
+            prefix={<LikeOutlined />}
+          />
+        </Card> */}
+      </Col>
 
-			{/* <Col span={8}>
-				<Card bordered={false}>
-					<Statistic
-						title='Total Revenue'
-						value={parseInt(state.totalSum).toLocaleString()}
-						precision={2}
-						valueStyle={{
-							color: '#145DA0',
-						}}
-						prefix={<DollarCircleOutlined />}
-					/>
-				</Card>
-			</Col> */}
+    <Col span={4}>
+        <Card
+          bordered={false}
+          style={{ ...cardStyle, cursor: 'pointer', border: '1px solid #ff4d4f' }}
+          onClick={onNotSetClick}    // ✅ makes it clickable
+          hoverable
+        >
+          <Statistic title='Not Set Orders' value={notSetCount} valueStyle={{ color: '#ff4d4f' }} />
+        </Card>
+      </Col>
 
-		</Row>
-	);
+      <Col span={4}>
+        <Card bordered={false} style={cardStyle}>
+          <Statistic
+            title="Today's Orders"
+            value={todayCount}
+            valueStyle={{ color: '#1890ff' }}
+          />
+        </Card>
+      </Col>
+
+      <Col span={4}>
+        <Card bordered={false} style={cardStyle}>
+          <Statistic
+            title="Yesterday's Orders"
+            value={yesterdayCount}
+            valueStyle={{ color: '#faad14' }}
+          />
+        </Card>
+      </Col>
+
+      <Col span={4}>
+        <Card bordered={false} style={cardStyle}>
+          <Statistic
+            title='Last 7 Days'
+            value={last7DaysCount}
+            valueStyle={{ color: '#722ed1' }}
+          />
+        </Card>
+      </Col>
+
+      <Col span={4}>
+        <Card
+          bordered={false}
+          style={{ ...cardStyle, cursor: 'pointer', border: '1px solid #eb2f96' }}
+          onClick={onPmClick}
+          hoverable
+        >
+          <Statistic
+            title='PM Not Set Orders'
+            value={pmCount}
+            valueStyle={{ color: '#eb2f96' }}
+          />
+        </Card>
+      </Col>
+
+      {/* <Col span={4}>
+        <Card bordered={false} style={cardStyle}>
+          <Statistic
+            title='Current Date & Time'
+            value={new Date().toLocaleString()}
+            valueStyle={{ color: '#4B0082' }}
+            prefix={<CalendarOutlined />}
+          />
+        </Card>
+      </Col> */}
+    </Row>
+  );
 };
 
 export default TableTop;

@@ -33,6 +33,9 @@ const columns = [
 	},
 ];
 
+const API_URL = import.meta.env.VITE_API_URL;
+
+
 const PurchaseOrderTable = ({ vendorId }) => {
 	const [originalPurchaseOrderData, setOriginalPurchaseOrderData] = useState(
 		[]
@@ -144,7 +147,7 @@ const PurchaseOrderTable = ({ vendorId }) => {
 			console.log('vendorId', vendorId);
 			try {
 				await axios
-					.get(`http://localhost:8080/api/purchase_orders/vendor/${vendorId}`)
+					.get(`${API_URL}/api/purchase_orders/vendor/${vendorId}`)
 					.then(res => {
 						const responseData = res.data;
 						console.log('Data from backend by sku:', responseData);

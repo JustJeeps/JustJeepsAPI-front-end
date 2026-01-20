@@ -1,0 +1,134 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
+
+const AuthContext = createContext();
+
+// Custom hook to use auth context
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('authToken'));
+  const [loading, setLoading] = useState(true);
+  const [authEnabled, setAuthEnabled] = useState(false);
+
+  // API base URL - adjust if needed
+  // Prefer Vite env var (set to the ngrok domain) otherwise fall back to relative paths
+  // When VITE_API_URL is empty, using '' will make axios requests use relative URLs
+  // which allows the Vite dev server proxy (configured in vite.config.js) to forward
+  // /api requests to the backend on localhost:8080.
+  const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
+  // Check authentication status on app load
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  // Set up axios interceptor for token
+  useEffect(() => {
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      localStorage.setItem('authToken', token);
+    } else {
+      delete axios.defaults.headers.common['Authorization'];
+      localStorage.removeItem('authToken');
+    }
+  }, [token]);
+
+  const checkAuthStatus = async () => {
+    try {
+      // Check if authentication is enabled on the server
+      const response = await axios.get(`${API_BASE_URL}/api/auth/status`);
+      setAuthEnabled(response.data.authEnabled);
+
+      // If auth is enabled and we have a token, verify it
+      if (response.data.authEnabled && token) {
+        await getCurrentUser();
+      }
+    } catch (error) {
+      console.error('Auth status check failed:', error);
+      setAuthEnabled(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getCurrentUser = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/auth/me`);
+      setUser(response.data.user);
+    } catch (error) {
+      console.error('Get current user failed:', error);
+      logout(); // Clear invalid token
+    }
+  };
+
+  const login = async (username, password) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+        username,
+        password,
+      });
+
+      const { token: newToken, user: userData } = response.data;
+      setToken(newToken);
+      setUser(userData);
+
+      return { success: true, user: userData };
+    } catch (error) {
+      const message = error.response?.data?.message || 'Login failed';
+      return { success: false, message };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await axios.post(`${API_BASE_URL}/api/auth/logout`);
+    } catch (error) {
+      console.error('Logout request failed:', error);
+    }
+
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('authToken');
+  };
+
+  const register = async (userData) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/register`, userData);
+      const { token: newToken, user: newUser } = response.data;
+      
+      setToken(newToken);
+      setUser(newUser);
+
+      return { success: true, user: newUser };
+    } catch (error) {
+      const message = error.response?.data?.message || 'Registration failed';
+      return { success: false, message };
+    }
+  };
+
+  const value = {
+    user,
+    token,
+    authEnabled,
+    loading,
+    login,
+    logout,
+    register,
+    getCurrentUser,
+    isAuthenticated: !!user,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};

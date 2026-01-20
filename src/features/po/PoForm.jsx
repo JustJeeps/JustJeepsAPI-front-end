@@ -108,7 +108,7 @@ export const PoForm = () => {
               </div>
             ) : null}
           </Content>
-          <span id="footer">© 2023, Helper.com, Inc. All Rights Reserved</span>
+          <span id="footer">© 2023, JustJeeps.com, Inc. All Rights Reserved</span>
         </Layout>
       </Layout>
     </div>

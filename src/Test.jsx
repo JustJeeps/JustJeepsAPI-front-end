@@ -26,6 +26,9 @@ export const Items = () => {
   const onChange = (value) => {
     console.log('changed', value);
   };
+
+    const API_URL = import.meta.env.VITE_API_URL;
+
   
 
 
@@ -52,7 +55,7 @@ export const Items = () => {
         console.log("searchTermBrand", searchTermSku);
         if (searchTermSku && searchTermSku.brand_name) {
           setLoading(true);
-          await axios.get(`http://localhost:8080/api/products`).then((res) => {
+          await axios.get(`${API_URL}/api/products`).then((res) => {
             const responseData = res.data;
             const productsByBrand = getProductsByBrand(
               responseData,
@@ -78,7 +81,7 @@ export const Items = () => {
     const getAllSkus = async () => {
       try {
         await axios
-          .get(`http://localhost:8080/api/products_sku`)
+          .get(`${API_URL}/api/products_sku`)
           .then((res) => {
             const responseData = res.data;
             // console.log('Data from backend:', responseData);
@@ -188,7 +191,7 @@ export const Items = () => {
             const { price, vendorProducts } = record;
             return vendorProducts.map((vendorProduct) => {
               const { vendor_cost } = vendorProduct;
-              const margin = ((price - vendor_cost) / price) * 100;
+              const margin = ((price - vendor_cost) / vendor_cost) * 100;
               const className = margin < 20 ? "red-margin" : "";
               return (
                 <div
@@ -383,7 +386,7 @@ export const Items = () => {
                 <tr>
                   <th colSpan={5}>
                     {data.length > 0 && (
-                      <h5>Vendors for this Brand: {data[0].vendors}</h5>
+                      <h5>Vendors for this Brand:..... {data[0].vendors}</h5>
                     )}
                   </th>
                 </tr>

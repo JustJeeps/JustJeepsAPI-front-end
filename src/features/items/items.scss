@@ -120,3 +120,19 @@
 }
 
 
+/* Keep vendor name on one line and align spacing with pill columns */
+.vendor-row-fixed {
+  display: flex;
+  align-items: center;
+  padding: 5px;          /* match other vendor cells */
+  margin-bottom: 5px;   /* match Tag pills (Margin %, Inventory) */
+  min-height: 32px;      /* enough to align with pill height */
+}
+
+.vendor-link {
+  display: inline-block;
+  max-width: 120px;      /* 7% column is tight; 110–130px works well */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
