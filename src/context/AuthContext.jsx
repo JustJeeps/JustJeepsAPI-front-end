@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 
 const AuthContext = createContext();
@@ -18,12 +18,53 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [authEnabled, setAuthEnabled] = useState(false);
 
+  // Ref para evitar múltiplos logouts simultâneos
+  const isLoggingOut = useRef(false);
+
   // API base URL - adjust if needed
   // Prefer Vite env var (set to the ngrok domain) otherwise fall back to relative paths
   // When VITE_API_URL is empty, using '' will make axios requests use relative URLs
   // which allows the Vite dev server proxy (configured in vite.config.js) to forward
   // /api requests to the backend on localhost:8080.
   const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
+  // Função de logout que pode ser chamada pelo interceptor
+  const handleUnauthorized = useCallback(() => {
+    if (isLoggingOut.current) return;
+    isLoggingOut.current = true;
+
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('authToken');
+    delete axios.defaults.headers.common['Authorization'];
+
+    // Redireciona para login se não estiver já lá
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login';
+    }
+
+    isLoggingOut.current = false;
+  }, []);
+
+  // Configura interceptor de resposta para tratar erros 401
+  useEffect(() => {
+    const interceptorId = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        // Se receber 401 (Unauthorized) ou 403 (Forbidden), faz logout
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          console.warn('Sessão expirada ou não autorizada. Redirecionando para login...');
+          handleUnauthorized();
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    // Cleanup: remove o interceptor quando o componente desmonta
+    return () => {
+      axios.interceptors.response.eject(interceptorId);
+    };
+  }, [handleUnauthorized]);
 
   // Check authentication status on app load
   useEffect(() => {

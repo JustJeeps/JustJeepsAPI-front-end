@@ -10,7 +10,7 @@ import { PoForm } from './features/po/PoForm.jsx';
 import { Items } from './features/items/Items.jsx';
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
-import AuthTestPage from "./components/AuthTestPage";
+// AuthTestPage removido por segurança - não expor página de teste em produção
 import LoginPage from "./pages/LoginPage";
 
 function App() {
@@ -18,9 +18,25 @@ function App() {
 		<AuthProvider>
 			<Navbar />
 			<Routes>
-				<Route path='/' element={<OrderTable />} />
-				<Route path='/orders' element={<OrderTable />} />
-				<Route path='/suppliers' element={<SupplierTable />} />
+				{/* Rota pública - Login */}
+				<Route path='/login' element={<LoginPage />} />
+
+				{/* Rotas protegidas */}
+				<Route path='/' element={
+					<ProtectedRoute>
+						<OrderTable />
+					</ProtectedRoute>
+				} />
+				<Route path='/orders' element={
+					<ProtectedRoute>
+						<OrderTable />
+					</ProtectedRoute>
+				} />
+				<Route path='/suppliers' element={
+					<ProtectedRoute>
+						<SupplierTable />
+					</ProtectedRoute>
+				} />
 				<Route path='/dashboard'>
 					<Route index element={
 						<ProtectedRoute>
@@ -38,9 +54,11 @@ function App() {
 						<PoForm />
 					</ProtectedRoute>
 				} />
-				<Route path='/items' element={<Items />} />
-				<Route path='/auth-test' element={<AuthTestPage />} />
-				<Route path='/login' element={<LoginPage />} />
+				<Route path='/items' element={
+					<ProtectedRoute>
+						<Items />
+					</ProtectedRoute>
+				} />
 			</Routes>
 		</AuthProvider>
 	);

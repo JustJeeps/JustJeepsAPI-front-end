@@ -107,11 +107,6 @@ const LoginForm = ({ onLoginSuccess, onCancel }) => {
         </Form.Item>
       </Form>
 
-      <div style={{ textAlign: 'center', marginTop: 16 }}>
-        <Text type="secondary" style={{ fontSize: '12px' }}>
-          Test Credentials: admin / adminpassword
-        </Text>
-      </div>
     </Card>
   );
 };
