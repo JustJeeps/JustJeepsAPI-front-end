@@ -76,6 +76,17 @@ const OrderTable = () => {
     region: '',
   });
 
+  // Metrics state (independent of pagination)
+  const [metrics, setMetrics] = useState({
+    notSetCount: 0,
+    todayCount: 0,
+    yesterdayCount: 0,
+    last7DaysCount: 0,
+    pmNotSetCount: 0,
+    gwCount: 0,
+    totalCount: 0,
+  });
+
 
 
 
@@ -291,9 +302,20 @@ Thank you,`
 
 
 
+  // Load metrics (independent of pagination)
+  const loadMetrics = useCallback(async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/orders/metrics`);
+      setMetrics(response.data);
+    } catch (error) {
+      console.error("Failed to fetch metrics:", error);
+    }
+  }, []);
+
   //initial loading data main table
   useEffect(() => {
     loadData(1, pagination.pageSize, filters);
+    loadMetrics();
   }, []);
 
   // Reload when filters change
@@ -367,6 +389,7 @@ Thank you,`
     try {
       await axios.get(`${API_URL}/api/seed-orders`);
       loadData(pagination.current, pagination.pageSize, filters); // fetch the updated orders with current pagination and filters
+      loadMetrics(); // refresh metrics after seeding
     } catch (error) {
       console.error(error);
     } finally {
@@ -1505,51 +1528,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
       }))
     : [];
 
-  // Calculate extra metrics
-  // Helper to normalize date to Toronto local midnight
-const adjustToToronto = (dateStr) => {
-  const d = new Date(dateStr);
-  d.setHours(d.getHours() - 5); // ✅ shift UTC → Toronto (EST after DST ended)
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-};
-
-// Define boundaries in Toronto time
-    const nowToronto = new Date();
-    nowToronto.setHours(nowToronto.getHours() - 5); // Updated for EST
-    const startOfToday = new Date(nowToronto.getFullYear(), nowToronto.getMonth(), nowToronto.getDate());
-    const startOfYesterday = new Date(startOfToday);
-    startOfYesterday.setDate(startOfYesterday.getDate() - 1);
-    const startOfLast7Days = new Date(startOfToday);
-    startOfLast7Days.setDate(startOfLast7Days.getDate() - 6);
-
-    // ✅ Metrics
-    const notSetOrdersCount = orders.filter(
-      o => (o.custom_po_number || "").trim().toLowerCase() === "not set"
-    ).length;
-
-    const ordersToday = orders.filter(o =>
-      adjustToToronto(o.created_at).getTime() === startOfToday.getTime()
-    ).length;
-
-    const ordersYesterday = orders.filter(o => {
-      const d = adjustToToronto(o.created_at).getTime();
-      return d === startOfYesterday.getTime();
-    }).length;
-
-    const ordersLast7Days = orders.filter(o =>
-      adjustToToronto(o.created_at) >= startOfLast7Days
-    ).length;
-
-    const gwOrdersCount = orders.filter(
-  o => (o.custom_po_number || "").toLowerCase().includes("gw")
-).length;
-
-    const pmOrdersCount = orders.filter(
-      o => {
-        const po = (o.custom_po_number || "").toLowerCase();
-        return po.includes("pm") && po.includes("not set");
-      }
-    ).length;
+  // Metrics are now fetched from the server via loadMetrics()
 
 
 
@@ -2315,15 +2294,15 @@ const adjustToToronto = (dateStr) => {
 
             <div style={{ flex: 1 }}>
               <TableTop
-                orderCount={orders.length}
-                notSetCount={notSetOrdersCount}
-                todayCount={ordersToday}
-                yesterdayCount={ordersYesterday}
-                last7DaysCount={ordersLast7Days}
+                orderCount={metrics.totalCount}
+                notSetCount={metrics.notSetCount}
+                todayCount={metrics.todayCount}
+                yesterdayCount={metrics.yesterdayCount}
+                last7DaysCount={metrics.last7DaysCount}
                 onNotSetClick={() => handleFilterChange('poStatus', filters.poStatus === 'not_set' ? '' : 'not_set')}
                 onPmClick={() => handleFilterChange('poStatus', filters.poStatus === 'partial' ? '' : 'partial')}
-                gwCount={gwOrdersCount}
-                pmCount={pmOrdersCount}
+                gwCount={metrics.gwCount}
+                pmCount={metrics.pmNotSetCount}
               />
             </div>
           </div>
