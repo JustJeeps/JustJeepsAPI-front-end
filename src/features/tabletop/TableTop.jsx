@@ -14,7 +14,7 @@ const cardStyle = {
   textAlign: 'center',
 };
 
-const TableTop = ({ orderCount, notSetCount, todayCount, yesterdayCount, last7DaysCount, gwCount, pmCount, onNotSetClick, onPmClick }) => {
+const TableTop = ({ orderCount, notSetCount, todayCount, yesterdayCount, last7DaysCount, gwCount, pmCount, onNotSetClick, onPmClick, loading = false }) => {
   console.log('orderCount', orderCount);
   const { state } = useDashboardData();
 
@@ -27,6 +27,7 @@ const TableTop = ({ orderCount, notSetCount, todayCount, yesterdayCount, last7Da
             value={orderCount}
             valueStyle={{ color: '#3f8600' }}
             prefix={<LikeOutlined />}
+            loading={loading}
           />
         </Card> */}
       </Col>
@@ -35,10 +36,10 @@ const TableTop = ({ orderCount, notSetCount, todayCount, yesterdayCount, last7Da
         <Card
           bordered={false}
           style={{ ...cardStyle, cursor: 'pointer', border: '1px solid #ff4d4f' }}
-          onClick={onNotSetClick}    // ✅ makes it clickable
+          onClick={onNotSetClick}
           hoverable
         >
-          <Statistic title='Not Set Orders' value={notSetCount} valueStyle={{ color: '#ff4d4f' }} />
+          <Statistic title='Not Set Orders' value={notSetCount} valueStyle={{ color: '#ff4d4f' }} loading={loading} />
         </Card>
       </Col>
 
@@ -48,6 +49,7 @@ const TableTop = ({ orderCount, notSetCount, todayCount, yesterdayCount, last7Da
             title="Today's Orders"
             value={todayCount}
             valueStyle={{ color: '#1890ff' }}
+            loading={loading}
           />
         </Card>
       </Col>
@@ -58,6 +60,7 @@ const TableTop = ({ orderCount, notSetCount, todayCount, yesterdayCount, last7Da
             title="Yesterday's Orders"
             value={yesterdayCount}
             valueStyle={{ color: '#faad14' }}
+            loading={loading}
           />
         </Card>
       </Col>
@@ -68,6 +71,7 @@ const TableTop = ({ orderCount, notSetCount, todayCount, yesterdayCount, last7Da
             title='Last 7 Days'
             value={last7DaysCount}
             valueStyle={{ color: '#722ed1' }}
+            loading={loading}
           />
         </Card>
       </Col>
@@ -83,6 +87,7 @@ const TableTop = ({ orderCount, notSetCount, todayCount, yesterdayCount, last7Da
             title='PM Not Set Orders'
             value={pmCount}
             valueStyle={{ color: '#eb2f96' }}
+            loading={loading}
           />
         </Card>
       </Col>

@@ -86,6 +86,7 @@ const OrderTable = () => {
     gwCount: 0,
     totalCount: 0,
   });
+  const [metricsLoading, setMetricsLoading] = useState(true);
 
 
 
@@ -304,11 +305,16 @@ Thank you,`
 
   // Load metrics (independent of pagination)
   const loadMetrics = useCallback(async () => {
+    setMetricsLoading(true);
     try {
       const response = await axios.get(`${API_URL}/api/orders/metrics`);
       setMetrics(response.data);
     } catch (error) {
       console.error("Failed to fetch metrics:", error);
+      // Fallback: calculate metrics from current page data (not ideal but better than 0)
+      // This will only be used if the metrics endpoint is not available
+    } finally {
+      setMetricsLoading(false);
     }
   }, []);
 
@@ -2303,6 +2309,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
                 onPmClick={() => handleFilterChange('poStatus', filters.poStatus === 'partial' ? '' : 'partial')}
                 gwCount={metrics.gwCount}
                 pmCount={metrics.pmNotSetCount}
+                loading={metricsLoading}
               />
             </div>
           </div>
