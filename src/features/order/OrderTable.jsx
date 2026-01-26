@@ -18,7 +18,11 @@ import {
   Select,
   Badge,
   Tag,
+  Row,
+  Col,
+  Card,
 } from "antd";
+import { FilterOutlined, ClearOutlined, ReloadOutlined } from "@ant-design/icons";
 import Highlighter from "react-highlight-words";
 import { Edit, Trash, Save, Reload } from "../../icons";
 import Popup from "./Popup";
@@ -60,8 +64,16 @@ const OrderTable = () => {
   // Pagination state for server-side pagination
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 50,
+    pageSize: 25,
     total: 0,
+  });
+
+  // Filter states
+  const [filters, setFilters] = useState({
+    status: 'pending', // Default to pending
+    search: '',
+    poStatus: '',
+    region: '',
   });
 
 
@@ -281,16 +293,28 @@ Thank you,`
 
   //initial loading data main table
   useEffect(() => {
-    loadData(1, pagination.pageSize);
+    loadData(1, pagination.pageSize, filters);
   }, []);
 
-  //load all data with pagination
-  const loadData = useCallback(async (page = 1, pageSize = 50) => {
+  // Reload when filters change
+  useEffect(() => {
+    loadData(1, pagination.pageSize, filters);
+  }, [filters]);
+
+  //load all data with pagination and filters
+  const loadData = useCallback(async (page = 1, pageSize = 25, currentFilters = filters) => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/api/orders`, {
-        params: { page, limit: pageSize },
-      });
+      const params = {
+        page,
+        limit: pageSize,
+        ...(currentFilters.status && { status: currentFilters.status }),
+        ...(currentFilters.search && { search: currentFilters.search }),
+        ...(currentFilters.poStatus && { poStatus: currentFilters.poStatus }),
+        ...(currentFilters.region && { region: currentFilters.region }),
+      };
+
+      const response = await axios.get(`${API_URL}/api/orders`, { params });
 
       // Handle both old format (array) and new format (paginated object)
       const ordersData = response.data.data || response.data;
@@ -311,15 +335,30 @@ Thank you,`
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters]);
   
   // Handle pagination change from table
-  const handleTableChange = (paginationConfig, filters, sorter) => {
+  const handleTableChange = (paginationConfig, tableFilters, sorter) => {
     const { current, pageSize } = paginationConfig;
-    loadData(current, pageSize);
+    loadData(current, pageSize, filters);
     // Also handle sorting
     const { order, field } = sorter;
     setSortedInfo({ columnKey: field, order });
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setFilters({
+      status: '',
+      search: '',
+      poStatus: '',
+      region: '',
+    });
   };
 
   //seed orders
@@ -327,7 +366,7 @@ Thank you,`
     setLoading(true);
     try {
       await axios.get(`${API_URL}/api/seed-orders`);
-      loadData(pagination.current, pagination.pageSize); // fetch the updated orders with current pagination
+      loadData(pagination.current, pagination.pageSize, filters); // fetch the updated orders with current pagination and filters
     } catch (error) {
       console.error(error);
     } finally {
@@ -1458,17 +1497,9 @@ console.log("IS ARRAY?", Array.isArray(orders));
   //   }))
   // : [];
 
-  const filteredOrders = showNotSetOnly
-  ? orders.filter(o => (o.custom_po_number || "").trim().toLowerCase() === "not set")
-  : showPmOnly
-  ? orders.filter(o => {
-      const po = (o.custom_po_number || "").toLowerCase();
-      return po.includes("pm") && po.includes("not set");
-    })
-  : orders;
-
-  const data = Array.isArray(filteredOrders)
-    ? filteredOrders.map((order) => ({
+  // Data is now filtered server-side, no need for local filtering
+  const data = Array.isArray(orders)
+    ? orders.map((order) => ({
         key: order.entity_id,
         ...order,
       }))
@@ -1548,7 +1579,7 @@ const adjustToToronto = (dateStr) => {
     console.log("record on close", record);
     setCurrentSku(null);
     setOpen(false);
-    loadData(pagination.current, pagination.pageSize);
+    loadData(pagination.current, pagination.pageSize, filters);
   };
 
   const handleExpand = (expanded, record) => {
@@ -2283,19 +2314,140 @@ const adjustToToronto = (dateStr) => {
             </Button>
 
             <div style={{ flex: 1 }}>
-              <TableTop 
-                orderCount={orders.length} 
+              <TableTop
+                orderCount={orders.length}
                 notSetCount={notSetOrdersCount}
                 todayCount={ordersToday}
                 yesterdayCount={ordersYesterday}
                 last7DaysCount={ordersLast7Days}
-                onNotSetClick={() => setShowNotSetOnly(prev => !prev)}
-                onPmClick={() => setShowPmOnly(prev => !prev)}
+                onNotSetClick={() => handleFilterChange('poStatus', filters.poStatus === 'not_set' ? '' : 'not_set')}
+                onPmClick={() => handleFilterChange('poStatus', filters.poStatus === 'partial' ? '' : 'partial')}
                 gwCount={gwOrdersCount}
-                pmCount={pmOrdersCount} 
+                pmCount={pmOrdersCount}
               />
             </div>
           </div>
+
+          {/* Filter Row */}
+          <Card
+            size="small"
+            style={{ marginBottom: 16, backgroundColor: '#fafafa' }}
+            bodyStyle={{ padding: '12px 16px' }}
+          >
+            <Row gutter={[16, 12]} align="middle">
+              <Col xs={24} sm={12} md={6} lg={4}>
+                <Input.Search
+                  placeholder="Search orders..."
+                  allowClear
+                  value={filters.search}
+                  onChange={(e) => handleFilterChange('search', e.target.value)}
+                  onSearch={(value) => handleFilterChange('search', value)}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+
+              <Col xs={12} sm={6} md={4} lg={3}>
+                <Select
+                  placeholder="Status"
+                  allowClear
+                  value={filters.status || undefined}
+                  onChange={(value) => handleFilterChange('status', value || '')}
+                  style={{ width: '100%' }}
+                >
+                  <Select.Option value="pending">
+                    <Tag color="blue">PENDING</Tag>
+                  </Select.Option>
+                  <Select.Option value="processing">
+                    <Tag color="orange">PROCESSING</Tag>
+                  </Select.Option>
+                  <Select.Option value="complete">
+                    <Tag color="green">COMPLETE</Tag>
+                  </Select.Option>
+                  <Select.Option value="canceled">
+                    <Tag color="volcano">CANCELED</Tag>
+                  </Select.Option>
+                </Select>
+              </Col>
+
+              <Col xs={12} sm={6} md={4} lg={3}>
+                <Select
+                  placeholder="PO Status"
+                  allowClear
+                  value={filters.poStatus || undefined}
+                  onChange={(value) => handleFilterChange('poStatus', value || '')}
+                  style={{ width: '100%' }}
+                >
+                  <Select.Option value="not_set">
+                    <span style={{ color: 'red' }}>Not Set</span>
+                  </Select.Option>
+                  <Select.Option value="partial">
+                    <span style={{ color: '#faad14' }}>Partial</span>
+                  </Select.Option>
+                  <Select.Option value="set">
+                    <span style={{ color: 'green' }}>Set</span>
+                  </Select.Option>
+                </Select>
+              </Col>
+
+              <Col xs={12} sm={6} md={4} lg={3}>
+                <Select
+                  placeholder="Region"
+                  allowClear
+                  showSearch
+                  value={filters.region || undefined}
+                  onChange={(value) => handleFilterChange('region', value || '')}
+                  style={{ width: '100%' }}
+                  filterOption={(input, option) =>
+                    option.children.toLowerCase().includes(input.toLowerCase())
+                  }
+                >
+                  <Select.Option value="Ontario">Ontario</Select.Option>
+                  <Select.Option value="Quebec">Quebec</Select.Option>
+                  <Select.Option value="British Columbia">British Columbia</Select.Option>
+                  <Select.Option value="Alberta">Alberta</Select.Option>
+                  <Select.Option value="Manitoba">Manitoba</Select.Option>
+                  <Select.Option value="Saskatchewan">Saskatchewan</Select.Option>
+                  <Select.Option value="Nova Scotia">Nova Scotia</Select.Option>
+                  <Select.Option value="New Brunswick">New Brunswick</Select.Option>
+                  <Select.Option value="Newfoundland and Labrador">Newfoundland & Labrador</Select.Option>
+                  <Select.Option value="Prince Edward Island">Prince Edward Island</Select.Option>
+                  <Select.Option value="Northwest Territories">Northwest Territories</Select.Option>
+                  <Select.Option value="Yukon">Yukon</Select.Option>
+                  <Select.Option value="Nunavut">Nunavut</Select.Option>
+                </Select>
+              </Col>
+
+              <Col xs={12} sm={6} md={4} lg={3}>
+                <Space>
+                  <Button
+                    icon={<ClearOutlined />}
+                    onClick={handleClearFilters}
+                  >
+                    Clear
+                  </Button>
+                  <Button
+                    type="primary"
+                    icon={<ReloadOutlined />}
+                    onClick={() => loadData(1, pagination.pageSize, filters)}
+                  >
+                    Refresh
+                  </Button>
+                </Space>
+              </Col>
+
+              <Col xs={24} sm={12} md={6} lg={8} style={{ textAlign: 'right' }}>
+                <Space>
+                  <FilterOutlined style={{ color: '#1890ff' }} />
+                  <span style={{ color: '#666' }}>
+                    Showing {orders.length} of {pagination.total} orders
+                    {filters.status && <Tag color="blue" style={{ marginLeft: 8 }}>{filters.status.toUpperCase()}</Tag>}
+                    {filters.poStatus && <Tag color="orange" style={{ marginLeft: 4 }}>{filters.poStatus.replace('_', ' ').toUpperCase()}</Tag>}
+                    {filters.region && <Tag color="purple" style={{ marginLeft: 4 }}>{filters.region}</Tag>}
+                  </span>
+                </Space>
+              </Col>
+            </Row>
+          </Card>
 
 
 
@@ -2318,7 +2470,8 @@ const adjustToToronto = (dateStr) => {
                 pageSize: pagination.pageSize,
                 total: pagination.total,
                 showSizeChanger: true,
-                pageSizeOptions: ['25', '50', '100', '200'],
+                pageSizeOptions: ['10', '25', '50', '100', '200'],
+                defaultPageSize: 25,
                 showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} orders`,
                 itemRender: (page, type, originalElement) => {
                   if (type === "page") {
