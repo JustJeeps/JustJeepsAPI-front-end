@@ -57,6 +57,13 @@ const OrderTable = () => {
   const [showNotSetOnly, setShowNotSetOnly] = useState(false);
   const [showPmOnly, setShowPmOnly] = useState(false);
 
+  // Pagination state for server-side pagination
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 50,
+    total: 0,
+  });
+
 
 
 
@@ -274,24 +281,53 @@ Thank you,`
 
   //initial loading data main table
   useEffect(() => {
-    loadData();
+    loadData(1, pagination.pageSize);
   }, []);
 
-  //load all data
-  const loadData = useCallback(async () => {
+  //load all data with pagination
+  const loadData = useCallback(async (page = 1, pageSize = 50) => {
     setLoading(true);
-    const response = await axios.get(`${API_URL}/api/orders`); //orderProductsJoin.json 
-    setOriginalOrders(response.data);
-    setOrders(response.data);
-    setLoading(false);
+    try {
+      const response = await axios.get(`${API_URL}/api/orders`, {
+        params: { page, limit: pageSize },
+      });
+
+      // Handle both old format (array) and new format (paginated object)
+      const ordersData = response.data.data || response.data;
+      const paginationData = response.data.pagination;
+
+      setOriginalOrders(ordersData);
+      setOrders(ordersData);
+
+      if (paginationData) {
+        setPagination({
+          current: paginationData.page,
+          pageSize: paginationData.limit,
+          total: paginationData.total,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
   
+  // Handle pagination change from table
+  const handleTableChange = (paginationConfig, filters, sorter) => {
+    const { current, pageSize } = paginationConfig;
+    loadData(current, pageSize);
+    // Also handle sorting
+    const { order, field } = sorter;
+    setSortedInfo({ columnKey: field, order });
+  };
+
   //seed orders
   const handleSeedOrders = async () => {
     setLoading(true);
     try {
       await axios.get(`${API_URL}/api/seed-orders`);
-      loadData(); // fetch the updated orders
+      loadData(pagination.current, pagination.pageSize); // fetch the updated orders with current pagination
     } catch (error) {
       console.error(error);
     } finally {
@@ -519,12 +555,6 @@ Thank you,`
       `${API_URL}/api/orders/${entity_id}/edit`,
       formObj
     );
-  };
-
-  //sort
-  const handleChange = (...sorter) => {
-    const { order, field } = sorter[2];
-    setSortedInfo({ columnKey: field, order });
   };
 
   //search function
@@ -1518,7 +1548,7 @@ const adjustToToronto = (dateStr) => {
     console.log("record on close", record);
     setCurrentSku(null);
     setOpen(false);
-    loadData();
+    loadData(pagination.current, pagination.pageSize);
   };
 
   const handleExpand = (expanded, record) => {
@@ -2280,11 +2310,16 @@ const adjustToToronto = (dateStr) => {
               bordered
               // scroll={{ x: "max-content" }}
               rowKey={(record) => record.id}
-              onChange={handleChange}
+              onChange={handleTableChange}
               size="large"
               loading={loading}
               pagination={{
-                // pageSize: 20,
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: pagination.total,
+                showSizeChanger: true,
+                pageSizeOptions: ['25', '50', '100', '200'],
+                showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} orders`,
                 itemRender: (page, type, originalElement) => {
                   if (type === "page") {
                     return (
