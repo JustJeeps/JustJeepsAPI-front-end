@@ -30,11 +30,14 @@ export const Items = () => {
 
   const API_URL = import.meta.env.VITE_API_URL;
 
-  // const BACKEND_URL = "https://jj-api-backend.herokuapp.com";
-  // const BACKEND_URL = "  https://1ff8-2607-fea8-58df-feb0-242d-ae03-2e-322c.ngrok-free.app";
-
-  // const BACKEND_URL = "http://localhost:8080";
-
+  // Pagination state
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 50,
+    total: 0,
+    totalPages: 0,
+    hasMore: false
+  });
 
   // NEW state for the typed query and a local cache of all products
   const [typedSku, setTypedSku] = useState("");
@@ -561,34 +564,61 @@ const dataForExcel = transformData(brandData);
 //   return () => clearTimeout(timeout);
 // }, [typedSku, allLoaded, allProducts, API_URL]);
 
+// Server-side search with pagination
+const fetchProducts = async (page = 1, search = '', pageSize = pagination.limit) => {
+  setLoading(true);
+  try {
+    const response = await axios.get(`${API_URL}/api/products`, {
+      params: { page, limit: pageSize, search }
+    });
+
+    // Handle paginated response
+    if (response.data.products) {
+      setData(response.data.products);
+      setPagination(response.data.pagination);
+      setAllProducts(response.data.products);
+      setAllLoaded(true);
+    } else {
+      // Fallback for non-paginated response (backward compatibility)
+      setData(response.data || []);
+    }
+  } catch (err) {
+    console.error("Failed to fetch products:", err);
+    setData([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// Effect for server-side search with debounce
 useEffect(() => {
   const q = (typedSku || "").trim();
-  if (!q) { setData([]); setLoading(false); return; }
 
-  setLoading(true);                 // start spinner immediately
+  // If empty search, load first page without search filter
+  if (!q) {
+    setLoading(true);
+    const timeout = setTimeout(() => {
+      fetchProducts(1, '');
+    }, 100);
+    return () => clearTimeout(timeout);
+  }
 
-  const timeout = setTimeout(async () => {
-    try {
-      if (!allLoaded || !Array.isArray(allProducts) || allProducts.length === 0) {
-        const res = await axios.get(`${API_URL}/api/products`);
-        setAllProducts(res.data || []);
-        setAllLoaded(true);
-        const filtered = (res.data || []).filter(p => productMatches(p, q));
-        setData(filtered.slice(0, 150));  // cap results to first 150
-      } else {
-        const filtered = allProducts.filter(p => productMatches(p, q));
-        setData(filtered.slice(0, 150));  // cap results
-      }
-    } catch (err) {
-      console.error("Partial search failed:", err);
-      setData([]);
-    } finally {
-      setLoading(false);
-    }
-  }, 400); // a touch more than 250ms helps
+  setLoading(true);
+
+  const timeout = setTimeout(() => {
+    // Search server-side with pagination
+    fetchProducts(1, q);
+  }, 400);
 
   return () => clearTimeout(timeout);
-}, [typedSku, allLoaded, allProducts, API_URL]);
+}, [typedSku, API_URL]);
+
+// Handle pagination change
+const handleTableChange = (newPage, newPageSize) => {
+  const search = (typedSku || "").trim();
+  setPagination(prev => ({ ...prev, page: newPage, limit: newPageSize }));
+  fetchProducts(newPage, search, newPageSize);
+};
 
 
 
@@ -1480,25 +1510,36 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
                 <div className="explore-content">
                   {searchBy === "sku" ? (
                     <Table
-                      // dataSource={Array.isArray(data) ? data : []}
-                      // columns={columns_by_sku}
-                      // rowKey="sku"
-                      // loading={loading}   // 🔥 spinner shows while searching
-                      // pagination={false}
                         dataSource={Array.isArray(data) ? data : []}
-                        columns={typedSku?.trim() ? columns_no_img : columns_by_sku} // hide images during search
+                        columns={typedSku?.trim() ? columns_no_img : columns_by_sku}
                         rowKey="sku"
-                        pagination={false}
                         loading={loading}
                         components={{
                           header: {
                             cell: ResizableTitle,
                           },
                         }}
+                        pagination={{
+                          current: pagination.page,
+                          pageSize: pagination.limit,
+                          total: pagination.total,
+                          showSizeChanger: true,
+                          pageSizeOptions: ['25', '50', '100', '200'],
+                          showTotal: (total, range) =>
+                            `${range[0]}-${range[1]} de ${total} produtos`,
+                          onChange: handleTableChange,
+                          onShowSizeChange: handleTableChange,
+                          position: ['topRight', 'bottomRight'],
+                        }}
                       title={() => (
-                        Array.isArray(data) && data.length > 0 && data[0]?.vendors ? (
-                          <h5>Vendors for this Brand: {data[0].vendors}</h5>
-                        ) : null
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          {Array.isArray(data) && data.length > 0 && data[0]?.vendors ? (
+                            <h5 style={{ margin: 0 }}>Vendors for this Brand: {data[0].vendors}</h5>
+                          ) : <span />}
+                          <span style={{ fontWeight: 'bold' }}>
+                            Total: {pagination.total.toLocaleString()} produtos
+                          </span>
+                        </div>
                       )}
                     />
 
