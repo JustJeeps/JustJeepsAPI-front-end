@@ -118,6 +118,12 @@ export const AuthProvider = ({ children }) => {
       });
 
       const { token: newToken, user: userData } = response.data;
+
+      // Set axios header IMMEDIATELY before state updates
+      // This prevents race condition where navigation happens before useEffect runs
+      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+      localStorage.setItem('authToken', newToken);
+
       setToken(newToken);
       setUser(userData);
 
