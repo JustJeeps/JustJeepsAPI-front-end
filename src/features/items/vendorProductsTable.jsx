@@ -15,14 +15,13 @@ const SkuTable = () => {
   useEffect(() => {
     const getProductbysku = async () => {
       try {
-         await axios.get(`${API_URL}`/api/products/BST-56820-15``)
-        .then(res => {
-          const responseData = res.data;
-          console.log('Data from backend ....:', responseData);
-          // Process the response data from backend if needed
-          setData([...data, responseData]);
-        })
-        
+         const res = await axios.get(`${API_URL}/api/products/BST-56820-15`);
+         const responseData = res.data;
+         console.log('Data from backend ....:', responseData);
+         // Process the response data from backend if needed
+         if (responseData) {
+           setData([responseData]);
+         }
       } catch (error) {
         console.error('Failed to fetch data from backend:', error);
       }

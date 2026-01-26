@@ -55,20 +55,20 @@ export const Items = () => {
         console.log("searchTermBrand", searchTermSku);
         if (searchTermSku && searchTermSku.brand_name) {
           setLoading(true);
-          await axios.get(`${API_URL}/api/products`).then((res) => {
-            const responseData = res.data;
-            const productsByBrand = getProductsByBrand(
-              responseData,
-              searchTermSku.brand_name
-            );
-            console.log("productsByBrand", productsByBrand);
-            // Process the response data from backend if needed
-            setBrandData(productsByBrand);
-            setLoading(false);
-          });
+          // Use the dedicated brand endpoint for better performance
+          const res = await axios.get(
+            `${API_URL}/api/products/brand/${encodeURIComponent(searchTermSku.brand_name)}`
+          );
+          // Response is an array of products filtered by brand
+          const responseData = Array.isArray(res.data) ? res.data : [];
+          console.log("productsByBrand", responseData);
+          // Process the response data from backend if needed
+          setBrandData(responseData);
+          setLoading(false);
         }
       } catch (error) {
         console.error("Failed to fetch data from backend:", error);
+        setLoading(false);
       }
     };
     getProductByBrand();
