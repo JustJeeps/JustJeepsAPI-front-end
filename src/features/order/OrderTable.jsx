@@ -21,6 +21,7 @@ import {
   Row,
   Col,
   Card,
+  Segmented,
 } from "antd";
 import { FilterOutlined, ClearOutlined, ReloadOutlined } from "@ant-design/icons";
 import Highlighter from "react-highlight-words";
@@ -70,11 +71,16 @@ const OrderTable = () => {
 
   // Filter states
   const [filters, setFilters] = useState({
+    filterMode: 'order', // 'order' or 'items'
     status: 'pending', // Default to pending
     search: '',
     poStatus: '',
     region: '',
+    vendor: '', // vendor filter (only for items mode)
   });
+
+  // Vendors list for dropdown
+  const [vendors, setVendors] = useState([]);
 
   // Metrics state (independent of pagination)
   const [metrics, setMetrics] = useState({
@@ -318,10 +324,21 @@ Thank you,`
     }
   }, []);
 
+  // Load vendors list for dropdown
+  const loadVendors = useCallback(async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/vendors`);
+      setVendors(response.data);
+    } catch (error) {
+      console.error("Failed to fetch vendors:", error);
+    }
+  }, []);
+
   //initial loading data main table
   useEffect(() => {
     loadData(1, pagination.pageSize, filters);
     loadMetrics();
+    loadVendors();
   }, []);
 
   // Reload when filters change
@@ -336,10 +353,12 @@ Thank you,`
       const params = {
         page,
         limit: pageSize,
+        ...(currentFilters.filterMode && { filterMode: currentFilters.filterMode }),
         ...(currentFilters.status && { status: currentFilters.status }),
         ...(currentFilters.search && { search: currentFilters.search }),
         ...(currentFilters.poStatus && { poStatus: currentFilters.poStatus }),
         ...(currentFilters.region && { region: currentFilters.region }),
+        ...(currentFilters.vendor && { vendor: currentFilters.vendor }),
       };
 
       const response = await axios.get(`${API_URL}/api/orders`, { params });
@@ -382,10 +401,12 @@ Thank you,`
   // Clear all filters
   const handleClearFilters = () => {
     setFilters({
+      filterMode: 'order',
       status: '',
       search: '',
       poStatus: '',
       region: '',
+      vendor: '',
     });
   };
 
@@ -2321,9 +2342,30 @@ console.log("IS ARRAY?", Array.isArray(orders));
             bodyStyle={{ padding: '12px 16px' }}
           >
             <Row gutter={[16, 12]} align="middle">
+              {/* Filter Mode Toggle */}
+              <Col xs={24} sm={12} md={4} lg={3}>
+                <Segmented
+                  options={[
+                    { label: 'Order', value: 'order' },
+                    { label: 'Items', value: 'items' },
+                  ]}
+                  value={filters.filterMode}
+                  onChange={(value) => {
+                    // Clear search and vendor when switching modes
+                    setFilters(prev => ({
+                      ...prev,
+                      filterMode: value,
+                      search: '',
+                      vendor: '',
+                    }));
+                  }}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+
               <Col xs={24} sm={12} md={6} lg={4}>
                 <Input.Search
-                  placeholder="Search orders..."
+                  placeholder={filters.filterMode === 'items' ? "Search by SKU or product..." : "Search orders..."}
                   allowClear
                   value={filters.search}
                   onChange={(e) => handleFilterChange('search', e.target.value)}
@@ -2403,6 +2445,29 @@ console.log("IS ARRAY?", Array.isArray(orders));
                 </Select>
               </Col>
 
+              {/* Vendor dropdown - only visible in Items mode */}
+              {filters.filterMode === 'items' && (
+                <Col xs={12} sm={6} md={4} lg={3}>
+                  <Select
+                    placeholder="Vendor"
+                    allowClear
+                    showSearch
+                    value={filters.vendor || undefined}
+                    onChange={(value) => handleFilterChange('vendor', value || '')}
+                    style={{ width: '100%' }}
+                    filterOption={(input, option) =>
+                      option.children.toLowerCase().includes(input.toLowerCase())
+                    }
+                  >
+                    {vendors.map((vendor) => (
+                      <Select.Option key={vendor.id} value={vendor.name}>
+                        {vendor.name}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Col>
+              )}
+
               <Col xs={12} sm={6} md={4} lg={3}>
                 <Space>
                   <Button
@@ -2426,9 +2491,11 @@ console.log("IS ARRAY?", Array.isArray(orders));
                   <FilterOutlined style={{ color: '#1890ff' }} />
                   <span style={{ color: '#666' }}>
                     Showing {orders.length} of {pagination.total} orders
-                    {filters.status && <Tag color="blue" style={{ marginLeft: 8 }}>{filters.status.toUpperCase()}</Tag>}
+                    {filters.filterMode === 'items' && <Tag color="cyan" style={{ marginLeft: 8 }}>ITEMS MODE</Tag>}
+                    {filters.status && <Tag color="blue" style={{ marginLeft: 4 }}>{filters.status.toUpperCase()}</Tag>}
                     {filters.poStatus && <Tag color="orange" style={{ marginLeft: 4 }}>{filters.poStatus.replace('_', ' ').toUpperCase()}</Tag>}
                     {filters.region && <Tag color="purple" style={{ marginLeft: 4 }}>{filters.region}</Tag>}
+                    {filters.vendor && <Tag color="green" style={{ marginLeft: 4 }}>{filters.vendor}</Tag>}
                   </span>
                 </Space>
               </Col>
