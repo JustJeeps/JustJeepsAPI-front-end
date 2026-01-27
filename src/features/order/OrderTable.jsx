@@ -72,7 +72,7 @@ const OrderTable = () => {
   // Filter states
   const [filters, setFilters] = useState({
     filterMode: 'order', // 'order' or 'items'
-    status: 'pending', // Default to pending
+    status: '', // No default filter - show all statuses
     search: '',
     poStatus: '',
     region: '',
