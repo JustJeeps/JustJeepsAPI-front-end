@@ -14,7 +14,7 @@ const cardStyle = {
   textAlign: 'center',
 };
 
-const TableTop = ({ orderCount, notSetCount, todayCount, yesterdayCount, last7DaysCount, gwCount, pmCount, onNotSetClick, onPmClick, loading = false }) => {
+const TableTop = ({ orderCount, notSetCount, todayCount, yesterdayCount, last7DaysCount, gwCount, pmCount, onNotSetClick, onPmClick, onTodayClick, onYesterdayClick, onLast7DaysClick, activeDateFilter, loading = false }) => {
   console.log('orderCount', orderCount);
   const { state } = useDashboardData();
 
@@ -44,7 +44,17 @@ const TableTop = ({ orderCount, notSetCount, todayCount, yesterdayCount, last7Da
       </Col>
 
       <Col span={4}>
-        <Card bordered={false} style={cardStyle}>
+        <Card
+          bordered={false}
+          style={{
+            ...cardStyle,
+            cursor: 'pointer',
+            border: activeDateFilter === 'today' ? '2px solid #1890ff' : '1px solid #1890ff',
+            backgroundColor: activeDateFilter === 'today' ? '#e6f7ff' : undefined,
+          }}
+          onClick={onTodayClick}
+          hoverable
+        >
           <Statistic
             title="Today's Orders"
             value={todayCount}
@@ -55,7 +65,17 @@ const TableTop = ({ orderCount, notSetCount, todayCount, yesterdayCount, last7Da
       </Col>
 
       <Col span={4}>
-        <Card bordered={false} style={cardStyle}>
+        <Card
+          bordered={false}
+          style={{
+            ...cardStyle,
+            cursor: 'pointer',
+            border: activeDateFilter === 'yesterday' ? '2px solid #faad14' : '1px solid #faad14',
+            backgroundColor: activeDateFilter === 'yesterday' ? '#fffbe6' : undefined,
+          }}
+          onClick={onYesterdayClick}
+          hoverable
+        >
           <Statistic
             title="Yesterday's Orders"
             value={yesterdayCount}
@@ -66,7 +86,17 @@ const TableTop = ({ orderCount, notSetCount, todayCount, yesterdayCount, last7Da
       </Col>
 
       <Col span={4}>
-        <Card bordered={false} style={cardStyle}>
+        <Card
+          bordered={false}
+          style={{
+            ...cardStyle,
+            cursor: 'pointer',
+            border: activeDateFilter === 'last7days' ? '2px solid #722ed1' : '1px solid #722ed1',
+            backgroundColor: activeDateFilter === 'last7days' ? '#f9f0ff' : undefined,
+          }}
+          onClick={onLast7DaysClick}
+          hoverable
+        >
           <Statistic
             title='Last 7 Days'
             value={last7DaysCount}

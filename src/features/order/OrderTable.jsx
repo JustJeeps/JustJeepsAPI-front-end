@@ -77,6 +77,7 @@ const OrderTable = () => {
     poStatus: '',
     region: '',
     vendor: '', // vendor filter (only for items mode)
+    dateFilter: '', // 'today', 'yesterday', 'last7days', or ''
   });
 
   // Vendors list for dropdown
@@ -359,6 +360,7 @@ Thank you,`
         ...(currentFilters.poStatus && { poStatus: currentFilters.poStatus }),
         ...(currentFilters.region && { region: currentFilters.region }),
         ...(currentFilters.vendor && { vendor: currentFilters.vendor }),
+        ...(currentFilters.dateFilter && { dateFilter: currentFilters.dateFilter }),
       };
 
       const response = await axios.get(`${API_URL}/api/orders`, { params });
@@ -407,6 +409,7 @@ Thank you,`
       poStatus: '',
       region: '',
       vendor: '',
+      dateFilter: '',
     });
   };
 
@@ -2328,6 +2331,10 @@ console.log("IS ARRAY?", Array.isArray(orders));
                 last7DaysCount={metrics.last7DaysCount}
                 onNotSetClick={() => handleFilterChange('poStatus', filters.poStatus === 'not_set' ? '' : 'not_set')}
                 onPmClick={() => handleFilterChange('poStatus', filters.poStatus === 'partial' ? '' : 'partial')}
+                onTodayClick={() => handleFilterChange('dateFilter', filters.dateFilter === 'today' ? '' : 'today')}
+                onYesterdayClick={() => handleFilterChange('dateFilter', filters.dateFilter === 'yesterday' ? '' : 'yesterday')}
+                onLast7DaysClick={() => handleFilterChange('dateFilter', filters.dateFilter === 'last7days' ? '' : 'last7days')}
+                activeDateFilter={filters.dateFilter}
                 gwCount={metrics.gwCount}
                 pmCount={metrics.pmNotSetCount}
                 loading={metricsLoading}
@@ -2496,6 +2503,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
                     {filters.poStatus && <Tag color="orange" style={{ marginLeft: 4 }}>{filters.poStatus.replace('_', ' ').toUpperCase()}</Tag>}
                     {filters.region && <Tag color="purple" style={{ marginLeft: 4 }}>{filters.region}</Tag>}
                     {filters.vendor && <Tag color="green" style={{ marginLeft: 4 }}>{filters.vendor}</Tag>}
+                    {filters.dateFilter && <Tag color="geekblue" style={{ marginLeft: 4 }}>{filters.dateFilter.toUpperCase()}</Tag>}
                   </span>
                 </Space>
               </Col>
