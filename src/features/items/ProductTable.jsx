@@ -221,17 +221,22 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
     return (
       <div
         style={{
-          border: `2px solid ${margin > 18 ? "green" : "red"}`,
-          padding: "4px",
-          borderRadius: "4px"
+          border: `2px solid ${margin > 18 ? "#52c41a" : "#ff4d4f"}`,
+          padding: "6px 8px",
+          borderRadius: "6px",
+          backgroundColor: margin > 18 ? "#f6ffed" : "#fff2f0",
+          fontSize: '11px'
         }}
       >
-        <div style={{ fontWeight: 500 }}>{minVendorProduct.vendor.name}</div>
-        <div>{`CAD$${minVendorProduct.vendor_cost.toFixed(2)}`}</div>
-        <div>{`${margin.toFixed(0)}%`}</div>
-        <Checkbox
-          onChange={() => handleVendorCostClick(minVendorProduct)}
-        />
+        <div style={{ fontWeight: 600, marginBottom: '2px' }}>{minVendorProduct.vendor.name}</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+          <span>CAD${minVendorProduct.vendor_cost.toFixed(2)}</span>
+          <span style={{ fontWeight: 600, color: margin > 18 ? "#52c41a" : "#ff4d4f" }}>{margin.toFixed(0)}%</span>
+          <Checkbox
+            onChange={() => handleVendorCostClick(minVendorProduct)}
+            size="small"
+          />
+        </div>
       </div>
     );
   },
@@ -445,19 +450,21 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			title: 'Cost',
 			dataIndex: 'vendorProducts',
 			key: 'vendor_cost',
-			width: 140,
+			width: 160,
 			render: vendorProducts =>
 				vendorProducts.map(vendorProduct => (
 					<div
 						key={vendorProduct.id}
-						style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '3px' }}
+						style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}
 					>
 						<CopyText text={`CAD$${vendorProduct.vendor_cost} / USD$${(vendorProduct.vendor_cost / 1.5).toFixed(2)}`}>
-							<span style={{ whiteSpace: 'nowrap' }}>{`CAD$${vendorProduct.vendor_cost}`}</span>
-							<span style={{ whiteSpace: 'nowrap', color: '#666' }}>{` (USD$${(vendorProduct.vendor_cost / 1.5).toFixed(2)})`}</span>
+							<span style={{ whiteSpace: 'nowrap', fontSize: '12px' }}>
+								CAD${vendorProduct.vendor_cost} <span style={{ color: '#999' }}>/</span> USD${(vendorProduct.vendor_cost / 1.5).toFixed(2)}
+							</span>
 						</CopyText>
 						<Checkbox
 							onChange={() => handleVendorCostClick(vendorProduct)}
+							size="small"
 						/>
 					</div>
 				)),
