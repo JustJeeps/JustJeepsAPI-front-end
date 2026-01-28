@@ -344,26 +344,33 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
   key: 'vendor_id',
   width: 100,
   render: (_, record) => {
-    // Find the best vendor (lowest cost with inventory > 0)
-    const vendorsWithInventory = record.vendorProducts.filter(
-      (vp) => vp.vendor_inventory > 0
+    // Find the best vendor (lowest cost)
+    // Consider vendors that have inventory > 0 OR unknown inventory (null/undefined)
+    // Only exclude vendors that explicitly have inventory === 0
+    const availableVendors = record.vendorProducts.filter(
+      (vp) => vp.vendor_inventory === null || vp.vendor_inventory === undefined || vp.vendor_inventory > 0
     );
 
-    // Find the minimum cost
+    // Find the minimum cost among available vendors
     let lowestCost = Infinity;
-    vendorsWithInventory.forEach((vp) => {
+    let bestVendorIndex = -1;
+    availableVendors.forEach((vp, idx) => {
       if (vp.vendor_cost < lowestCost) {
         lowestCost = vp.vendor_cost;
+        bestVendorIndex = idx;
       }
     });
+    const bestVendor = bestVendorIndex >= 0 ? availableVendors[bestVendorIndex] : null;
 
     return record.vendorProducts.map((vendorProduct, index) => {
       const vendorName = vendorProduct.vendor.name;
       const vendorSKU = vendorProduct.vendor_sku?.trim();
       const productSKU = vendorProduct.product_sku?.trim();
       const vendorNameLower = vendorName.toLowerCase();
-      // Compare by vendor_cost AND inventory to identify the best vendor
-      const isBestVendor = vendorProduct.vendor_inventory > 0 && vendorProduct.vendor_cost === lowestCost;
+      // Best vendor = lowest cost among available vendors
+      const isBestVendor = bestVendor &&
+        vendorProduct.vendor.id === bestVendor.vendor.id &&
+        vendorProduct.vendor_cost === bestVendor.vendor_cost;
 
       let link = null;
 
