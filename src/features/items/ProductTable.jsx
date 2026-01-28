@@ -50,23 +50,25 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			title: 'Brand',
 			dataIndex: 'brand_name',
 			key: 'brand_name',
-			width: 80,
+			width: 70,
 			ellipsis: true,
+			render: brand => <span style={{ fontSize: '11px' }}>{brand}</span>,
 		},
 
 		{
 			title: 'Img',
 			dataIndex: 'image',
 			key: 'image',
-			width: 50,
-			render: image => <img src={image} alt='Product' width='45' />,
+			width: 45,
+			render: image => <img src={image} alt='Product' width='40' />,
 		},
 		{
 			title: 'Name',
 			dataIndex: 'name',
 			key: 'name',
-			width: 200,
+			width: 120,
 			ellipsis: true,
+			render: name => <span style={{ fontSize: '11px' }}>{name}</span>,
 		},
 
 		{
@@ -74,10 +76,10 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			dataIndex: 'price',
 			key: 'price',
 			align: 'center',
-			width: 70,
+			width: 60,
 			render: price => {
 				const displayPrice = props.orderProductPrice ? props.orderProductPrice : price;
-				return `$${displayPrice.toFixed(2)}`;
+				return <span style={{ fontSize: '12px', fontWeight: 500 }}>${displayPrice.toFixed(2)}</span>;
 			},
 		},
 
@@ -125,7 +127,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			title: 'Competitors',
 			dataIndex: 'competitorProducts',
 			key: 'competitor_prices',
-			width: 130,
+			width: 100,
 			render: (competitorProducts, record) =>
 				competitorProducts.map(competitorProduct => {
 					const competitorName = competitorProduct.competitor.name.toLowerCase();
@@ -193,7 +195,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
   dataIndex: "vendorProducts",
   key: "lowest_cost",
   align: "center",
-  width: 110,
+  width: 100,
   render: (vendorProducts, record) => {
     const vendorsWithInventory = vendorProducts.filter(
       (vp) => vp.vendor_inventory > 0
@@ -298,7 +300,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			title: 'Brand Vendors',
 			key: 'vendors_for_brand',
 			dataIndex: 'vendors',
-			width: 100,
+			width: 80,
 			ellipsis: true,
 			render: (vendors) => (
 				<div>
@@ -363,7 +365,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
   title: 'Vendor',
   dataIndex: null,
   key: 'vendor_id',
-  width: 90,
+  width: 70,
   render: (_, record) =>
     record.vendorProducts.map(vendorProduct => {
       const vendorName = vendorProduct.vendor.name;
@@ -447,19 +449,19 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 
 		//vendor cost with currency concatenated
 		{
-			title: 'Cost',
+			title: 'Cost (CAD / USD)',
 			dataIndex: 'vendorProducts',
 			key: 'vendor_cost',
-			width: 160,
+			width: 180,
 			render: vendorProducts =>
 				vendorProducts.map(vendorProduct => (
 					<div
 						key={vendorProduct.id}
-						style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}
+						style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}
 					>
-						<CopyText text={`CAD$${vendorProduct.vendor_cost} / USD$${(vendorProduct.vendor_cost / 1.5).toFixed(2)}`}>
-							<span style={{ whiteSpace: 'nowrap', fontSize: '12px' }}>
-								CAD${vendorProduct.vendor_cost} <span style={{ color: '#999' }}>/</span> USD${(vendorProduct.vendor_cost / 1.5).toFixed(2)}
+						<CopyText text={`CAD$ ${vendorProduct.vendor_cost} / USD$ ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}`}>
+							<span style={{ whiteSpace: 'nowrap', fontSize: '11px' }}>
+								$ {vendorProduct.vendor_cost} / $ {(vendorProduct.vendor_cost / 1.5).toFixed(2)}
 							</span>
 						</CopyText>
 						<Checkbox
@@ -474,7 +476,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
   title: "Margin",
   key: "margin",
   align: "center",
-  width: 70,
+  width: 55,
   render: (record) => {
     const { vendorProducts } = record;
 
@@ -614,11 +616,11 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
     // },
 
 		{
-				title: "Inventory",
+				title: "Inv",
 				dataIndex: "vendorProducts",
 				key: "vendor_inventory",
 				align: "center",
-				width: 120,
+				width: 70,
 				render: (vendorProducts) => {
 					if (!Array.isArray(vendorProducts)) return <span>-</span>;
 
