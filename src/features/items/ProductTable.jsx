@@ -47,36 +47,37 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 
 	const columns_by_sku = [
 		{
-			title: 'Manufacturer',
+			title: 'Brand',
 			dataIndex: 'brand_name',
 			key: 'brand_name',
+			width: '6%',
+			render: brand => <span style={{ fontSize: '11px' }}>{brand}</span>,
 		},
 
-		
 		{
-			title: 'Image',
+			title: 'Img',
 			dataIndex: 'image',
 			key: 'image',
-			render: image => <img src={image} alt='Product' width='50' />,
+			width: '4%',
+			render: image => <img src={image} alt='Product' width='40' />,
 		},
 		{
 			title: 'Name',
 			dataIndex: 'name',
 			key: 'name',
-			width: '25%',
+			width: '20%',
+			render: name => <span style={{ fontSize: '11px' }}>{name}</span>,
 		},
-		
+
 		{
 			title: 'Price',
 			dataIndex: 'price',
 			key: 'price',
 			align: 'center',
+			width: '6%',
 			render: price => {
-				if (props.orderProductPrice) {
-					return `$${props.orderProductPrice.toFixed(2)}`;
-				} else {
-					return `$${price.toFixed(2)}`;
-				}
+				const displayPrice = props.orderProductPrice ? props.orderProductPrice : price;
+				return <span style={{ fontSize: '11px' }}>{`$${displayPrice.toFixed(2)}`}</span>;
 			},
 		},
 
@@ -121,31 +122,25 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 
 		//concatenate competitor price and name like: $177 (partsEngine)
 		{
-			title: 'Competitor Prices',
+			title: 'Competitors',
 			dataIndex: 'competitorProducts',
 			key: 'competitor_prices',
-			//too narrow, adjust width
 			width: '10%',
 			render: (competitorProducts, record) =>
 				competitorProducts.map(competitorProduct => {
 					const competitorName = competitorProduct.competitor.name.toLowerCase();
 					let link = null;
 
-
-
 					// Use specific database codes for competitor links
 					if (competitorName.includes('parts') && competitorName.includes('engine')) {
 						const partsEngineCode = record.partsEngine_code || record.partsengine_code;
 						if (partsEngineCode) {
-							// If partsEngine_code is already a full URL, use it directly
 							if (partsEngineCode.startsWith('http')) {
 								link = partsEngineCode;
 							} else {
-								// If it's just a code, create search URL
 								link = `https://www.partsengine.ca/Search/?q=${encodeURIComponent(partsEngineCode)}`;
 							}
 						} else {
-							// Fallback to SKU if no specific code
 							const sku = record.sku?.includes('-') ? record.sku.split('-').slice(1).join('-') : record.sku;
 							link = `https://www.partsengine.ca/Search/?q=${encodeURIComponent(sku)}`;
 						}
@@ -162,24 +157,31 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 						link = `https://www.4wheelparts.com/search/?Ntt=${encodeURIComponent(sku)}`;
 					}
 
+					// Shorten competitor name for display
+					const shortName = competitorProduct.competitor.name
+						.replace('PartsEngine', 'PE')
+						.replace('Quadratec', 'Quad')
+						.replace('ExtremeTerrain', 'ET')
+						.replace('Morris 4x4', 'Morris')
+						.replace('4 Wheel Parts', '4WP');
+
 					return (
-						<div key={competitorProduct.id}>
+						<div key={competitorProduct.id} style={{ fontSize: '11px', marginBottom: '2px' }}>
 							{link ? (
-								<a 
-									href={link} 
-									target="_blank" 
-									rel="noopener noreferrer" 
-									style={{ 
-										color: '#1890ff', 
+								<a
+									href={link}
+									target="_blank"
+									rel="noopener noreferrer"
+									style={{
+										color: '#1890ff',
 										textDecoration: 'underline',
 										cursor: 'pointer'
 									}}
-
 								>
-									{`$${competitorProduct.competitor_price} (${competitorProduct.competitor.name})`}
+									{`$${competitorProduct.competitor_price} (${shortName})`}
 								</a>
 							) : (
-								`$${competitorProduct.competitor_price} (${competitorProduct.competitor.name})`
+								`$${competitorProduct.competitor_price} (${shortName})`
 							)}
 						</div>
 					);
@@ -187,11 +189,11 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 		},
 
 		{
-  title: "Suggested Vendor",
+  title: "Best Vendor",
   dataIndex: "vendorProducts",
   key: "lowest_cost",
   align: "center",
-  width: '10%',
+  width: '8%',
   render: (vendorProducts, record) => {
     const vendorsWithInventory = vendorProducts.filter(
       (vp) => vp.vendor_inventory > 0
@@ -219,19 +221,17 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
     return (
       <div
         style={{
-          border: `2px solid ${margin > 18 ? "green" : "red"}`,
-          padding: "4px",
-          borderRadius: "4px"
+          border: `1px solid ${margin > 18 ? "green" : "red"}`,
+          padding: "2px",
+          borderRadius: "4px",
+          fontSize: "11px"
         }}
       >
-        <div>{minVendorProduct.vendor.name}</div>
-        <div>{`$${minVendorProduct.vendor_cost.toFixed(2)}`}</div>
-        <div>{`${margin.toFixed(0)}%`}</div>
+        <div style={{ fontWeight: 500 }}>{minVendorProduct.vendor.name}</div>
+        <div>{`$${minVendorProduct.vendor_cost.toFixed(2)} (${margin.toFixed(0)}%)`}</div>
         <Checkbox
           onChange={() => handleVendorCostClick(minVendorProduct)}
-          style={{
-            color: margin > 18 ? "green" : "red",
-          }}
+          size="small"
         />
       </div>
     );
@@ -291,13 +291,13 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
     // },
 
 {
-			title: 'Vendors for this Brand',
+			title: 'Brand Vendors',
 			key: 'vendors_for_brand',
 			dataIndex: 'vendors',
-			width: '10%',
+			width: '8%',
 			render: (vendors) => (
-				<div style={{ fontWeight: 600 }}>
-					<span style={{ fontWeight: 400, backgroundColor: 'yellow' }}>{vendors}</span>
+				<div style={{ fontSize: '11px' }}>
+					<span style={{ backgroundColor: 'yellow', padding: '1px 3px' }}>{vendors}</span>
 				</div>
 			),
 		},
@@ -355,10 +355,10 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 // },
 
 {
-  title: 'Vendor Name',
+  title: 'Vendor',
   dataIndex: null,
   key: 'vendor_id',
-  width: '10%',
+  width: '7%',
   render: (_, record) =>
     record.vendorProducts.map(vendorProduct => {
       const vendorName = vendorProduct.vendor.name;
@@ -383,17 +383,14 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
         const keystoneCode = record.keystone_code_site?.trim();
         if (keystoneCode) {
           let formattedCode = keystoneCode;
-          // If it starts with BES and ends in two digits, insert hyphen before last 2 digits
           if (/^BES\d{7}$/.test(keystoneCode)) {
             formattedCode = `${keystoneCode.slice(0, -2)}-${keystoneCode.slice(-2)}`;
           }
           link = `https://wwwsc.ekeystone.com/Search/Detail?pid=${formattedCode}`;
         }
       } else if (vendorNameLower === 'wheelpros') {
-        // 👇 use vendorSKU instead of productSKU
         link = `https://dl.wheelpros.com/ca_en/ymm/search/?api-type=products&p=1&pageSize=24&q=${vendorSKU}&inventorylocations=AL`;
       } else if (vendorNameLower === 'rough country' || vendorNameLower === 'roughcountry') {
-        // Rough Country vendorsku lookup (uses vendorSKU)
         link = vendorSKU
           ? `https://www.roughcountry.com/search/${encodeURIComponent(vendorSKU)}`
           : null;
@@ -411,29 +408,24 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
             link = `https://www.uwsta.com/part/${encodeURIComponent(searchableSku)}`;
           }
         }
-      }else if (vendorNameLower === 'ctp' || vendorNameLower === 'ctp distributors') {
-      const searchableSku = record.searchable_sku?.trim();
-      link = searchableSku
-        ? `https://www.ctpdistributors.com/search-parts?find=${encodeURIComponent(searchableSku)}`
-        : null;
+      } else if (vendorNameLower === 'ctp' || vendorNameLower === 'ctp distributors') {
+        const searchableSku = record.searchable_sku?.trim();
+        link = searchableSku
+          ? `https://www.ctpdistributors.com/search-parts?find=${encodeURIComponent(searchableSku)}`
+          : null;
       } else if (vendorNameLower === 't14' || vendorNameLower === 'turn14') {
-        // Turn14 Distribution vendor link
         link = vendorSKU
           ? `https://turn14.com/search/index.php?vmmPart=${encodeURIComponent(vendorSKU)}`
           : null;
       } else if (vendorNameLower === 'metalcloak') {
-        // MetalCloak vendor link - remove MTK- prefix if present
         const metalCloakCode = vendorSKU?.replace(/^MTK-/, '');
         link = metalCloakCode
           ? `https://jobber.metalcloak.com/catalogsearch/result/?q=${encodeURIComponent(metalCloakCode)}`
           : null;
       }
 
-
-
-
       return (
-        <div key={vendorProduct.id}>
+        <div key={vendorProduct.id} style={{ fontSize: '11px', marginBottom: '2px' }}>
           {link ? (
             <a href={link} target="_blank" rel="noopener noreferrer">
               {vendorName}
@@ -450,23 +442,21 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 
 		//vendor cost with the information in usd (dividied by 1.48), CAD (XXX USD)
 		{
-			title: 'Vendor Cost',
+			title: 'Cost (CAD/USD)',
 			dataIndex: 'vendorProducts',
 			key: 'vendor_cost',
-			width: '15%',
+			width: '10%',
 			render: vendorProducts =>
 				vendorProducts.map(vendorProduct => (
 					<div
 						key={vendorProduct.id}
-						style={{ display: 'flex', justifyContent: 'space-between' }}
+						style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}
 					>
-						<CopyText text={`$${vendorProduct.vendor_cost}  (USD$${(vendorProduct.vendor_cost / 1.5).toFixed(2)} )`}>
-							<span style={{ marginRight: 8 }}>{`  USD${vendorProduct.vendor_cost}  ($${(vendorProduct.vendor_cost / 1.5).toFixed(2)} )`}</span>
+						<CopyText text={`CAD$${vendorProduct.vendor_cost} / USD$${(vendorProduct.vendor_cost / 1.5).toFixed(2)}`}>
+							<span style={{ whiteSpace: 'nowrap' }}>{`$${vendorProduct.vendor_cost} / $${(vendorProduct.vendor_cost / 1.5).toFixed(2)}`}</span>
 						</CopyText>
 						<Checkbox
 							onChange={() => handleVendorCostClick(vendorProduct)}
-							style={{ color: 'green' }}
-							//size extra large
 							size="small"
 						/>
 					</div>
@@ -474,19 +464,15 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 		},
 
 {
-  title: "Margin %",
+  title: "Margin",
   key: "margin",
   align: "center",
+  width: '6%',
   render: (record) => {
     const { vendorProducts } = record;
 
     return vendorProducts.map((vendorProduct) => {
       const { vendor_cost, vendor_id } = vendorProduct;
-
-      // Debug logs
-      console.log("🧪 vendor_cost:", vendor_cost);
-      console.log("🧪 currency:", props.currency);
-      console.log("🧪 order price:", props.orderProductPrice);
 
       const adjustedCost =
         props.currency === 'USD' ? vendor_cost / 1.5 : vendor_cost;
@@ -499,12 +485,12 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
           <Tag
             color={margin > 18 ? "#1f8e24" : "#f63535"}
             style={{
-              fontSize: "18px",
-              padding: "5px",
-              marginBottom: "7px",
+              fontSize: "11px",
+              padding: "2px 4px",
+              marginBottom: "4px",
             }}
           >
-            {isNaN(margin) ? "N/A" : `${margin.toFixed(2)}%`}
+            {isNaN(margin) ? "N/A" : `${margin.toFixed(1)}%`}
           </Tag>
         </div>
       );
@@ -621,14 +607,14 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
     // },
 
 		{
-				title: "Vendor Inventory",
+				title: "Inventory",
 				dataIndex: "vendorProducts",
 				key: "vendor_inventory",
 				align: "center",
-				width: "20%",
+				width: "12%",
 				render: (vendorProducts) => {
 					if (!Array.isArray(vendorProducts)) return <span>-</span>;
-			
+
 					return vendorProducts.map((vendorProduct) => (
 						<div key={vendorProduct.id}>
 							{vendorProduct.vendor_inventory !== null &&
@@ -638,16 +624,15 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 											vendorProduct.vendor_inventory > 0 ? "#1f8e24" : "#f63535"
 										}
 										style={{
-											fontSize: "18px",
-											padding: "5px",
-											marginBottom: "12px",
-											width: "45px",
+											fontSize: "11px",
+											padding: "2px 4px",
+											marginBottom: "4px",
 										}}
 									>
 										{vendorProduct.vendor_inventory}
 									</Tag>
 								)}
-			
+
 							{vendorProduct.vendor_inventory_string !== null &&
 								vendorProduct.vendor_inventory_string !== undefined && (
 									<Tag
@@ -662,26 +647,24 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 												: "#1f8e24"
 										}
 										style={{
-											fontSize: "18px",
-											padding: "5px",
-											marginBottom: "12px",
-											width: "auto",
+											fontSize: "10px",
+											padding: "2px 4px",
+											marginBottom: "4px",
 										}}
 									>
 										{vendorProduct.vendor_inventory_string}
 									</Tag>
 								)}
-			
+
 							{vendorProduct.vendor_inventory === null &&
 								(vendorProduct.vendor_inventory_string === null ||
 									vendorProduct.vendor_inventory_string === undefined) && (
 									<Tag
 										color="default"
 										style={{
-											fontSize: "18px",
-											padding: "5px",
-											marginBottom: "12px",
-											width: "auto",
+											fontSize: "10px",
+											padding: "2px 4px",
+											marginBottom: "4px",
 										}}
 									>
 										NO INFO
@@ -748,14 +731,15 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 	];
 
 	return (
-<div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+<div style={{ width: '100%', display: 'flex', flexDirection: 'column', fontSize: '12px' }}>
   <Table
     dataSource={props.data}
     columns={columns_by_sku}
     rowKey="sku"
     pagination={false}
     scroll={{ x: 'max-content', y: 400 }}
-    size="middle"
+    size="small"
+    style={{ fontSize: '12px' }}
     // footer={() => (
     //   <div style={{ marginTop: '20px', textAlign: 'left' }}>
     //     {props.data.length > 0 && (
