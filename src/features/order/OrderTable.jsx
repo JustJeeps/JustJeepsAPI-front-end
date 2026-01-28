@@ -2239,6 +2239,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
               onChange={handleTableChange}
               size="small"
               loading={loading}
+              rowClassName={(record, index) => index % 2 === 0 ? 'zebra-row-even' : 'zebra-row-odd'}
               pagination={{
                 current: pagination.current,
                 pageSize: pagination.pageSize,

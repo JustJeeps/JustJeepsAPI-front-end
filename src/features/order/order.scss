@@ -36,8 +36,8 @@
     vertical-align: middle !important;
   }
 
-  // Alternating row colors - stronger zebra with white base
-  .ant-table-tbody .ant-table-row:nth-child(odd) {
+  // Alternating row colors - using class-based zebra (works with expandable rows)
+  .ant-table-tbody .ant-table-row.zebra-row-even {
     background-color: #ffffff !important;
 
     &:hover {
@@ -45,7 +45,7 @@
     }
   }
 
-  .ant-table-tbody .ant-table-row:nth-child(even) {
+  .ant-table-tbody .ant-table-row.zebra-row-odd {
     background-color: #ebebeb !important;
 
     &:hover {
