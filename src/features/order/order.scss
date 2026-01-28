@@ -1,32 +1,143 @@
-// .ant-table-tbody .ant-table-cell:nth-child(even) {
-//   background-color: #b8b8b8;
-// }
 @import 'bootstrap/scss/bootstrap';
-@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
-// change antd Table row height and font size
-.ant-table-row {
-  font-size: 20px;
-  height: 64px;
-  font-family: "Roboto","Helvetica","Arial",sans-serif;
+// Modern table styling
+.ant-table {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-//change antd Table row color
+// Table rows
+.ant-table-row {
+  font-size: 13px;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #fff8e6 !important;
+  }
+}
+
+// Cell padding
+.ant-table-cell {
+  padding: 12px 10px !important;
+  vertical-align: middle !important;
+}
+
+// Alternating row colors
 .ant-table-tbody .ant-table-row:nth-child(even) {
-  background-color: #F5F5F5;
+  background-color: #fafafa;
 }
 
 .ant-table-tbody .ant-table-row:nth-child(odd) {
   background-color: #ffffff;
 }
 
-//change antd Table header color
+// Header styling
 .ant-table-thead .ant-table-cell {
-  background-color: $yellow-500 !important;
-  // color: white !important;
-  font-size: 18px !important;
-  // color: white !important;
+  background: linear-gradient(135deg, #f5c518 0%, #e6b800 100%) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 14px 10px !important;
+  color: #1a1a1a !important;
+  border-bottom: 2px solid #d4a200 !important;
+}
+
+// Sortable column hover
+.ant-table-thead .ant-table-cell:hover {
+  background: linear-gradient(135deg, #e6b800 0%, #d4a200 100%) !important;
+}
+
+// Links styling
+.ant-table a {
+  color: #1890ff;
+  text-decoration: none;
+  font-weight: 500;
+
+  &:hover {
+    color: #096dd9;
+    text-decoration: underline;
   }
+}
+
+// Tags improvements
+.ant-tag {
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 11px;
+  padding: 2px 8px;
+  border: none;
+}
+
+// Status indicators
+.status-pending {
+  background-color: #e6f7ff;
+  color: #1890ff;
+}
+
+.status-processing {
+  background-color: #fff7e6;
+  color: #fa8c16;
+}
+
+.status-complete {
+  background-color: #f6ffed;
+  color: #52c41a;
+}
+
+// Pagination styling
+.ant-pagination {
+  .ant-pagination-item {
+    border-radius: 6px;
+    font-weight: 500;
+
+    &-active {
+      background-color: #f5c518;
+      border-color: #f5c518;
+
+      a {
+        color: #1a1a1a !important;
+      }
+    }
+  }
+}
+
+// Expanded row styling
+.ant-table-expanded-row {
+  background-color: #fffef5 !important;
+
+  > td {
+    padding: 16px !important;
+  }
+}
+
+// Checkbox styling
+.ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #52c41a;
+  border-color: #52c41a;
+}
+
+// Better scrollbar
+.table-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+
+  &:hover {
+    background: #a1a1a1;
+  }
+}
 
 // 📱 Make table responsive on small screens
 .table-wrapper {
@@ -62,7 +173,7 @@
   }
 }
 
-// 🧠 Add some global responsiveness
+// 🧠 Responsive design
 @media (max-width: 768px) {
   .dashboard-cards {
     flex-direction: column;
@@ -74,31 +185,21 @@
   }
 
   .ant-table {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .ant-table-thead .ant-table-cell {
-    font-size: 16px !important;
-  }
-
-  .ant-table-row {
-    font-size: 16px;
-    height: auto;
-  }
-}
-
-@media (max-width: 768px) {
-  .ant-table {
-    font-size: 12px;
+    font-size: 10px !important;
+    padding: 8px 4px !important;
   }
 
   .ant-table-cell {
-    padding: 8px !important;
+    padding: 6px 4px !important;
   }
 
   .ant-btn {
-    font-size: 12px;
-    padding: 6px 10px;
+    font-size: 11px;
+    padding: 4px 8px;
   }
 }
 

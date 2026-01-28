@@ -795,7 +795,13 @@ Thank you,`
               </Form.Item>
             );
           } else {
-            return <p>{localTime}</p>;
+            const [datePart, timePart] = localTime.split(', ');
+            return (
+              <div style={{ textAlign: 'center', lineHeight: 1.4 }}>
+                <div style={{ fontWeight: 500, color: '#333', fontSize: '12px' }}>{datePart}</div>
+                <div style={{ fontSize: '10px', color: '#888' }}>{timePart}</div>
+              </div>
+            );
           }
         }
       // render: (text, record) => {
@@ -1253,11 +1259,16 @@ Thank you,`
           );
         } else {
           const currency = record.order_currency_code || '';
-          return <span style={{ fontSize: '13px' }}>{currency}${text?.toFixed(2)}</span>;
+          return (
+            <div style={{ textAlign: 'center', lineHeight: 1.3 }}>
+              <div style={{ fontWeight: 500, color: '#333' }}>${text?.toFixed(2)}</div>
+              <div style={{ fontSize: '10px', color: '#999', fontWeight: 400 }}>{currency}</div>
+            </div>
+          );
         }
       },
     },
-    
+
     //create a new column for base_total_due
     {
       title: "Due",
@@ -1285,7 +1296,18 @@ Thank you,`
           );
         } else {
           const currency = record.order_currency_code || '';
-          return <span style={{ fontSize: '13px' }}>{currency}${text?.toFixed(2)}</span>;
+          const isDue = text > 0;
+          return (
+            <div style={{ textAlign: 'center', lineHeight: 1.3 }}>
+              <div style={{
+                fontWeight: 500,
+                color: isDue ? '#cf1322' : '#52c41a'
+              }}>
+                ${text?.toFixed(2)}
+              </div>
+              <div style={{ fontSize: '10px', color: '#999', fontWeight: 400 }}>{currency}</div>
+            </div>
+          );
         }
       }
     },
@@ -1407,7 +1429,18 @@ Thank you,`
           );
         } else {
           const currency = record.order_currency_code || '';
-          return <span style={{ fontSize: '13px', fontWeight: 500 }}>{currency}${text?.toFixed(2)}</span>;
+          return (
+            <div style={{ textAlign: 'center', lineHeight: 1.3 }}>
+              <div style={{
+                fontWeight: 600,
+                fontSize: '14px',
+                color: '#1a1a1a'
+              }}>
+                ${text?.toFixed(2)}
+              </div>
+              <div style={{ fontSize: '10px', color: '#999', fontWeight: 400 }}>{currency}</div>
+            </div>
+          );
         }
       },
     },
@@ -2305,7 +2338,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
   return (
     <>
 
-      <div className="container-fluid" style={{ overflow: 'hidden', maxWidth: '100vw' }}>
+      <div className="container-fluid" style={{ maxWidth: '100%' }}>
         <div className="container-xl" style={{ maxWidth: '100%', padding: '0 15px' }}>
           <div className="container mb-3" 
             style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '10px', marginTop: '5px' }}>  
@@ -2518,7 +2551,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
 
 
 
-          <div className="table-wrapper" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto' }}>
+          <div className="table-wrapper" style={{ width: '100%', overflowX: 'auto' }}>
 
           <Form form={form}>
             <Table
@@ -2526,10 +2559,10 @@ console.log("IS ARRAY?", Array.isArray(orders));
               expandable={{ expandedRowRender }} //, onExpand: handleExpand remove expandable
               dataSource={data}
               bordered
-              scroll={{ x: 1200 }}
+              scroll={{ x: 1400 }}
               rowKey={(record) => record.id}
               onChange={handleTableChange}
-              size="middle"
+              size="small"
               loading={loading}
               pagination={{
                 current: pagination.current,
