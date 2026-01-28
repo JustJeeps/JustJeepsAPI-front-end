@@ -50,23 +50,23 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			title: 'Brand',
 			dataIndex: 'brand_name',
 			key: 'brand_name',
-			width: '6%',
-			render: brand => <span style={{ fontSize: '11px' }}>{brand}</span>,
+			width: 80,
+			ellipsis: true,
 		},
 
 		{
 			title: 'Img',
 			dataIndex: 'image',
 			key: 'image',
-			width: '4%',
-			render: image => <img src={image} alt='Product' width='40' />,
+			width: 50,
+			render: image => <img src={image} alt='Product' width='45' />,
 		},
 		{
 			title: 'Name',
 			dataIndex: 'name',
 			key: 'name',
-			width: '20%',
-			render: name => <span style={{ fontSize: '11px' }}>{name}</span>,
+			width: 200,
+			ellipsis: true,
 		},
 
 		{
@@ -74,10 +74,10 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			dataIndex: 'price',
 			key: 'price',
 			align: 'center',
-			width: '6%',
+			width: 70,
 			render: price => {
 				const displayPrice = props.orderProductPrice ? props.orderProductPrice : price;
-				return <span style={{ fontSize: '11px' }}>{`$${displayPrice.toFixed(2)}`}</span>;
+				return `$${displayPrice.toFixed(2)}`;
 			},
 		},
 
@@ -125,7 +125,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			title: 'Competitors',
 			dataIndex: 'competitorProducts',
 			key: 'competitor_prices',
-			width: '10%',
+			width: 130,
 			render: (competitorProducts, record) =>
 				competitorProducts.map(competitorProduct => {
 					const competitorName = competitorProduct.competitor.name.toLowerCase();
@@ -166,7 +166,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 						.replace('4 Wheel Parts', '4WP');
 
 					return (
-						<div key={competitorProduct.id} style={{ fontSize: '11px', marginBottom: '2px' }}>
+						<div key={competitorProduct.id} style={{ marginBottom: '3px' }}>
 							{link ? (
 								<a
 									href={link}
@@ -193,7 +193,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
   dataIndex: "vendorProducts",
   key: "lowest_cost",
   align: "center",
-  width: '8%',
+  width: 110,
   render: (vendorProducts, record) => {
     const vendorsWithInventory = vendorProducts.filter(
       (vp) => vp.vendor_inventory > 0
@@ -221,17 +221,16 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
     return (
       <div
         style={{
-          border: `1px solid ${margin > 18 ? "green" : "red"}`,
-          padding: "2px",
-          borderRadius: "4px",
-          fontSize: "11px"
+          border: `2px solid ${margin > 18 ? "green" : "red"}`,
+          padding: "4px",
+          borderRadius: "4px"
         }}
       >
         <div style={{ fontWeight: 500 }}>{minVendorProduct.vendor.name}</div>
-        <div>{`$${minVendorProduct.vendor_cost.toFixed(2)} (${margin.toFixed(0)}%)`}</div>
+        <div>{`CAD$${minVendorProduct.vendor_cost.toFixed(2)}`}</div>
+        <div>{`${margin.toFixed(0)}%`}</div>
         <Checkbox
           onChange={() => handleVendorCostClick(minVendorProduct)}
-          size="small"
         />
       </div>
     );
@@ -294,10 +293,11 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			title: 'Brand Vendors',
 			key: 'vendors_for_brand',
 			dataIndex: 'vendors',
-			width: '8%',
+			width: 100,
+			ellipsis: true,
 			render: (vendors) => (
-				<div style={{ fontSize: '11px' }}>
-					<span style={{ backgroundColor: 'yellow', padding: '1px 3px' }}>{vendors}</span>
+				<div>
+					<span style={{ backgroundColor: 'yellow', padding: '2px 4px' }}>{vendors}</span>
 				</div>
 			),
 		},
@@ -358,7 +358,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
   title: 'Vendor',
   dataIndex: null,
   key: 'vendor_id',
-  width: '7%',
+  width: 90,
   render: (_, record) =>
     record.vendorProducts.map(vendorProduct => {
       const vendorName = vendorProduct.vendor.name;
@@ -425,7 +425,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
       }
 
       return (
-        <div key={vendorProduct.id} style={{ fontSize: '11px', marginBottom: '2px' }}>
+        <div key={vendorProduct.id} style={{ marginBottom: '3px' }}>
           {link ? (
             <a href={link} target="_blank" rel="noopener noreferrer">
               {vendorName}
@@ -440,24 +440,24 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 ,
 
 
-		//vendor cost with the information in usd (dividied by 1.48), CAD (XXX USD)
+		//vendor cost with currency concatenated
 		{
-			title: 'Cost (CAD/USD)',
+			title: 'Cost',
 			dataIndex: 'vendorProducts',
 			key: 'vendor_cost',
-			width: '10%',
+			width: 140,
 			render: vendorProducts =>
 				vendorProducts.map(vendorProduct => (
 					<div
 						key={vendorProduct.id}
-						style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}
+						style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '3px' }}
 					>
 						<CopyText text={`CAD$${vendorProduct.vendor_cost} / USD$${(vendorProduct.vendor_cost / 1.5).toFixed(2)}`}>
-							<span style={{ whiteSpace: 'nowrap' }}>{`$${vendorProduct.vendor_cost} / $${(vendorProduct.vendor_cost / 1.5).toFixed(2)}`}</span>
+							<span style={{ whiteSpace: 'nowrap' }}>{`CAD$${vendorProduct.vendor_cost}`}</span>
+							<span style={{ whiteSpace: 'nowrap', color: '#666' }}>{` (USD$${(vendorProduct.vendor_cost / 1.5).toFixed(2)})`}</span>
 						</CopyText>
 						<Checkbox
 							onChange={() => handleVendorCostClick(vendorProduct)}
-							size="small"
 						/>
 					</div>
 				)),
@@ -467,7 +467,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
   title: "Margin",
   key: "margin",
   align: "center",
-  width: '6%',
+  width: 70,
   render: (record) => {
     const { vendorProducts } = record;
 
@@ -485,12 +485,12 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
           <Tag
             color={margin > 18 ? "#1f8e24" : "#f63535"}
             style={{
-              fontSize: "11px",
-              padding: "2px 4px",
-              marginBottom: "4px",
+              fontSize: "14px",
+              padding: "3px 6px",
+              marginBottom: "5px",
             }}
           >
-            {isNaN(margin) ? "N/A" : `${margin.toFixed(1)}%`}
+            {isNaN(margin) ? "N/A" : `${margin.toFixed(0)}%`}
           </Tag>
         </div>
       );
@@ -611,7 +611,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 				dataIndex: "vendorProducts",
 				key: "vendor_inventory",
 				align: "center",
-				width: "12%",
+				width: 120,
 				render: (vendorProducts) => {
 					if (!Array.isArray(vendorProducts)) return <span>-</span>;
 
@@ -624,9 +624,9 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 											vendorProduct.vendor_inventory > 0 ? "#1f8e24" : "#f63535"
 										}
 										style={{
-											fontSize: "11px",
-											padding: "2px 4px",
-											marginBottom: "4px",
+											fontSize: "14px",
+											padding: "3px 6px",
+											marginBottom: "5px",
 										}}
 									>
 										{vendorProduct.vendor_inventory}
@@ -647,9 +647,9 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 												: "#1f8e24"
 										}
 										style={{
-											fontSize: "10px",
-											padding: "2px 4px",
-											marginBottom: "4px",
+											fontSize: "12px",
+											padding: "3px 6px",
+											marginBottom: "5px",
 										}}
 									>
 										{vendorProduct.vendor_inventory_string}
@@ -662,9 +662,9 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 									<Tag
 										color="default"
 										style={{
-											fontSize: "10px",
-											padding: "2px 4px",
-											marginBottom: "4px",
+											fontSize: "12px",
+											padding: "3px 6px",
+											marginBottom: "5px",
 										}}
 									>
 										NO INFO
@@ -731,15 +731,15 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 	];
 
 	return (
-<div style={{ width: '100%', display: 'flex', flexDirection: 'column', fontSize: '12px' }}>
+<div style={{ width: '100%', overflow: 'hidden' }}>
   <Table
     dataSource={props.data}
     columns={columns_by_sku}
     rowKey="sku"
     pagination={false}
-    scroll={{ x: 'max-content', y: 400 }}
+    scroll={{ y: 400 }}
     size="small"
-    style={{ fontSize: '12px' }}
+    tableLayout="fixed"
     // footer={() => (
     //   <div style={{ marginTop: '20px', textAlign: 'left' }}>
     //     {props.data.length > 0 && (
