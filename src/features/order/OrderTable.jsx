@@ -768,7 +768,7 @@ Thank you,`
       dataIndex: "created_at",
       key: "created_at",
       align: "center",
-      width: 95,
+      width: 110,
       sorter: (a, b) => a.created_at?.localeCompare(b.created_at),
       sortOrder: sortedInfo.columnKey === "created_at" && sortedInfo.order,
       ...getColumnSearchProps("created_at"),
@@ -785,8 +785,8 @@ Thank you,`
         const [datePart, timePart] = localTime.split(', ');
         return (
           <div style={{ textAlign: 'center', lineHeight: 1.3 }}>
-            <div style={{ fontWeight: 600, color: '#1a1a1a', fontSize: '13px' }}>{datePart}</div>
-            <div style={{ fontSize: '11px', color: '#666' }}>{timePart}</div>
+            <div style={{ fontWeight: 600, color: '#1a1a1a', fontSize: '15px' }}>{datePart}</div>
+            <div style={{ fontSize: '13px', color: '#666' }}>{timePart}</div>
           </div>
         );
       }
@@ -796,7 +796,7 @@ Thank you,`
       dataIndex: "increment_id",
       key: "increment_id",
       align: "center",
-      width: 115,
+      width: 125,
       sorter: (a, b) => a.increment_id - b.increment_id,
       sortOrder: sortedInfo.columnKey === "increment_id" && sortedInfo.order,
       ...getColumnSearchProps("increment_id"),
@@ -814,16 +814,16 @@ Thank you,`
               href={`https://www.justjeeps.com/admin_19q7yi/sales/order/view/order_id/${record.entity_id}`}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: "#1890ff", fontWeight: 600, fontSize: '13px' }}
+              style={{ color: "#1890ff", fontWeight: 600, fontSize: '15px' }}
             >
               {text}
             </a>
             {isValid ? (
-              <CheckCircleOutlined style={{ color: "#52c41a", fontSize: 14 }} title="PO assigned" />
+              <CheckCircleOutlined style={{ color: "#52c41a", fontSize: 16 }} title="PO assigned" />
             ) : isExactlyNotSet ? (
-              <span title="PO not set" style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: 'red', display: 'inline-block' }} />
+              <span title="PO not set" style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: 'red', display: 'inline-block' }} />
             ) : (
-              <span title="PO partially set" style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#faad14', display: 'inline-block' }} />
+              <span title="PO partially set" style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: '#faad14', display: 'inline-block' }} />
             )}
           </div>
         );
@@ -834,7 +834,7 @@ Thank you,`
       dataIndex: "custom_po_number",
       key: "custom_po_number",
       align: "center",
-      width: 110,
+      width: 120,
       sorter: (a, b) => a.custom_po_number?.localeCompare(b.custom_po_number),
       sortOrder: sortedInfo.columnKey === "custom_po_number" && sortedInfo.order,
       ...getColumnSearchProps("custom_po_number"),
@@ -844,7 +844,7 @@ Thank you,`
           <span style={{
             color: isMissing ? '#ff4d4f' : '#1a1a1a',
             fontWeight: isMissing ? 700 : 500,
-            fontSize: '13px'
+            fontSize: '15px'
           }}>
             {isMissing ? 'NOT SET' : text}
           </span>
@@ -856,7 +856,7 @@ Thank you,`
       dataIndex: "region",
       key: "region",
       align: "center",
-      width: 100,
+      width: 120,
       sorter: (a, b) => a.region?.localeCompare(b.region),
       sortOrder: sortedInfo.columnKey === "region" && sortedInfo.order,
       ...getColumnSearchProps("region"),
@@ -870,9 +870,9 @@ Thank you,`
         const isFlagged = flaggedRegions.includes(text);
         return (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-            <span style={{ fontSize: '13px', fontWeight: 500 }}>{text}</span>
+            <span style={{ fontSize: '15px', fontWeight: 500 }}>{text}</span>
             {isFlagged && (
-              <ExclamationCircleOutlined style={{ color: "red", fontSize: 14 }} title="Remote Region" />
+              <ExclamationCircleOutlined style={{ color: "red", fontSize: 16 }} title="Remote Region" />
             )}
           </div>
         );
@@ -882,7 +882,7 @@ Thank you,`
       title: "Details",
       key: "details",
       align: "left",
-      width: 320,
+      width: 360,
       render: (_, record) => {
         // Status tag color mapping
         const statusConfig = {
@@ -929,9 +929,9 @@ Thank you,`
                 backgroundColor: statusStyle.bg,
                 color: statusStyle.color,
                 border: `1px solid ${statusStyle.border}`,
-                padding: '2px 8px',
+                padding: '3px 10px',
                 borderRadius: '4px',
-                fontSize: '10px',
+                fontSize: '12px',
                 fontWeight: 600,
                 textTransform: 'uppercase',
                 letterSpacing: '0.3px',
@@ -940,7 +940,7 @@ Thank you,`
                 {statusStyle.label}
               </span>
               <span style={{
-                fontSize: '13px',
+                fontSize: '15px',
                 fontWeight: 600,
                 color: '#1a1a1a',
                 overflow: 'hidden',
@@ -963,7 +963,7 @@ Thank you,`
               {/* Payment */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                 <span style={{
-                  fontSize: '9px',
+                  fontSize: '11px',
                   color: '#8c8c8c',
                   textTransform: 'uppercase',
                   letterSpacing: '0.4px',
@@ -972,7 +972,7 @@ Thank you,`
                   Payment
                 </span>
                 <span style={{
-                  fontSize: '11px',
+                  fontSize: '13px',
                   color: '#262626',
                   fontWeight: 500,
                 }}>
@@ -983,7 +983,7 @@ Thank you,`
               {/* Fraud Score */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                 <span style={{
-                  fontSize: '9px',
+                  fontSize: '11px',
                   color: '#8c8c8c',
                   textTransform: 'uppercase',
                   letterSpacing: '0.4px',
@@ -992,7 +992,7 @@ Thank you,`
                   Fraud
                 </span>
                 <span style={{
-                  fontSize: '11px',
+                  fontSize: '13px',
                   color: showFraudWarning ? '#cf1322' : '#262626',
                   fontWeight: showFraudWarning ? 600 : 500,
                   display: 'flex',
@@ -1001,7 +1001,7 @@ Thank you,`
                 }}>
                   {record.weltpixel_fraud_score || '—'}
                   {showFraudWarning && (
-                    <ExclamationCircleOutlined style={{ fontSize: 10, color: '#cf1322' }} />
+                    <ExclamationCircleOutlined style={{ fontSize: 12, color: '#cf1322' }} />
                   )}
                 </span>
               </div>
@@ -1009,7 +1009,7 @@ Thank you,`
               {/* Shipping */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', textAlign: 'right' }}>
                 <span style={{
-                  fontSize: '9px',
+                  fontSize: '11px',
                   color: '#8c8c8c',
                   textTransform: 'uppercase',
                   letterSpacing: '0.4px',
@@ -1018,7 +1018,7 @@ Thank you,`
                   Shipping
                 </span>
                 <span style={{
-                  fontSize: '11px',
+                  fontSize: '13px',
                   color: '#262626',
                   fontWeight: 500,
                 }}>
@@ -1029,7 +1029,7 @@ Thank you,`
               {/* Due */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', textAlign: 'right' }}>
                 <span style={{
-                  fontSize: '9px',
+                  fontSize: '11px',
                   color: '#8c8c8c',
                   textTransform: 'uppercase',
                   letterSpacing: '0.4px',
@@ -1038,7 +1038,7 @@ Thank you,`
                   Due
                 </span>
                 <span style={{
-                  fontSize: '11px',
+                  fontSize: '13px',
                   color: isDue ? '#cf1322' : '#389e0d',
                   fontWeight: 600,
                 }}>
@@ -1055,7 +1055,7 @@ Thank you,`
       dataIndex: "grand_total",
       key: "grand_total",
       align: "center",
-      width: 90,
+      width: 100,
       sorter: (a, b) => a.grand_total - b.grand_total,
       sortOrder: sortedInfo.columnKey === "grand_total" && sortedInfo.order,
       ...getColumnSearchProps("grand_total"),
@@ -1063,10 +1063,10 @@ Thank you,`
         const currency = record.order_currency_code || 'CAD';
         return (
           <div style={{ textAlign: 'center', lineHeight: 1.2 }}>
-            <div style={{ fontWeight: 700, fontSize: '15px', color: '#1a1a1a' }}>
+            <div style={{ fontWeight: 700, fontSize: '18px', color: '#1a1a1a' }}>
               ${text?.toFixed(2)}
             </div>
-            <div style={{ fontSize: '10px', color: '#888', fontWeight: 500 }}>{currency}</div>
+            <div style={{ fontSize: '12px', color: '#888', fontWeight: 500 }}>{currency}</div>
           </div>
         );
       },
@@ -1076,11 +1076,11 @@ Thank you,`
       dataIndex: "total_qty_ordered",
       key: "total_qty_ordered",
       align: "center",
-      width: 50,
+      width: 55,
       sorter: (a, b) => a.total_qty_ordered - b.total_qty_ordered,
       sortOrder: sortedInfo.columnKey === "total_qty_ordered" && sortedInfo.order,
       render: (text) => (
-        <span style={{ fontSize: '15px', fontWeight: 700, color: '#1a1a1a' }}>{text}</span>
+        <span style={{ fontSize: '18px', fontWeight: 700, color: '#1a1a1a' }}>{text}</span>
       ),
     },
     {
@@ -2234,7 +2234,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
               expandable={{ expandedRowRender }} //, onExpand: handleExpand remove expandable
               dataSource={data}
               bordered
-              scroll={{ x: 950 }}
+              scroll={{ x: 1100 }}
               rowKey={(record) => record.id}
               onChange={handleTableChange}
               size="small"

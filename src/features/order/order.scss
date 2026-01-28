@@ -26,7 +26,7 @@
 
   // Table rows
   .ant-table-row {
-    font-size: 13px;
+    font-size: 15px;
     transition: background-color 0.2s ease;
 
     &:hover {
@@ -52,7 +52,7 @@
   // Header styling - Main table
   .ant-table-thead .ant-table-cell {
     background: #f5c518 !important;
-    font-size: 11px !important;
+    font-size: 13px !important;
     font-weight: 600 !important;
     text-transform: uppercase;
     letter-spacing: 0.4px;
