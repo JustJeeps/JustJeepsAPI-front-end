@@ -50,26 +50,26 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			title: 'Brand',
 			dataIndex: 'brand_name',
 			key: 'brand_name',
-			width: 70,
+			width: 80,
 			ellipsis: true,
-			render: brand => <span style={{ fontSize: '11px' }}>{brand}</span>,
+			render: brand => <span style={{ fontSize: '12px' }}>{brand}</span>,
 		},
 
 		{
 			title: 'Img',
 			dataIndex: 'image',
 			key: 'image',
-			width: 45,
-			render: image => <img src={image} alt='Product' width='40' />,
+			width: 50,
+			render: image => <img src={image} alt='Product' width='45' />,
 		},
 		{
 			title: 'Name',
 			dataIndex: 'name',
 			key: 'name',
-			width: 220,
+			width: 240,
 			render: name => (
 				<span style={{
-					fontSize: '12px',
+					fontSize: '13px',
 					fontWeight: 500,
 					lineHeight: 1.4,
 					display: 'block',
@@ -86,10 +86,10 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			dataIndex: 'price',
 			key: 'price',
 			align: 'center',
-			width: 60,
+			width: 70,
 			render: price => {
 				const displayPrice = props.orderProductPrice ? props.orderProductPrice : price;
-				return <span style={{ fontSize: '12px', fontWeight: 500 }}>${displayPrice.toFixed(2)}</span>;
+				return <span style={{ fontSize: '13px', fontWeight: 600 }}>${displayPrice.toFixed(2)}</span>;
 			},
 		},
 
@@ -258,21 +258,21 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			title: 'Brand Vendors',
 			key: 'vendors_for_brand',
 			dataIndex: 'vendors',
-			width: 80,
+			width: 90,
 			align: 'center',
 			render: (vendors) => {
 				if (!vendors) return '-';
 				const vendorList = vendors.split(',').map(v => v.trim());
 				return (
-					<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px' }}>
+					<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
 						{vendorList.map((vendor, idx) => (
 							<span
 								key={idx}
 								style={{
 									backgroundColor: '#fff3cd',
-									padding: '1px 4px',
+									padding: '2px 6px',
 									borderRadius: '3px',
-									fontSize: '9px',
+									fontSize: '11px',
 									fontWeight: 500,
 									color: '#856404',
 									whiteSpace: 'nowrap',
@@ -348,18 +348,25 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
     const vendorsWithInventory = record.vendorProducts.filter(
       (vp) => vp.vendor_inventory > 0
     );
-    const bestVendorId = vendorsWithInventory.length > 0
-      ? vendorsWithInventory.reduce((min, curr) =>
-          curr.vendor_cost < min.vendor_cost ? curr : min
-        , vendorsWithInventory[0]).vendor.id
-      : null;
+
+    // Find the minimum cost vendor
+    let bestVendorCost = Infinity;
+    let bestVendorIndex = -1;
+    vendorsWithInventory.forEach((vp, idx) => {
+      if (vp.vendor_cost < bestVendorCost) {
+        bestVendorCost = vp.vendor_cost;
+        bestVendorIndex = idx;
+      }
+    });
+    const bestVendor = bestVendorIndex >= 0 ? vendorsWithInventory[bestVendorIndex] : null;
 
     return record.vendorProducts.map(vendorProduct => {
       const vendorName = vendorProduct.vendor.name;
       const vendorSKU = vendorProduct.vendor_sku?.trim();
       const productSKU = vendorProduct.product_sku?.trim();
       const vendorNameLower = vendorName.toLowerCase();
-      const isBestVendor = vendorProduct.vendor.id === bestVendorId;
+      // Compare by vendor_cost to identify the best vendor
+      const isBestVendor = bestVendor && vendorProduct.id === bestVendor.id;
 
       let link = null;
 
@@ -425,11 +432,11 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
             <TrophyFilled style={{ color: '#52c41a', fontSize: '14px' }} />
           )}
           {link ? (
-            <a href={link} target="_blank" rel="noopener noreferrer">
+            <a href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px' }}>
               {vendorName}
             </a>
           ) : (
-            <span>{vendorName}</span>
+            <span style={{ fontSize: '12px' }}>{vendorName}</span>
           )}
         </div>
       );
@@ -444,22 +451,18 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			title: 'Cost (CAD / USD)',
 			dataIndex: 'vendorProducts',
 			key: 'vendor_cost',
-			width: 160,
+			width: 150,
 			render: vendorProducts =>
 				vendorProducts.map(vendorProduct => (
 					<div
 						key={vendorProduct.id}
-						style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}
+						style={{ marginBottom: '3px' }}
 					>
 						<CopyText text={`CAD$ ${vendorProduct.vendor_cost.toFixed(2)} / USD$ ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}`}>
-							<span style={{ whiteSpace: 'nowrap', fontSize: '11px' }}>
+							<span style={{ whiteSpace: 'nowrap', fontSize: '13px' }}>
 								${vendorProduct.vendor_cost.toFixed(2)} / ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}
 							</span>
 						</CopyText>
-						<Checkbox
-							onChange={() => handleVendorCostClick(vendorProduct)}
-							size="small"
-						/>
 					</div>
 				)),
 		},
