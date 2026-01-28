@@ -764,10 +764,11 @@ Thank you,`
 
 
     {
-      title: "Created_Date",
+      title: "Date",
       dataIndex: "created_at",
       key: "created_at",
       align: "center",
+      width: 100,
       sorter: (a, b) => a.created_at?.localeCompare(b.created_at),
       sortOrder: sortedInfo.columnKey === "created_at" && sortedInfo.order,
       ...getColumnSearchProps("created_at"),
@@ -821,6 +822,7 @@ Thank you,`
       dataIndex: "increment_id",
       key: "increment_id",
       align: "center",
+      width: 120,
       sorter: (a, b) => a.increment_id - b.increment_id,
       sortOrder: sortedInfo.columnKey === "increment_id" && sortedInfo.order,
       ...getColumnSearchProps("increment_id"),
@@ -928,6 +930,7 @@ Thank you,`
       dataIndex: "status",
       key: "status",
       align: "center",
+      width: 100,
       sorter: (a, b) => a.status?.localeCompare(b.status),
       sortOrder: sortedInfo.columnKey === "status" && sortedInfo.order,
       ...getColumnSearchProps("status"),
@@ -962,6 +965,7 @@ Thank you,`
       dataIndex: "custom_po_number",
       key: "custom_po_number",
       align: "center",
+      width: 100,
       sorter: (a, b) => a.custom_po_number?.localeCompare(b.custom_po_number),
       sortOrder: sortedInfo.columnKey === "custom_po_number" && sortedInfo.order,
       ...getColumnSearchProps("custom_po_number"),
@@ -1037,10 +1041,11 @@ Thank you,`
     // },
 
     {
-      title: "Fraud Score",
+      title: "Fraud",
       dataIndex: "weltpixel_fraud_score",
       key: "weltpixel_fraud_score",
       align: "center",
+      width: 60,
       sorter: (a, b) =>
         a.weltpixel_fraud_score?.localeCompare(b.weltpixel_fraud_score),
       sortOrder:
@@ -1106,6 +1111,7 @@ Thank you,`
   dataIndex: "region",
   key: "region",
   align: "center",
+  width: 90,
   sorter: (a, b) => a.region?.localeCompare(b.region),
   sortOrder: sortedInfo.columnKey === "region" && sortedInfo.order,
   ...getColumnSearchProps("region"),
@@ -1157,10 +1163,11 @@ Thank you,`
 
         //method_title
         {
-          title: "Payment Method",
+          title: "Payment",
           dataIndex: "method_title",
           key: "method_title",
           align: "center",
+          width: 90,
           sorter: (a, b) => a.method_title?.localeCompare(b.method_title),
           sortOrder: sortedInfo.columnKey === "method_title" && sortedInfo.order,
           ...getColumnSearchProps("method_title"),
@@ -1187,12 +1194,13 @@ Thank you,`
         },
 
 
-    //create a new column for shipping_description and shipping_amount 
+    //create a new column for shipping_description and shipping_amount
     {
-      title: "Shipping",
+      title: "Ship Fee",
       dataIndex: "shipping_description",
       key: "shipping_description",
       align: "center",
+      width: 80,
       sorter: (a, b) =>
         a.shipping_description?.localeCompare(b.shipping_description),
       sortOrder:
@@ -1219,10 +1227,11 @@ Thank you,`
       },
     },
     {
-      title: "Shipping Amount",
+      title: "Shipping",
       dataIndex: "shipping_amount",
       key: "shipping_amount",
       align: "center",
+      width: 90,
       sorter: (a, b) => a.shipping_amount - b.shipping_amount,
       sortOrder: sortedInfo.columnKey === "shipping_amount" && sortedInfo.order,
       ...getColumnSearchProps("shipping_amount"),
@@ -1243,17 +1252,19 @@ Thank you,`
             </Form.Item>
           );
         } else {
-          return <p>${text?.toFixed(2)}</p>;
+          const currency = record.order_currency_code || '';
+          return <span style={{ fontSize: '13px' }}>{currency}${text?.toFixed(2)}</span>;
         }
       },
     },
     
     //create a new column for base_total_due
     {
-      title: "Base Total Due",
+      title: "Due",
       dataIndex: "base_total_due",
       key: "base_total_due",
       align: "center",
+      width: 90,
       sorter: (a, b) => a.base_total_due - b.base_total_due,
       sortOrder: sortedInfo.columnKey === "base_total_due" && sortedInfo.order,
       ...getColumnSearchProps("base_total_due"),
@@ -1273,7 +1284,8 @@ Thank you,`
             </Form.Item>
           );
         } else {
-          return <p>${text?.toFixed(2)}</p>;
+          const currency = record.order_currency_code || '';
+          return <span style={{ fontSize: '13px' }}>{currency}${text?.toFixed(2)}</span>;
         }
       }
     },
@@ -1309,10 +1321,11 @@ Thank you,`
     //   },
     // },
     {
-      title: "First Name ",
+      title: "Name",
       dataIndex: "customer_firstname",
       key: "customer_firstname",
       align: "center",
+      width: 80,
       sorter: (a, b) =>
         a.customer_firstname?.localeCompare(b.customer_firstname),
       sortOrder:
@@ -1372,6 +1385,7 @@ Thank you,`
       dataIndex: "grand_total",
       key: "grand_total",
       align: "center",
+      width: 100,
       editTable: true,
       sorter: (a, b) => a.grand_total - b.grand_total,
       sortOrder: sortedInfo.columnKey === "grand_total" && sortedInfo.order,
@@ -1392,19 +1406,10 @@ Thank you,`
             </Form.Item>
           );
         } else {
-          return <p>${text?.toFixed(2)}</p>;
+          const currency = record.order_currency_code || '';
+          return <span style={{ fontSize: '13px', fontWeight: 500 }}>{currency}${text?.toFixed(2)}</span>;
         }
       },
-    },
-    {
-      title: "currency",
-      dataIndex: "order_currency_code",
-      key: "order_currency_code",
-      align: "center",
-      sorter: (a, b) =>
-        a.order_currency_code?.localeCompare(b.order_currency_code),
-      sortOrder:
-        sortedInfo.columnKey === "order_currency_code" && sortedInfo.order,
     },
 
     {
@@ -1413,6 +1418,7 @@ Thank you,`
       key: "total_qty_ordered",
       editTable: true,
       align: "center",
+      width: 50,
       sorter: (a, b) => a.total_qty_ordered - b.total_qty_ordered,
       sortOrder:
         sortedInfo.columnKey === "total_qty_ordered" && sortedInfo.order,
@@ -1449,10 +1455,10 @@ Thank you,`
 
 
     {
-      title: "Request ETA All",
+      title: "ETA",
       key: "email_all",
       align: "center",
-      width: "12%",
+      width: 160,
       render: (_, record /* order */) => {
         const to = DEFAULT_PURCHASING_EMAIL; // or whoever should receive the “all items” email
         const subject    = buildEmailSubject(record);
@@ -2298,9 +2304,9 @@ console.log("IS ARRAY?", Array.isArray(orders));
 
   return (
     <>
-    
-      <div className="container-fluid">
-        <div className="container-xl">
+
+      <div className="container-fluid" style={{ overflow: 'hidden', maxWidth: '100vw' }}>
+        <div className="container-xl" style={{ maxWidth: '100%', padding: '0 15px' }}>
           <div className="container mb-3" 
             style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '10px', marginTop: '5px' }}>  
 
@@ -2512,19 +2518,18 @@ console.log("IS ARRAY?", Array.isArray(orders));
 
 
 
-          <div className="table-wrapper" style={{ overflowX: "auto" }}>
+          <div className="table-wrapper" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto' }}>
 
           <Form form={form}>
             <Table
               columns={columns}
               expandable={{ expandedRowRender }} //, onExpand: handleExpand remove expandable
               dataSource={data}
-              // scroll={{ y: 1500 }}
               bordered
-              // scroll={{ x: "max-content" }}
+              scroll={{ x: 1200 }}
               rowKey={(record) => record.id}
               onChange={handleTableChange}
-              size="large"
+              size="middle"
               loading={loading}
               pagination={{
                 current: pagination.current,

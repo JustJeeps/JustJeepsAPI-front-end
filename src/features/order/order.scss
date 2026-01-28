@@ -31,10 +31,18 @@
 // 📱 Make table responsive on small screens
 .table-wrapper {
   width: 100%;
-
+  max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch; // smooth scroll on iOS
   padding-bottom: 1rem;
+
+  .ant-table {
+    max-width: 100%;
+  }
+
+  .ant-table-container {
+    max-width: 100%;
+  }
 }
 
 // 📊 Make dashboard cards responsive
