@@ -1,69 +1,178 @@
 @import 'bootstrap/scss/bootstrap';
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
-// Modern table styling
-.ant-table {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
+// ============================================
+// SCOPED STYLES - Only for OrderTable
+// ============================================
+.table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 1rem;
 
-// Table rows
-.ant-table-row {
-  font-size: 13px;
-  transition: background-color 0.2s ease;
+  // Modern table styling
+  .ant-table {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    max-width: 100%;
+  }
 
-  &:hover {
-    background-color: #fff8e6 !important;
+  .ant-table-container {
+    max-width: 100%;
+  }
+
+  // Table rows
+  .ant-table-row {
+    font-size: 13px;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: #fff8e6 !important;
+    }
+  }
+
+  // Cell padding
+  .ant-table-cell {
+    padding: 8px 10px !important;
+    vertical-align: middle !important;
+  }
+
+  // Alternating row colors
+  .ant-table-tbody .ant-table-row:nth-child(even) {
+    background-color: #fafafa;
+  }
+
+  .ant-table-tbody .ant-table-row:nth-child(odd) {
+    background-color: #ffffff;
+  }
+
+  // Header styling - Main table
+  .ant-table-thead .ant-table-cell {
+    background: #f5c518 !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 12px 10px !important;
+    color: #1a1a1a !important;
+    border-bottom: 2px solid #d4a200 !important;
+  }
+
+  // Sortable column hover
+  .ant-table-thead .ant-table-cell:hover {
+    background: #e6b800 !important;
+  }
+
+  // Links styling
+  .ant-table a {
+    color: #1890ff;
+    text-decoration: none;
+    font-weight: 500;
+
+    &:hover {
+      color: #096dd9;
+      text-decoration: underline;
+    }
+  }
+
+  // Expanded row styling
+  .ant-table-expanded-row {
+    background-color: #fffdf5 !important;
+
+    > td {
+      padding: 10px 12px !important;
+      background-color: #fffdf5 !important;
+    }
+
+    // Nested table styling
+    .ant-table {
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      border: 1px solid #f0e6c8;
+      margin: 2px 0;
+    }
+
+    // Nested table header - warm yellow style
+    .ant-table-thead .ant-table-cell {
+      background: #fff8e1 !important;
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      padding: 12px 10px !important;
+      color: #8c7a4a !important;
+      border-bottom: 1px solid #f0e6c8 !important;
+    }
+
+    .ant-table-thead .ant-table-cell:hover {
+      background: #fff3cd !important;
+    }
+
+    // Nested table rows
+    .ant-table-tbody .ant-table-row {
+      background-color: #fffef9 !important;
+
+      &:hover {
+        background-color: #fffdf0 !important;
+      }
+    }
+
+    .ant-table-tbody .ant-table-row:nth-child(even) {
+      background-color: #fffcf0 !important;
+    }
+
+    .ant-table-cell {
+      padding: 12px 10px !important;
+      font-size: 13px;
+      vertical-align: middle !important;
+
+      // Remove default paragraph margins
+      p {
+        margin: 0 !important;
+        line-height: 1.5;
+      }
+
+      // Links styling
+      a {
+        font-size: 13px;
+      }
+    }
+
+    // Ensure all content is vertically centered
+    .ant-table-tbody > tr > td {
+      vertical-align: middle !important;
+    }
+  }
+
+  // Better scrollbar
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+
+    &:hover {
+      background: #a1a1a1;
+    }
   }
 }
 
-// Cell padding
-.ant-table-cell {
-  padding: 12px 10px !important;
-  vertical-align: middle !important;
-}
+// ============================================
+// GLOBAL STYLES - Apply everywhere
+// ============================================
 
-// Alternating row colors
-.ant-table-tbody .ant-table-row:nth-child(even) {
-  background-color: #fafafa;
-}
-
-.ant-table-tbody .ant-table-row:nth-child(odd) {
-  background-color: #ffffff;
-}
-
-// Header styling
-.ant-table-thead .ant-table-cell {
-  background: linear-gradient(135deg, #f5c518 0%, #e6b800 100%) !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  padding: 14px 10px !important;
-  color: #1a1a1a !important;
-  border-bottom: 2px solid #d4a200 !important;
-}
-
-// Sortable column hover
-.ant-table-thead .ant-table-cell:hover {
-  background: linear-gradient(135deg, #e6b800 0%, #d4a200 100%) !important;
-}
-
-// Links styling
-.ant-table a {
-  color: #1890ff;
-  text-decoration: none;
-  font-weight: 500;
-
-  &:hover {
-    color: #096dd9;
-    text-decoration: underline;
-  }
-}
-
-// Tags improvements
+// Tags improvements (global - used in multiple places)
 .ant-tag {
   border-radius: 4px;
   font-weight: 500;
@@ -90,27 +199,103 @@
 
 // Pagination styling
 .ant-pagination {
-  .ant-pagination-item {
-    border-radius: 6px;
-    font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 16px;
+  background-color: #fafafa;
+  border-radius: 8px;
+  margin: 8px 0;
 
-    &-active {
-      background-color: #f5c518;
+  .ant-pagination-total-text {
+    color: #666;
+    font-size: 13px;
+    font-weight: 500;
+    margin-right: 12px;
+  }
+
+  .ant-pagination-item {
+    min-width: 32px;
+    height: 32px;
+    line-height: 30px;
+    border-radius: 6px;
+    border: 1px solid #d9d9d9;
+    font-weight: 500;
+    font-size: 13px;
+    background-color: #fff;
+    transition: all 0.2s ease;
+
+    a {
+      color: #333 !important;
+    }
+
+    &:hover {
       border-color: #f5c518;
 
       a {
+        color: #d4a200 !important;
+      }
+    }
+
+    &-active {
+      background-color: #f5c518 !important;
+      border-color: #f5c518 !important;
+
+      a {
         color: #1a1a1a !important;
+        font-weight: 600;
+      }
+
+      &:hover {
+        background-color: #e6b800 !important;
       }
     }
   }
-}
 
-// Expanded row styling
-.ant-table-expanded-row {
-  background-color: #fffef5 !important;
+  .ant-pagination-prev,
+  .ant-pagination-next {
+    min-width: auto;
+    height: 32px;
+    line-height: 30px;
+    border-radius: 6px;
+    border: 1px solid #d9d9d9;
+    background-color: #fff;
+    padding: 0 12px;
+    transition: all 0.2s ease;
 
-  > td {
-    padding: 16px !important;
+    &:hover:not(.ant-pagination-disabled) {
+      border-color: #f5c518;
+      background-color: #fffdf5;
+    }
+
+    &.ant-pagination-disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    button, a {
+      color: #333 !important;
+      font-weight: 500;
+      font-size: 13px;
+    }
+  }
+
+  .ant-pagination-jump-prev,
+  .ant-pagination-jump-next {
+    .ant-pagination-item-ellipsis {
+      color: #999;
+    }
+  }
+
+  .ant-pagination-options {
+    margin-left: 12px;
+
+    .ant-select-selector {
+      border-radius: 6px;
+      border-color: #d9d9d9;
+      height: 32px;
+      font-size: 13px;
+    }
   }
 }
 
@@ -120,43 +305,7 @@
   border-color: #52c41a;
 }
 
-// Better scrollbar
-.table-wrapper::-webkit-scrollbar {
-  height: 8px;
-}
-
-.table-wrapper::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-.table-wrapper::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
-
-  &:hover {
-    background: #a1a1a1;
-  }
-}
-
-// 📱 Make table responsive on small screens
-.table-wrapper {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch; // smooth scroll on iOS
-  padding-bottom: 1rem;
-
-  .ant-table {
-    max-width: 100%;
-  }
-
-  .ant-table-container {
-    max-width: 100%;
-  }
-}
-
-// 📊 Make dashboard cards responsive
+// Dashboard cards responsive
 .dashboard-cards {
   display: flex;
   flex-wrap: wrap;
@@ -173,7 +322,7 @@
   }
 }
 
-// 🧠 Responsive design
+// Responsive design for OrderTable only
 @media (max-width: 768px) {
   .dashboard-cards {
     flex-direction: column;
@@ -184,23 +333,23 @@
     width: 100%;
   }
 
-  .ant-table {
-    font-size: 11px;
-  }
+  .table-wrapper {
+    .ant-table {
+      font-size: 11px;
+    }
 
-  .ant-table-thead .ant-table-cell {
-    font-size: 10px !important;
-    padding: 8px 4px !important;
-  }
+    .ant-table-thead .ant-table-cell {
+      font-size: 10px !important;
+      padding: 8px 4px !important;
+    }
 
-  .ant-table-cell {
-    padding: 6px 4px !important;
-  }
+    .ant-table-cell {
+      padding: 6px 4px !important;
+    }
 
-  .ant-btn {
-    font-size: 11px;
-    padding: 4px 8px;
+    .ant-btn {
+      font-size: 11px;
+      padding: 4px 8px;
+    }
   }
 }
-
-

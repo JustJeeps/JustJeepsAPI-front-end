@@ -1,8 +1,8 @@
-import { Table, Button, Checkbox, Tag } from 'antd';
+import { Table, Button, Checkbox, Tag, Tooltip } from 'antd';
 import CopyText from '../copyText/CopyText';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { CheckSquareOutlined } from '@ant-design/icons';
+import { CheckSquareOutlined, TrophyFilled } from '@ant-design/icons';
 import { sizeHeight, width } from '@mui/system';
 
 
@@ -66,9 +66,19 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			title: 'Name',
 			dataIndex: 'name',
 			key: 'name',
-			width: 120,
-			ellipsis: true,
-			render: name => <span style={{ fontSize: '11px' }}>{name}</span>,
+			width: 220,
+			render: name => (
+				<span style={{
+					fontSize: '12px',
+					fontWeight: 500,
+					lineHeight: 1.4,
+					display: 'block',
+					wordWrap: 'break-word',
+					whiteSpace: 'normal',
+				}}>
+					{name}
+				</span>
+			),
 		},
 
 		{
@@ -190,59 +200,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 				}),
 		},
 
-		{
-  title: "Best Vendor",
-  dataIndex: "vendorProducts",
-  key: "lowest_cost",
-  align: "center",
-  width: 100,
-  render: (vendorProducts, record) => {
-    const vendorsWithInventory = vendorProducts.filter(
-      (vp) => vp.vendor_inventory > 0
-    );
-
-    if (vendorsWithInventory.length === 0) {
-      return "-";
-    }
-
-    // Find the vendor with the lowest cost (raw cost)
-    const minVendorProduct = vendorsWithInventory.reduce((min, curr) => {
-      if (curr.vendor_cost < min.vendor_cost) {
-        return curr;
-      }
-      return min;
-    }, vendorsWithInventory[0]);
-
-    // Adjust vendor cost based on currency
-    const adjustedCost = props.currency === 'USD'
-      ? minVendorProduct.vendor_cost / 1.5
-      : minVendorProduct.vendor_cost;
-
-    const margin = ((props.orderProductPrice - adjustedCost) / adjustedCost) * 100;
-
-    return (
-      <div
-        style={{
-          border: `2px solid ${margin > 18 ? "#52c41a" : "#ff4d4f"}`,
-          padding: "6px 8px",
-          borderRadius: "6px",
-          backgroundColor: margin > 18 ? "#f6ffed" : "#fff2f0",
-          fontSize: '11px'
-        }}
-      >
-        <div style={{ fontWeight: 600, marginBottom: '2px' }}>{minVendorProduct.vendor.name}</div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
-          <span>CAD${minVendorProduct.vendor_cost.toFixed(2)}</span>
-          <span style={{ fontWeight: 600, color: margin > 18 ? "#52c41a" : "#ff4d4f" }}>{margin.toFixed(0)}%</span>
-          <Checkbox
-            onChange={() => handleVendorCostClick(minVendorProduct)}
-            size="small"
-          />
-        </div>
-      </div>
-    );
-  },
-},
+// Best Vendor column removed - medal now shown in Vendor column
 
 		// {
     //   title: "Suggested Vendor",
@@ -301,12 +259,31 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			key: 'vendors_for_brand',
 			dataIndex: 'vendors',
 			width: 80,
-			ellipsis: true,
-			render: (vendors) => (
-				<div>
-					<span style={{ backgroundColor: 'yellow', padding: '2px 4px' }}>{vendors}</span>
-				</div>
-			),
+			align: 'center',
+			render: (vendors) => {
+				if (!vendors) return '-';
+				const vendorList = vendors.split(',').map(v => v.trim());
+				return (
+					<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px' }}>
+						{vendorList.map((vendor, idx) => (
+							<span
+								key={idx}
+								style={{
+									backgroundColor: '#fff3cd',
+									padding: '1px 4px',
+									borderRadius: '3px',
+									fontSize: '9px',
+									fontWeight: 500,
+									color: '#856404',
+									whiteSpace: 'nowrap',
+								}}
+							>
+								{vendor}
+							</span>
+						))}
+					</div>
+				);
+			},
 		},
 
 // {
@@ -365,13 +342,24 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
   title: 'Vendor',
   dataIndex: null,
   key: 'vendor_id',
-  width: 70,
-  render: (_, record) =>
-    record.vendorProducts.map(vendorProduct => {
+  width: 90,
+  render: (_, record) => {
+    // Find the best vendor (lowest cost with inventory > 0)
+    const vendorsWithInventory = record.vendorProducts.filter(
+      (vp) => vp.vendor_inventory > 0
+    );
+    const bestVendorId = vendorsWithInventory.length > 0
+      ? vendorsWithInventory.reduce((min, curr) =>
+          curr.vendor_cost < min.vendor_cost ? curr : min
+        , vendorsWithInventory[0]).vendor.id
+      : null;
+
+    return record.vendorProducts.map(vendorProduct => {
       const vendorName = vendorProduct.vendor.name;
       const vendorSKU = vendorProduct.vendor_sku?.trim();
       const productSKU = vendorProduct.product_sku?.trim();
       const vendorNameLower = vendorName.toLowerCase();
+      const isBestVendor = vendorProduct.vendor.id === bestVendorId;
 
       let link = null;
 
@@ -432,7 +420,10 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
       }
 
       return (
-        <div key={vendorProduct.id} style={{ marginBottom: '3px' }}>
+        <div key={vendorProduct.id} style={{ marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          {isBestVendor && (
+            <TrophyFilled style={{ color: '#52c41a', fontSize: '14px' }} />
+          )}
           {link ? (
             <a href={link} target="_blank" rel="noopener noreferrer">
               {vendorName}
@@ -442,7 +433,8 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
           )}
         </div>
       );
-    }),
+    });
+  },
 }
 ,
 
@@ -452,16 +444,16 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			title: 'Cost (CAD / USD)',
 			dataIndex: 'vendorProducts',
 			key: 'vendor_cost',
-			width: 180,
+			width: 160,
 			render: vendorProducts =>
 				vendorProducts.map(vendorProduct => (
 					<div
 						key={vendorProduct.id}
 						style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}
 					>
-						<CopyText text={`CAD$ ${vendorProduct.vendor_cost} / USD$ ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}`}>
+						<CopyText text={`CAD$ ${vendorProduct.vendor_cost.toFixed(2)} / USD$ ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}`}>
 							<span style={{ whiteSpace: 'nowrap', fontSize: '11px' }}>
-								$ {vendorProduct.vendor_cost} / $ {(vendorProduct.vendor_cost / 1.5).toFixed(2)}
+								${vendorProduct.vendor_cost.toFixed(2)} / ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}
 							</span>
 						</CopyText>
 						<Checkbox
@@ -746,9 +738,9 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
     columns={columns_by_sku}
     rowKey="sku"
     pagination={false}
-    scroll={{ y: 400 }}
+    scroll={{ x: 1000, y: 400 }}
     size="small"
-    tableLayout="auto"
+    tableLayout="fixed"
     // footer={() => (
     //   <div style={{ marginTop: '20px', textAlign: 'left' }}>
     //     {props.data.length > 0 && (

@@ -1,138 +1,139 @@
-import {
-  DollarCircleOutlined,
-  LikeOutlined,
-  CalendarOutlined,
-} from '@ant-design/icons';
-import { Card, Col, Row, Statistic } from 'antd';
-import { useDashboardData } from '../../hooks/useDashboardData';
+import { Spin } from 'antd';
 
-const cardStyle = {
-  height: '120px',               // ✅ fixed height for all cards
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'center',
-  textAlign: 'center',
-};
+const TableTop = ({
+  orderCount,
+  notSetCount,
+  todayCount,
+  yesterdayCount,
+  last7DaysCount,
+  gwCount,
+  pmCount,
+  onNotSetClick,
+  onPmClick,
+  onTodayClick,
+  onYesterdayClick,
+  onLast7DaysClick,
+  activeDateFilter,
+  loading = false
+}) => {
 
-const TableTop = ({ orderCount, notSetCount, todayCount, yesterdayCount, last7DaysCount, gwCount, pmCount, onNotSetClick, onPmClick, onTodayClick, onYesterdayClick, onLast7DaysClick, activeDateFilter, loading = false }) => {
-  console.log('orderCount', orderCount);
-  const { state } = useDashboardData();
+  const metrics = [
+    {
+      label: 'Not Set',
+      value: notSetCount,
+      color: '#ff4d4f',
+      bgColor: '#fff2f0',
+      borderColor: '#ffccc7',
+      onClick: onNotSetClick,
+      isActive: false,
+    },
+    {
+      label: 'Today',
+      value: todayCount,
+      color: '#1890ff',
+      bgColor: '#e6f7ff',
+      borderColor: '#91d5ff',
+      onClick: onTodayClick,
+      isActive: activeDateFilter === 'today',
+    },
+    {
+      label: 'Yesterday',
+      value: yesterdayCount,
+      color: '#faad14',
+      bgColor: '#fffbe6',
+      borderColor: '#ffe58f',
+      onClick: onYesterdayClick,
+      isActive: activeDateFilter === 'yesterday',
+    },
+    {
+      label: '7 Days',
+      value: last7DaysCount,
+      color: '#722ed1',
+      bgColor: '#f9f0ff',
+      borderColor: '#d3adf7',
+      onClick: onLast7DaysClick,
+      isActive: activeDateFilter === 'last7days',
+    },
+    {
+      label: 'PM Not Set',
+      value: pmCount,
+      color: '#eb2f96',
+      bgColor: '#fff0f6',
+      borderColor: '#ffadd2',
+      onClick: onPmClick,
+      isActive: false,
+    },
+  ];
 
   return (
-    <Row gutter={16}>
-      <Col span={4}>
-        {/* <Card bordered={false} style={cardStyle}>
-          <Statistic
-            title='Orders Pulled'
-            value={orderCount}
-            valueStyle={{ color: '#3f8600' }}
-            prefix={<LikeOutlined />}
-            loading={loading}
-          />
-        </Card> */}
-      </Col>
-
-    <Col span={4}>
-        <Card
-          bordered={false}
-          style={{ ...cardStyle, cursor: 'pointer', border: '1px solid #ff4d4f' }}
-          onClick={onNotSetClick}
-          hoverable
-        >
-          <Statistic title='Not Set Orders' value={notSetCount} valueStyle={{ color: '#ff4d4f' }} loading={loading} />
-        </Card>
-      </Col>
-
-      <Col span={4}>
-        <Card
-          bordered={false}
+    <div style={{
+      display: 'flex',
+      gap: '8px',
+      flexWrap: 'wrap',
+      justifyContent: 'flex-end',
+    }}>
+      {metrics.map((metric, index) => (
+        <div
+          key={index}
+          onClick={metric.onClick}
           style={{
-            ...cardStyle,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px 16px',
+            minWidth: '80px',
+            height: '60px',
+            borderRadius: '8px',
             cursor: 'pointer',
-            border: activeDateFilter === 'today' ? '2px solid #1890ff' : '1px solid #1890ff',
-            backgroundColor: activeDateFilter === 'today' ? '#e6f7ff' : undefined,
+            transition: 'all 0.2s ease',
+            backgroundColor: metric.isActive ? metric.bgColor : '#fff',
+            border: `2px solid ${metric.isActive ? metric.color : metric.borderColor}`,
+            boxShadow: metric.isActive
+              ? `0 2px 8px ${metric.color}40`
+              : '0 1px 3px rgba(0,0,0,0.08)',
           }}
-          onClick={onTodayClick}
-          hoverable
-        >
-          <Statistic
-            title="Today's Orders"
-            value={todayCount}
-            valueStyle={{ color: '#1890ff' }}
-            loading={loading}
-          />
-        </Card>
-      </Col>
-
-      <Col span={4}>
-        <Card
-          bordered={false}
-          style={{
-            ...cardStyle,
-            cursor: 'pointer',
-            border: activeDateFilter === 'yesterday' ? '2px solid #faad14' : '1px solid #faad14',
-            backgroundColor: activeDateFilter === 'yesterday' ? '#fffbe6' : undefined,
+          onMouseEnter={(e) => {
+            if (!metric.isActive) {
+              e.currentTarget.style.backgroundColor = metric.bgColor;
+              e.currentTarget.style.borderColor = metric.color;
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = `0 4px 12px ${metric.color}30`;
+            }
           }}
-          onClick={onYesterdayClick}
-          hoverable
-        >
-          <Statistic
-            title="Yesterday's Orders"
-            value={yesterdayCount}
-            valueStyle={{ color: '#faad14' }}
-            loading={loading}
-          />
-        </Card>
-      </Col>
-
-      <Col span={4}>
-        <Card
-          bordered={false}
-          style={{
-            ...cardStyle,
-            cursor: 'pointer',
-            border: activeDateFilter === 'last7days' ? '2px solid #722ed1' : '1px solid #722ed1',
-            backgroundColor: activeDateFilter === 'last7days' ? '#f9f0ff' : undefined,
+          onMouseLeave={(e) => {
+            if (!metric.isActive) {
+              e.currentTarget.style.backgroundColor = '#fff';
+              e.currentTarget.style.borderColor = metric.borderColor;
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
+            }
           }}
-          onClick={onLast7DaysClick}
-          hoverable
         >
-          <Statistic
-            title='Last 7 Days'
-            value={last7DaysCount}
-            valueStyle={{ color: '#722ed1' }}
-            loading={loading}
-          />
-        </Card>
-      </Col>
-
-      <Col span={4}>
-        <Card
-          bordered={false}
-          style={{ ...cardStyle, cursor: 'pointer', border: '1px solid #eb2f96' }}
-          onClick={onPmClick}
-          hoverable
-        >
-          <Statistic
-            title='PM Not Set Orders'
-            value={pmCount}
-            valueStyle={{ color: '#eb2f96' }}
-            loading={loading}
-          />
-        </Card>
-      </Col>
-
-      {/* <Col span={4}>
-        <Card bordered={false} style={cardStyle}>
-          <Statistic
-            title='Current Date & Time'
-            value={new Date().toLocaleString()}
-            valueStyle={{ color: '#4B0082' }}
-            prefix={<CalendarOutlined />}
-          />
-        </Card>
-      </Col> */}
-    </Row>
+          <span style={{
+            fontSize: '11px',
+            fontWeight: 500,
+            color: '#666',
+            textTransform: 'uppercase',
+            letterSpacing: '0.3px',
+          }}>
+            {metric.label}
+          </span>
+          {loading ? (
+            <Spin size="small" />
+          ) : (
+            <span style={{
+              fontSize: '20px',
+              fontWeight: 700,
+              color: metric.color,
+              lineHeight: 1.2,
+            }}>
+              {metric.value}
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
   );
 };
 

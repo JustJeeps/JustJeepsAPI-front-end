@@ -4,6 +4,8 @@ import {
   SaveOutlined,
   GlobalOutlined,
   ShoppingCartOutlined,
+  SendOutlined,
+  ShopOutlined,
 } from "@ant-design/icons";
 import { useEffect, useState, useRef, useCallback } from "react";
 import axios from "axios";
@@ -761,750 +763,389 @@ Thank you,`
   //set up main column
   const columns = [
 
-
-
     {
       title: "Date",
       dataIndex: "created_at",
       key: "created_at",
       align: "center",
-      width: 100,
+      width: 95,
       sorter: (a, b) => a.created_at?.localeCompare(b.created_at),
       sortOrder: sortedInfo.columnKey === "created_at" && sortedInfo.order,
       ...getColumnSearchProps("created_at"),
-        render: (text, record) => {
-          const date = new Date(text);
-          date.setHours(date.getHours() - 5); // Subtract 5 hours from UTC (EST - after DST ended)
-
-          const localTime = date.toLocaleString("en-CA", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          });
-
-          if (editingRow === record.key) {
-            return (
-              <Form.Item
-                name="created_at"
-                rules={[{ required: true }]}
-              >
-                <Input disabled={true} />
-              </Form.Item>
-            );
-          } else {
-            const [datePart, timePart] = localTime.split(', ');
-            return (
-              <div style={{ textAlign: 'center', lineHeight: 1.4 }}>
-                <div style={{ fontWeight: 500, color: '#333', fontSize: '12px' }}>{datePart}</div>
-                <div style={{ fontSize: '10px', color: '#888' }}>{timePart}</div>
-              </div>
-            );
-          }
-        }
-      // render: (text, record) => {
-      //   if (editingRow === record.key) {
-      //     return (
-      //       <Form.Item
-      //         name="created_at"
-      //         rules={[
-      //           {
-      //             required: true,
-      //           },
-      //         ]}
-      //       >
-      //         <Input disabled={true} />
-      //       </Form.Item>
-      //     );
-      //   } else {
-      //     return <p>{text}</p>;
-      //   }
-      // },
+      render: (text, record) => {
+        const date = new Date(text);
+        date.setHours(date.getHours() - 5);
+        const localTime = date.toLocaleString("en-CA", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const [datePart, timePart] = localTime.split(', ');
+        return (
+          <div style={{ textAlign: 'center', lineHeight: 1.3 }}>
+            <div style={{ fontWeight: 600, color: '#1a1a1a', fontSize: '13px' }}>{datePart}</div>
+            <div style={{ fontSize: '11px', color: '#666' }}>{timePart}</div>
+          </div>
+        );
+      }
     },
     {
       title: "Order ID",
       dataIndex: "increment_id",
       key: "increment_id",
       align: "center",
-      width: 120,
+      width: 115,
       sorter: (a, b) => a.increment_id - b.increment_id,
       sortOrder: sortedInfo.columnKey === "increment_id" && sortedInfo.order,
       ...getColumnSearchProps("increment_id"),
       render: (text, record) => {
-        if (editingRow === record.key) {
-          return (
-            <Form.Item
-              name="increment_id"
-              rules={[{ required: true, message: "increment_id is required" }]}
-            >
-              <Input disabled={true} />
-            </Form.Item>
-          );
-        } else {
-          const po = (record.custom_po_number || "").trim().toLowerCase();
-          const isExactlyNotSet = po === "not set";
-          const containsNotSet = po.includes("not set");
-          const isValid = !containsNotSet;
-    
-          const dotStyle = {
-            width: 15,
-            height: 15,
-            borderRadius: '50%',
-            display: 'inline-block',
-            marginLeft: 6,
-          };
-    
-          const showUSFlag = record.increment_id?.toString().startsWith("3");
-    
-          return (
-            <span style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {showUSFlag && (
-                <span style={{ marginRight: 4 }} role="img" aria-label="US Flag">
-                  🇺🇸
-                </span>
-              )}
-              <a
-                href={`https://www.justjeeps.com/admin_19q7yi/sales/order/view/order_id/${record.entity_id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  color: "#555",
-                  textDecoration: "underline",
-                  cursor: "pointer",
-                  fontWeight: 500,
-                  marginRight: 6,
-                }}
-              >
-                {text}
-              </a>
-    
-              {isValid ? (
-                <CheckCircleOutlined
-                  style={{ color: "#52c41a", fontSize: 16 }}
-                  title="PO assigned"
-                />
-              ) : isExactlyNotSet ? (
-                <span
-                  title="PO not set"
-                  style={{ ...dotStyle, backgroundColor: "red" }}
-                />
-              ) : (
-                <span
-                  title="PO partially set"
-                  style={{ ...dotStyle, backgroundColor: "#faad14" }}
-                />
-              )}
-            </span>
-          );
-        }
-      },
-    }
-    
-    ,
-    // {
-    //   title: "OrderId",
-    //   dataIndex: "entity_id",
-    //   key: "entity_id",
-    //   align: "center",
-    //   sorter: (a, b) => a.entity_id - b.entity_id,
-    //   sortOrder: sortedInfo.columnKey === "entity_id" && sortedInfo.order,
-    //   ...getColumnSearchProps("entity_id"),
-    //   render: (text, record) => {
-    //     if (editingRow === record.key) {
-    //       return (
-    //         <Form.Item
-    //           name="entity_id"
-    //           rules={[
-    //             {
-    //               required: true,
-    //               message: "entity_id is required",
-    //             },
-    //           ]}
-    //         >
-    //           <Input disabled={true} />
-    //         </Form.Item>
-    //       );
-    //     } else {
-    //       return <p>{text}</p>;
-    //     }
-    //   },
-    // },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      align: "center",
-      width: 100,
-      sorter: (a, b) => a.status?.localeCompare(b.status),
-      sortOrder: sortedInfo.columnKey === "status" && sortedInfo.order,
-      ...getColumnSearchProps("status"),
-      render: (status) => {
-        let tagColor;
-        switch (status) {
-          case "processing":
-            tagColor = "orange";
-            break;
-          case "pending":
-            tagColor = "blue";
-            break;
-          case "canceled":
-            tagColor = "volcano";
-            break;
-          case "complete":
-            tagColor = "green";
-            break;
-          default:
-            tagColor = "volcano";
-        }
+        const po = (record.custom_po_number || "").trim().toLowerCase();
+        const isExactlyNotSet = po === "not set";
+        const containsNotSet = po.includes("not set");
+        const isValid = !containsNotSet;
+        const showUSFlag = record.increment_id?.toString().startsWith("3");
+
         return (
-          <Tag color={tagColor} fontSize="20px">
-            {status?.toUpperCase()}
-          </Tag>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+            {showUSFlag && <span role="img" aria-label="US">🇺🇸</span>}
+            <a
+              href={`https://www.justjeeps.com/admin_19q7yi/sales/order/view/order_id/${record.entity_id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "#1890ff", fontWeight: 600, fontSize: '13px' }}
+            >
+              {text}
+            </a>
+            {isValid ? (
+              <CheckCircleOutlined style={{ color: "#52c41a", fontSize: 14 }} title="PO assigned" />
+            ) : isExactlyNotSet ? (
+              <span title="PO not set" style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: 'red', display: 'inline-block' }} />
+            ) : (
+              <span title="PO partially set" style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#faad14', display: 'inline-block' }} />
+            )}
+          </div>
         );
-      },
+      }
     },
-    //create a new column for custom_po_number and weltpixel_fraud_score
     {
       title: "PO#",
       dataIndex: "custom_po_number",
       key: "custom_po_number",
       align: "center",
-      width: 100,
+      width: 110,
       sorter: (a, b) => a.custom_po_number?.localeCompare(b.custom_po_number),
       sortOrder: sortedInfo.columnKey === "custom_po_number" && sortedInfo.order,
       ...getColumnSearchProps("custom_po_number"),
-      render: (text, record) => {
-        if (editingRow === record.key) {
-          return (
-            <Form.Item
-              name="custom_po_number"
-              rules={[
-                {
-                  required: true,
-                  message: "Custom PO Number is required",
-                },
-              ]}
-            >
-              <Input />
-            </Form.Item>
-          );
-        } else {
-          const isMissing = !text || text.trim() === "";
-          return (
-            <span style={{ color: isMissing ? 'red' : undefined, fontWeight: isMissing ? 'bold' : undefined }}>
-              {isMissing ? 'NOT SET' : text}
-            </span>
-
-          );
-        }
-      },
-    },
-
-    // {
-    //   title: "PO#",
-    //   dataIndex: "custom_po_number",
-    //   key: "custom_po_number",
-    //   align: "center",
-    //   sorter: (a, b) => a.custom_po_number?.localeCompare(b.custom_po_number),
-    //   sortOrder: sortedInfo.columnKey === "custom_po_number" && sortedInfo.order,
-    //   ...getColumnSearchProps("custom_po_number"),
-    //   render: (text, record) => {
-    //     if (editingRow === record.key) {
-    //       return (
-    //         <Form.Item
-    //           name="custom_po_number"
-    //           rules={[
-    //             {
-    //               required: true,
-    //               message: "Custom PO Number is required",
-    //             },
-    //           ]}
-    //         >
-    //           <Input />
-    //         </Form.Item>
-    //       );
-    //     } else {
-    //       const isMissing = !text || text.trim().toLowerCase().startsWith("not set");
-    //       return (
-    //         <span
-    //           style={{
-    //             color: isMissing ? "red" : undefined,
-    //             fontWeight: isMissing ? 400 : undefined,
-    //             //size
-    //             fontSize: isMissing ? "18px" : undefined,
-    //             //bold
-    //             fontWeight: isMissing ? "bold" : undefined,
-    //             // fontStyle: isMissing ? "italic" : undefined,
-    //           }}
-    //         >
-    //           {isMissing ? "NOT SET" : text}
-    //         </span>
-    //       );
-    //     }
-    //   },
-    // },
-
-    {
-      title: "Fraud",
-      dataIndex: "weltpixel_fraud_score",
-      key: "weltpixel_fraud_score",
-      align: "center",
-      width: 60,
-      sorter: (a, b) =>
-        a.weltpixel_fraud_score?.localeCompare(b.weltpixel_fraud_score),
-      sortOrder:
-        sortedInfo.columnKey === "weltpixel_fraud_score" && sortedInfo.order,
-      ...getColumnSearchProps("weltpixel_fraud_score"),
-      render: (text, record) => {
-        if (editingRow === record.key) {
-          return (
-            <Form.Item
-              name="weltpixel_fraud_score"
-              rules={[
-                {
-                  required: true,
-                  message: "Fraud Score is required",
-                },
-              ]}
-            >
-              <Input />
-            </Form.Item>
-          );
-        } else {
-          const score = parseFloat(text);
-          const grandTotal = parseFloat(record.grand_total);
-          const paymentMethod = (record.payment_method || "").trim();
-          const isPayPal = /paypal/i.test(paymentMethod); // Match anything PayPal-ish
-      
-          // ⛔️ Skip all checks for PayPal
-          if (isPayPal) {
-            return <p>{text}</p>;
-          }
-      
-          const isHighFraud = !isNaN(score) && score > 10;
-          const isQuebecHighValue =
-            record.region?.toLowerCase() === "quebec" &&
-            !isNaN(grandTotal) &&
-            grandTotal > 300;
-      
-          const showWarning = isHighFraud || isQuebecHighValue;
-      
-          return (
-            <p style={showWarning ? { color: "red", fontWeight: "bold" } : {}}>
-              {text}
-              {showWarning && (
-                <ExclamationCircleOutlined
-                  style={{ marginLeft: 6, color: "red" }}
-                  title={
-                    isHighFraud
-                      ? "High fraud score"
-                      : "Quebec order over $300"
-                  }
-                />
-              )}
-            </p>
-          );
-        }
-      }
-      
-    },
-
-            //region
-        {
-  title: "Region",
-  dataIndex: "region",
-  key: "region",
-  align: "center",
-  width: 90,
-  sorter: (a, b) => a.region?.localeCompare(b.region),
-  sortOrder: sortedInfo.columnKey === "region" && sortedInfo.order,
-  ...getColumnSearchProps("region"),
-  render: (text, record) => {
-    if (editingRow === record.key) {
-      return (
-        <Form.Item
-          name="region"
-          rules={[{ required: true, message: "Region is required" }]}
-        >
-          <Input />
-        </Form.Item>
-      );
-    } else {
-      // List of remote regions to flag
-      const flaggedRegions = [
-        "New Brunswick",
-        "Nova Scotia",
-        "Prince Edward Island",
-        "Newfoundland & Labrador",
-        "Newfoundland",
-        "Labrador",
-        "Yukon",
-        "Northwest Territories",
-        "Nunavut",
-        "Newfoundland and Labrador",
-        "Yukon Territory"
-      ];
-
-      const isFlagged = flaggedRegions.includes(text);
-
-      return (
-        <span style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {text}
-          {isFlagged && (
-            <ExclamationCircleOutlined
-              style={{ marginLeft: 6, color: "red", fontSize: 18 }}
-              title="Remote/Costly Region"
-            />
-          )}
-        </span>
-      );
-    }
-  },
-
-        },
-
-    
-
-        //method_title
-        {
-          title: "Payment",
-          dataIndex: "method_title",
-          key: "method_title",
-          align: "center",
-          width: 90,
-          sorter: (a, b) => a.method_title?.localeCompare(b.method_title),
-          sortOrder: sortedInfo.columnKey === "method_title" && sortedInfo.order,
-          ...getColumnSearchProps("method_title"),
-          render: (text, record) => {
-            if (editingRow === record.key) {
-              return (
-                <Form.Item
-                  name="method_title"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Method Title is required",
-                    },
-                  ]}
-                >
-                  <Input />
-                </Form.Item>
-              );
-            } else {
-              return <p>{text}</p>;
-            }
-          }
-    
-        },
-
-
-    //create a new column for shipping_description and shipping_amount
-    {
-      title: "Ship Fee",
-      dataIndex: "shipping_description",
-      key: "shipping_description",
-      align: "center",
-      width: 80,
-      sorter: (a, b) =>
-        a.shipping_description?.localeCompare(b.shipping_description),
-      sortOrder:
-        sortedInfo.columnKey === "shipping_description" && sortedInfo.order,
-      ...getColumnSearchProps("shipping_description"),
-      render: (text, record) => {
-        if (editingRow === record.key) {
-          return (
-            <Form.Item
-              name="shipping_description"
-              rules={[
-                {
-                  required: true,
-                  message: "Shipping description is required",
-                },
-              ]}
-            >
-              <Input />
-            </Form.Item>
-          );
-        } else {
-          return <p>{text}</p>;
-        }
+      render: (text) => {
+        const isMissing = !text || text.trim() === "" || text.trim().toLowerCase() === "not set";
+        return (
+          <span style={{
+            color: isMissing ? '#ff4d4f' : '#1a1a1a',
+            fontWeight: isMissing ? 700 : 500,
+            fontSize: '13px'
+          }}>
+            {isMissing ? 'NOT SET' : text}
+          </span>
+        );
       },
     },
     {
-      title: "Shipping",
-      dataIndex: "shipping_amount",
-      key: "shipping_amount",
+      title: "Region",
+      dataIndex: "region",
+      key: "region",
       align: "center",
-      width: 90,
-      sorter: (a, b) => a.shipping_amount - b.shipping_amount,
-      sortOrder: sortedInfo.columnKey === "shipping_amount" && sortedInfo.order,
-      ...getColumnSearchProps("shipping_amount"),
-
-      render: (text, record) => {
-        if (editingRow === record.key) {
-          return (
-            <Form.Item
-              name="shipping_amount"
-              rules={[
-                {
-                  required: true,
-                  message: "Shipping amount is required",
-                },
-              ]}
-            >
-              <Input />
-            </Form.Item>
-          );
-        } else {
-          const currency = record.order_currency_code || '';
-          return (
-            <div style={{ textAlign: 'center', lineHeight: 1.3 }}>
-              <div style={{ fontWeight: 500, color: '#333' }}>${text?.toFixed(2)}</div>
-              <div style={{ fontSize: '10px', color: '#999', fontWeight: 400 }}>{currency}</div>
-            </div>
-          );
-        }
+      width: 100,
+      sorter: (a, b) => a.region?.localeCompare(b.region),
+      sortOrder: sortedInfo.columnKey === "region" && sortedInfo.order,
+      ...getColumnSearchProps("region"),
+      render: (text) => {
+        const flaggedRegions = [
+          "New Brunswick", "Nova Scotia", "Prince Edward Island",
+          "Newfoundland & Labrador", "Newfoundland", "Labrador",
+          "Yukon", "Northwest Territories", "Nunavut",
+          "Newfoundland and Labrador", "Yukon Territory"
+        ];
+        const isFlagged = flaggedRegions.includes(text);
+        return (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+            <span style={{ fontSize: '13px', fontWeight: 500 }}>{text}</span>
+            {isFlagged && (
+              <ExclamationCircleOutlined style={{ color: "red", fontSize: 14 }} title="Remote Region" />
+            )}
+          </div>
+        );
       },
     },
-
-    //create a new column for base_total_due
     {
-      title: "Due",
-      dataIndex: "base_total_due",
-      key: "base_total_due",
-      align: "center",
-      width: 90,
-      sorter: (a, b) => a.base_total_due - b.base_total_due,
-      sortOrder: sortedInfo.columnKey === "base_total_due" && sortedInfo.order,
-      ...getColumnSearchProps("base_total_due"),
-      render: (text, record) => {
-        if (editingRow === record.key) {
-          return (
-            <Form.Item
-              name="base_total_due"
-              rules={[
-                {
-                  required: true,
-                  message: "Base total due is required",
-                },
-              ]}
-            >
-              <Input />
-            </Form.Item>
-          );
-        } else {
-          const currency = record.order_currency_code || '';
-          const isDue = text > 0;
-          return (
-            <div style={{ textAlign: 'center', lineHeight: 1.3 }}>
-              <div style={{
-                fontWeight: 500,
-                color: isDue ? '#cf1322' : '#52c41a'
+      title: "Details",
+      key: "details",
+      align: "left",
+      width: 320,
+      render: (_, record) => {
+        // Status tag color mapping
+        const statusConfig = {
+          processing: { bg: '#fff7e6', color: '#d46b08', border: '#ffd591', label: 'Processing' },
+          pending: { bg: '#e6f7ff', color: '#096dd9', border: '#91d5ff', label: 'Pending' },
+          pending_payment: { bg: '#fff1f0', color: '#cf1322', border: '#ffa39e', label: 'Pending Payment' },
+          canceled: { bg: '#fff1f0', color: '#cf1322', border: '#ffa39e', label: 'Canceled' },
+          complete: { bg: '#f6ffed', color: '#389e0d', border: '#b7eb8f', label: 'Complete' },
+          closed: { bg: '#f5f5f5', color: '#595959', border: '#d9d9d9', label: 'Closed' },
+          holded: { bg: '#fff2e8', color: '#d4380d', border: '#ffbb96', label: 'On Hold' },
+        };
+        const statusStyle = statusConfig[record.status] || { bg: '#f5f5f5', color: '#595959', border: '#d9d9d9', label: record.status };
+
+        // Fraud warning check
+        const score = parseFloat(record.weltpixel_fraud_score);
+        const grandTotal = parseFloat(record.grand_total);
+        const isPayPal = /paypal/i.test(record.payment_method || "");
+        const isHighFraud = !isPayPal && !isNaN(score) && score > 10;
+        const isQuebecHighValue = record.region?.toLowerCase() === "quebec" && !isNaN(grandTotal) && grandTotal > 300;
+        const showFraudWarning = !isPayPal && (isHighFraud || isQuebecHighValue);
+
+        // Due warning
+        const isDue = record.base_total_due > 0;
+
+        // Format payment method for display
+        const formatPayment = (method) => {
+          if (!method) return '—';
+          if (/paypal/i.test(method)) return 'PayPal';
+          if (/credit|card/i.test(method)) return 'Credit Card';
+          if (/check|cheque/i.test(method)) return 'Check';
+          return method.length > 12 ? method.substring(0, 12) + '...' : method;
+        };
+
+        return (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            padding: '6px 0',
+          }}>
+            {/* Top Row: Status Badge + Customer Name */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{
+                backgroundColor: statusStyle.bg,
+                color: statusStyle.color,
+                border: `1px solid ${statusStyle.border}`,
+                padding: '2px 8px',
+                borderRadius: '4px',
+                fontSize: '10px',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.3px',
+                whiteSpace: 'nowrap',
               }}>
-                ${text?.toFixed(2)}
-              </div>
-              <div style={{ fontSize: '10px', color: '#999', fontWeight: 400 }}>{currency}</div>
+                {statusStyle.label}
+              </span>
+              <span style={{
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#1a1a1a',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
+                {record.customer_firstname} {record.customer_lastname?.charAt(0)}.
+              </span>
             </div>
-          );
-        }
-      }
-    },
 
+            {/* Bottom Row: Metrics Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '4px',
+              backgroundColor: '#fafafa',
+              borderRadius: '6px',
+              padding: '6px 8px',
+            }}>
+              {/* Payment */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                <span style={{
+                  fontSize: '9px',
+                  color: '#8c8c8c',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.4px',
+                  fontWeight: 500,
+                }}>
+                  Payment
+                </span>
+                <span style={{
+                  fontSize: '11px',
+                  color: '#262626',
+                  fontWeight: 500,
+                }}>
+                  {formatPayment(record.method_title)}
+                </span>
+              </div>
 
-    // {
-    //   title: "Email",
-    //   dataIndex: "customer_email",
-    //   key: "customer_email",
-    //   align: "center",
-    //   editTable: true,
-    //   sorter: (a, b) => a.customer_email?.localeCompare(b.customer_email),
-    //   sortOrder: sortedInfo.columnKey === "customer_mail" && sortedInfo.order,
-    //   ...getColumnSearchProps("customer_email"),
-    //   render: (text, record) => {
-    //     if (editingRow === record.key) {
-    //       return (
-    //         <Form.Item
-    //           name="customer_email"
-    //           rules={[
-    //             {
-    //               required: true,
-    //               message: "Email is required",
-    //             },
-    //           ]}
-    //         >
-    //           <Input />
-    //         </Form.Item>
-    //       );
-    //     } else {
-    //       return <p>{text}</p>;
-    //     }
-    //   },
-    // },
-    {
-      title: "Name",
-      dataIndex: "customer_firstname",
-      key: "customer_firstname",
-      align: "center",
-      width: 80,
-      sorter: (a, b) =>
-        a.customer_firstname?.localeCompare(b.customer_firstname),
-      sortOrder:
-        sortedInfo.columnKey === "customer_firstname" && sortedInfo.order,
-      ...getColumnSearchProps("customer_firstname"),
-      render: (text, record) => {
-        if (editingRow === record.key) {
-          return (
-            <Form.Item
-              name="customer_firstname"
-              rules={[
-                {
-                  required: true,
-                  message: "First name is required",
-                },
-              ]}
-            >
-              <Input />
-            </Form.Item>
-          );
-        } else {
-          return <p>{text}</p>;
-        }
+              {/* Fraud Score */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                <span style={{
+                  fontSize: '9px',
+                  color: '#8c8c8c',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.4px',
+                  fontWeight: 500,
+                }}>
+                  Fraud
+                </span>
+                <span style={{
+                  fontSize: '11px',
+                  color: showFraudWarning ? '#cf1322' : '#262626',
+                  fontWeight: showFraudWarning ? 600 : 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                }}>
+                  {record.weltpixel_fraud_score || '—'}
+                  {showFraudWarning && (
+                    <ExclamationCircleOutlined style={{ fontSize: 10, color: '#cf1322' }} />
+                  )}
+                </span>
+              </div>
+
+              {/* Shipping */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', textAlign: 'right' }}>
+                <span style={{
+                  fontSize: '9px',
+                  color: '#8c8c8c',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.4px',
+                  fontWeight: 500,
+                }}>
+                  Shipping
+                </span>
+                <span style={{
+                  fontSize: '11px',
+                  color: '#262626',
+                  fontWeight: 500,
+                }}>
+                  ${record.shipping_amount?.toFixed(2) || '0.00'}
+                </span>
+              </div>
+
+              {/* Due */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', textAlign: 'right' }}>
+                <span style={{
+                  fontSize: '9px',
+                  color: '#8c8c8c',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.4px',
+                  fontWeight: 500,
+                }}>
+                  Due
+                </span>
+                <span style={{
+                  fontSize: '11px',
+                  color: isDue ? '#cf1322' : '#389e0d',
+                  fontWeight: 600,
+                }}>
+                  ${record.base_total_due?.toFixed(2) || '0.00'}
+                </span>
+              </div>
+            </div>
+          </div>
+        );
       },
     },
-    // {
-    //   title: "Last Name",
-    //   dataIndex: "customer_lastname",
-    //   key: "customer_lastname",
-    //   align: "center",
-    //   sorter: (a, b) => a.customer_lastname?.localeCompare(b.customer_lastname),
-    //   sortOrder:
-    //     sortedInfo.columnKey === "customer_lastname" && sortedInfo.order,
-    //   ...getColumnSearchProps("customer_lastname"),
-    //   render: (text, record) => {
-    //     if (editingRow === record.key) {
-    //       return (
-    //         <Form.Item
-    //           name="customer_lastname"
-    //           rules={[
-    //             {
-    //               required: true,
-    //               message: "Last name is required",
-    //             },
-    //           ]}
-    //         >
-    //           <Input />
-    //         </Form.Item>
-    //       );
-    //     } else {
-    //       return <p>{text}</p>;
-    //     }
-    //   },
-    // },
     {
       title: "Total",
       dataIndex: "grand_total",
       key: "grand_total",
       align: "center",
-      width: 100,
-      editTable: true,
+      width: 90,
       sorter: (a, b) => a.grand_total - b.grand_total,
       sortOrder: sortedInfo.columnKey === "grand_total" && sortedInfo.order,
       ...getColumnSearchProps("grand_total"),
       render: (text, record) => {
-        if (editingRow === record.key) {
-          return (
-            <Form.Item
-              name="grand_total"
-              rules={[
-                {
-                  required: true,
-                  message: "Grand total is required",
-                },
-              ]}
-            >
-              <Input />
-            </Form.Item>
-          );
-        } else {
-          const currency = record.order_currency_code || '';
-          return (
-            <div style={{ textAlign: 'center', lineHeight: 1.3 }}>
-              <div style={{
-                fontWeight: 600,
-                fontSize: '14px',
-                color: '#1a1a1a'
-              }}>
-                ${text?.toFixed(2)}
-              </div>
-              <div style={{ fontSize: '10px', color: '#999', fontWeight: 400 }}>{currency}</div>
+        const currency = record.order_currency_code || 'CAD';
+        return (
+          <div style={{ textAlign: 'center', lineHeight: 1.2 }}>
+            <div style={{ fontWeight: 700, fontSize: '15px', color: '#1a1a1a' }}>
+              ${text?.toFixed(2)}
             </div>
-          );
-        }
+            <div style={{ fontSize: '10px', color: '#888', fontWeight: 500 }}>{currency}</div>
+          </div>
+        );
       },
     },
-
     {
       title: "Qty",
       dataIndex: "total_qty_ordered",
       key: "total_qty_ordered",
-      editTable: true,
       align: "center",
       width: 50,
       sorter: (a, b) => a.total_qty_ordered - b.total_qty_ordered,
-      sortOrder:
-        sortedInfo.columnKey === "total_qty_ordered" && sortedInfo.order,
-      ...getColumnSearchProps("total_qty_ordered"),
-      render: (text, record) => {
-        if (editingRow === record.key) {
-          return (
-            <Form.Item
-              name="total_qty_ordered"
-              rules={[
-                {
-                  required: true,
-                  message: "Total quantity is required",
-                },
-              ]}
-            >
-              <Input />
-            </Form.Item>
-          );
-        } else {
-          return <p>{text}</p>;
-        }
-      },
+      sortOrder: sortedInfo.columnKey === "total_qty_ordered" && sortedInfo.order,
+      render: (text) => (
+        <span style={{ fontSize: '15px', fontWeight: 700, color: '#1a1a1a' }}>{text}</span>
+      ),
     },
-    // {
-    //   title: "Coupon Code",
-    //   dataIndex: "coupon_code",
-    //   key: "coupon_code",
-    //   align: "center",
-    //   sorter: (a, b) => a.coupon_code?.localeCompare(b.coupon_code),
-    //   sortOrder: sortedInfo.columnKey === "coupon_code" && sortedInfo.order,
-    // },
-
-
-
     {
       title: "ETA",
       key: "email_all",
       align: "center",
-      width: 160,
-      render: (_, record /* order */) => {
-        const to = DEFAULT_PURCHASING_EMAIL; // or whoever should receive the “all items” email
-        const subject    = buildEmailSubject(record);
-        const bodyAllDS  = buildBodyAll_DS(record);
+      width: 100,
+      render: (_, record) => {
+        const to = DEFAULT_PURCHASING_EMAIL;
+        const subject = buildEmailSubject(record);
+        const bodyAllDS = buildBodyAll_DS(record);
         const bodyAllSto = buildBodyAll_Store(record);
 
-        const mailtoDS   = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyAllDS)}`;
-        const mailtoSto  = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyAllSto)}`;
+        const mailtoDS = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyAllDS)}`;
+        const mailtoSto = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyAllSto)}`;
 
         return (
           <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-            <Button size="middle" href={mailtoDS}  target="_self">Email ALL (DS)</Button>
-            <Button size="middle" href={mailtoSto} target="_self">Email ALL (Store)</Button>
+            <Tooltip title="Email ALL (DropShip)">
+              <Button
+                size="small"
+                type="primary"
+                icon={<SendOutlined style={{ fontSize: 11 }} />}
+                href={mailtoDS}
+                target="_self"
+                style={{
+                  backgroundColor: '#d46b08',
+                  borderColor: '#d46b08',
+                  color: '#fff',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  height: 26,
+                  padding: '0 10px',
+                  borderRadius: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                DropShip
+              </Button>
+            </Tooltip>
+            <Tooltip title="Email ALL (Ship to Store)">
+              <Button
+                size="small"
+                icon={<ShopOutlined style={{ fontSize: 11 }} />}
+                href={mailtoSto}
+                target="_self"
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  height: 26,
+                  padding: '0 10px',
+                  borderRadius: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  backgroundColor: '#1890ff',
+                  borderColor: '#1890ff',
+                  color: '#fff',
+                }}
+              >
+                Store
+              </Button>
+            </Tooltip>
           </div>
         );
       },
@@ -1710,7 +1351,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
         dataIndex: "name",
         key: "name",
         align: "center",
-        width: "30%",
+        width: "20%",
         render: (text, record) => {
           if (editingRow === record.id) {
             return (
@@ -1822,10 +1463,11 @@ console.log("IS ARRAY?", Array.isArray(orders));
         },
       },
       {
-        title: "Quantity",
+        title: "Qty",
         dataIndex: "qty_ordered",
         key: "qty_ordered",
         align: "center",
+        width: 60,
         render: (text, record) => {
           if (editingRow === record.id) {
             return (
@@ -2031,7 +1673,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
   title: "Request ETA",
   key: "request_eta",
   align: "center",
-  width: "12%",
+  width: 180,
   render: (_, item) => {
     // parent order is the `record` that expandedRowRender closes over
     const order = record;
@@ -2055,9 +1697,50 @@ console.log("IS ARRAY?", Array.isArray(orders));
     const mailtoStore = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyStore)}`;
 
     return (
-      <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-        <Button size="middle" href={mailtoDS} target="_self">Email (DropShip)</Button>
-        <Button size="middle" href={mailtoStore} target="_self">Email (Ship to Store)</Button>
+      <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+        <Button
+          size="small"
+          type="primary"
+          icon={<SendOutlined style={{ fontSize: 11 }} />}
+          href={mailtoDS}
+          target="_self"
+          style={{
+            backgroundColor: '#d46b08',
+            borderColor: '#d46b08',
+            color: '#fff',
+            fontSize: '11px',
+            fontWeight: 600,
+            height: 26,
+            padding: '0 10px',
+            borderRadius: 4,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
+          DropShip
+        </Button>
+        <Button
+          size="small"
+          icon={<ShopOutlined style={{ fontSize: 11 }} />}
+          href={mailtoStore}
+          target="_self"
+          style={{
+            fontSize: '11px',
+            fontWeight: 600,
+            height: 26,
+            padding: '0 10px',
+            borderRadius: 4,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            backgroundColor: '#1890ff',
+            borderColor: '#1890ff',
+            color: '#fff',
+          }}
+        >
+          Store
+        </Button>
       </div>
     );
   },
@@ -2559,7 +2242,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
               expandable={{ expandedRowRender }} //, onExpand: handleExpand remove expandable
               dataSource={data}
               bordered
-              scroll={{ x: 1400 }}
+              scroll={{ x: 950 }}
               rowKey={(record) => record.id}
               onChange={handleTableChange}
               size="small"
@@ -2573,24 +2256,10 @@ console.log("IS ARRAY?", Array.isArray(orders));
                 defaultPageSize: 25,
                 showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} orders`,
                 itemRender: (page, type, originalElement) => {
-                  if (type === "page") {
-                    return (
-                      <a style={{ color: "black", backgroundColor: "white" }}>
-                        {page}
-                      </a>
-                    );
-                  } else if (type === "prev") {
-                    return (
-                      <a style={{ color: "white", backgroundColor: "" }}>
-                        Previous
-                      </a>
-                    );
+                  if (type === "prev") {
+                    return <span style={{ padding: '0 4px' }}>← Prev</span>;
                   } else if (type === "next") {
-                    return (
-                      <a style={{ color: "white", backgroundColor: "" }}>
-                        Next
-                      </a>
-                    );
+                    return <span style={{ padding: '0 4px' }}>Next →</span>;
                   }
                   return originalElement;
                 },

@@ -24,8 +24,9 @@ const ProtectedRoute = ({
   const location = useLocation();
 
   // Determina se deve exigir autenticação
-  // Por padrão, SEMPRE exige autenticação (mais seguro)
-  const shouldRequireAuth = requireAuth || authEnabled;
+  // Se authEnabled=false no backend, não exige autenticação
+  // Se authEnabled=true no backend, usa o valor de requireAuth (default: true)
+  const shouldRequireAuth = authEnabled && requireAuth;
 
   useEffect(() => {
     // Se não está autenticado e deve redirecionar, vai para login
