@@ -82,7 +82,7 @@ const Popup = ({ placement, onClose, sku, orderProductId, orderProductPrice, cur
 					/>
 				</Space>
 			</div>
-			<div>
+			<div style={{ width: '100%', maxWidth: '100%', overflowX: 'auto' }}>
 				<ProductTable
 					searchTermSku={searchTermSku}
 					data={dataProduct}

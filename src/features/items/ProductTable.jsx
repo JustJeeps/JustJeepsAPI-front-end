@@ -731,7 +731,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 	];
 
 	return (
-<div style={{ width: '100%', overflow: 'hidden' }}>
+<div style={{ width: '100%', maxWidth: '100%', overflow: 'auto' }}>
   <Table
     dataSource={props.data}
     columns={columns_by_sku}
@@ -739,7 +739,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
     pagination={false}
     scroll={{ y: 400 }}
     size="small"
-    tableLayout="fixed"
+    tableLayout="auto"
     // footer={() => (
     //   <div style={{ marginTop: '20px', textAlign: 'left' }}>
     //     {props.data.length > 0 && (
