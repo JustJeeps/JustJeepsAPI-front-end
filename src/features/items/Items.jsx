@@ -4,7 +4,7 @@ import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import TextField from "@mui/material/TextField";
 import Autocomplete from "@mui/material/Autocomplete";
-import { Table, Button, Tag, InputNumber } from "antd";
+import { Table, Button, Tag, InputNumber, Modal, Progress } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
 import ExcelJS from "exceljs";
@@ -27,6 +27,13 @@ export const Items = () => {
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [discount, setDiscount] = useState("1");
+
+  // Export progress state
+  const [exportProgress, setExportProgress] = useState({
+    visible: false,
+    percent: 0,
+    message: ''
+  });
 
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -176,282 +183,293 @@ export const Items = () => {
 
 const dataForExcel = transformData(brandData);
 
-  function exportToExcel() {
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet("Product Data");
-  
-    // Define column headers
-    sheet.columns = [
-      { header: "SKU", key: "sku" },
-      { header: "Name", key: "name" },
-      { header: "URL", key: "url_path" },
-      { header: "Status", key: "status" },
-      { header: "Price", key: "price" },
-      { header: "Searchable SKU", key: "searchable_sku" },
-      { header: "JJ Prefix", key: "jj_prefix" },
-      { header: "Image URL", key: "image" },
-      { header: "Brand Name", key: "brand_name" },
-      { header: "Vendors", key: "vendors" },
-      { header: "Meyer Cost", key: "meyer_cost" },
-      { header: "Meyer Inventory", key: "meyer_inventory" },
-      { header: "Keystone Cost", key: "keystone_cost" },
-      { header: "Keystone Inventory", key: "keystone_inventory" },
-      { header: "Northridge Price", key: "northridge_price" },
-      //vendor rough country
-      { header: "Rough Country Cost", key: "rough_country_cost" },
-    ];
-  
-    // Add rows to the sheet
-    brandData.forEach((product) => {
-      const row = {
-        sku: product.sku,
-        name: product.name,
-        url_path: product.url_path,
-        status: product.status,
-        price: product.price,
-        searchable_sku: product.searchable_sku,
-        jj_prefix: product.jj_prefix,
-        image: product.image,
-        brand_name: product.brand_name,
-        vendors: product.vendors,
-        meyer_cost: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "Meyer"
-        )?.vendor_cost,
-        meyer_inventory: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "Meyer"
-        )?.vendor_inventory,
-        keystone_cost: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "Keystone"
-        )?.vendor_cost,
-        keystone_inventory: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "Keystone"
-        )?.vendor_inventory,
-        northridge_price: product.competitorProducts.find(
-          (cp) => cp.competitor.name === "Northridge 4x4"
-        )?.competitor_price,
-      };
-      //add rough country cost
-      row.rough_country_cost = product.vendorProducts.find(
-        (vp) => vp.vendor.name === "Rough Country"
-      )?.vendor_cost;
-      sheet.addRow(row);
-    });
-  
-    // Generate and save the Excel file
-    workbook.xlsx.writeBuffer().then((buffer) => {
+  // Export to Excel for selected brand - fetches ALL products from brand API
+  async function exportToExcel() {
+    if (!searchTermSku || !searchTermSku.brand_name) {
+      alert('Please select a brand first');
+      return;
+    }
+
+    try {
+      // Show progress modal
+      setExportProgress({ visible: true, percent: 10, message: 'Fetching all products from brand...' });
+
+      // Fetch ALL products using the export endpoint (no pagination)
+      const response = await axios.get(`${API_URL}/api/products/export`, {
+        params: { brand: searchTermSku.brand_name }
+      });
+      const productsToExport = response.data.products || [];
+
+      setExportProgress({ visible: true, percent: 50, message: `Generating Excel file with ${productsToExport.length} products...` });
+
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("Product Data");
+
+      // Define column headers
+      sheet.columns = [
+        { header: "SKU", key: "sku" },
+        { header: "Name", key: "name" },
+        { header: "URL", key: "url_path" },
+        { header: "Status", key: "status" },
+        { header: "Price", key: "price" },
+        { header: "Searchable SKU", key: "searchable_sku" },
+        { header: "JJ Prefix", key: "jj_prefix" },
+        { header: "Image URL", key: "image" },
+        { header: "Brand Name", key: "brand_name" },
+        { header: "Vendors", key: "vendors" },
+        { header: "Meyer Cost", key: "meyer_cost" },
+        { header: "Meyer Inventory", key: "meyer_inventory" },
+        { header: "Keystone Cost", key: "keystone_cost" },
+        { header: "Keystone Inventory", key: "keystone_inventory" },
+        { header: "Northridge Price", key: "northridge_price" },
+        { header: "Rough Country Cost", key: "rough_country_cost" },
+      ];
+
+      // Add rows to the sheet
+      productsToExport.forEach((product) => {
+        const row = {
+          sku: product.sku,
+          name: product.name,
+          url_path: product.url_path,
+          status: product.status,
+          price: product.price,
+          searchable_sku: product.searchable_sku,
+          jj_prefix: product.jj_prefix,
+          image: product.image,
+          brand_name: product.brand_name,
+          vendors: product.vendors,
+          meyer_cost: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Meyer"
+          )?.vendor_cost,
+          meyer_inventory: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Meyer"
+          )?.vendor_inventory,
+          keystone_cost: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Keystone"
+          )?.vendor_cost,
+          keystone_inventory: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Keystone"
+          )?.vendor_inventory,
+          northridge_price: product.competitorProducts?.find(
+            (cp) => cp.competitor.name === "Northridge 4x4"
+          )?.competitor_price,
+          rough_country_cost: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Rough Country"
+          )?.vendor_cost,
+        };
+        sheet.addRow(row);
+      });
+
+      setExportProgress({ visible: true, percent: 90, message: 'Downloading file...' });
+
+      // Generate and save the Excel file
+      const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
-      saveAs(blob, "ProductData.xlsx");
-    });
+      const brandName = searchTermSku.brand_name.replace(/[^a-zA-Z0-9]/g, '_');
+      saveAs(blob, `${brandName}_Products.xlsx`);
+
+      setExportProgress({ visible: true, percent: 100, message: `Successfully exported ${productsToExport.length} products!` });
+
+      // Close modal after 1.5 seconds
+      setTimeout(() => {
+        setExportProgress({ visible: false, percent: 0, message: '' });
+      }, 1500);
+
+    } catch (error) {
+      console.error('Export failed:', error);
+      setExportProgress({ visible: false, percent: 0, message: '' });
+      alert('Failed to export products. Please try again.');
+    }
   }
 
-  function exportToExcelAllProducts() {
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet("Product Data");
-  
-    // Define column headers
-    sheet.columns = [
-      { header: "JJ Prefix", key: "jj_prefix" },
-      { header: "JJ SKU", key: "sku" },
-      { header: "MANUF. SKU", key: "searchable_sku" },
-      // { header: "URL", key: "url_path" },
-      { header: "Price", key: "price" },
-      //shipping freight
-      { header: "Shipping Freight", key: "shipping_freight" },
-      { header: "MAP", key: "MAP" },
-      // { header: "Image URL", key: "image" },
-      { header: "Brand Name", key: "brand_name" },
-      { header: "Vendors", key: "vendors" },
-      { header: "Meyer Cost", key: "meyer_cost" },
-      { header: "Meyer Inventory", key: "meyer_inventory" },
-      { header: "Keystone Cost", key: "keystone_cost" },
-      { header: "Keystone Inventory", key: "keystone_inventory" },
-      { header: "Omix Cost", key: "omix_cost" },
-      { header: "Quadratec Cost", key: "quadratec_cost" },
-      { header: "Quadratec Inventory", key: "quadratec_inventory" },
-      { header: "WheelPros Cost", key: "wheelPros_cost" },
-      { header: "WP inventory", key: "WP_inventory" },
-      { header: "Tire Discounter Cost", key: "tireDiscounter_cost" },
-      { header: "Dirty Dog Cost", key: "dirtyDog_cost" },
-      { header: "Rough Country Cost", key: "rough_country_cost" },
-      { header: "TDOT Price", key: "tdot_price" },
-      { header: "PartsEngine Price", key: "partsEngine_price" },
-      { header: "Lowriders Price", key: "lowriders_price" },
-      { header: "Status", key: "status" },
-      { header: "Name", key: "name" },
+  // Export ALL products from the system using dedicated export endpoint
+  async function exportToExcelAllProducts() {
+    try {
+      // Show progress modal
+      setExportProgress({ visible: true, percent: 10, message: 'Fetching all products...' });
 
-      //add partStatus_meyer
-      { header: "Part Status Meyer", key: "partStatus_meyer" },
-      { header: "Keystone code", key: "keystone_code" },
-      //add weight, length, width, height
-      { header: "Weight", key: "weight" },
-      { header: "Length", key: "length" },
-      { header: "Width", key: "width" },
-      { header: "Height", key: "height" },
-      //add meyer_weight, meyer_length, meyer_width, meyer_height
-      { header: "Meyer Weight", key: "meyer_weight" },
-      { header: "Meyer Length", key: "meyer_length" },
-      { header: "Meyer Width", key: "meyer_width" },
-      { header: "Meyer Height", key: "meyer_height" },
-      //rough country cost
-      //quadratec_sku from vendorProduct
-      { header: "Quadratec SKU", key: "quadratec_sku" },
-      //ROUGH COUNTRY INVENTORY
-      { header: "Rough Country Inventory", key: "RC_inventory" },
-      //OMIX INVENTORY
-      { header: "Omix Inventory", key: "omix_inventory" },
-      //part
-      { header: "Part", key: "part" },
-      //thumnail
-      { header: "Image", key: "thumbnail" },
-      //AEV COST
-      { header: "AEV Cost", key: "aev_cost" },
-      //keyparts cost
-      { header: "Keyparts", key: "keyparts_cost" },
-      //partsEngine_code - url
-      { header: "PartsEngine URL", key: "partsEngine_code" },
-      //tdot_url
-      { header: "TDOT URL", key: "tdot_url" },
-      //metalcloak cost
-      { header: "MetalCloak Cost", key: "metalcloak_cost" },
+      // Fetch ALL products using the export endpoint (no pagination)
+      const response = await axios.get(`${API_URL}/api/products/export`);
+      const productsToExport = response.data.products || [];
 
-    ];
-  
-    // Add rows to the sheet
-    allProducts.forEach((product) => {
-      console.log("product.competitorProducts >>>",product.competitorProducts)
-      console.log("product.vendorProducts >>>",product.vendorProducts)
-      const row = {
-        //partsEngine_code
-        partsEngine_code: product.partsEngine_code,
-        tdot_url: product.tdot_url,
-        keystone_code: product.keystone_code,
-        sku: product.sku,
-        name: product.name,
-        url_path: product.url_path,
-        status: product.status,
-        price: product.price,
-        MAP: product["MAP"],
-        searchable_sku: product.searchable_sku,
-        jj_prefix: product.jj_prefix,
-        image: product.image,
-        brand_name: product.brand_name,
-        vendors: product.vendors,
-        partStatus_meyer: product.partStatus_meyer,
-        //add weight, length, width, height
-        weight: product.weight, 
-        length: product.length,
-        width: product.width,
-        height: product.height,
-        //add meyer_weight, meyer_length, meyer_width, meyer_height
-        meyer_weight: product.meyer_weight,
-        meyer_length: product.meyer_length,
-        meyer_width: product.meyer_width,
-        meyer_height: product.meyer_height,
-        //add part
-        part: product.part,
-        //add thumbnail
-        thumbnail: product.thumbnail,
-        //shipping freight
-        shipping_freight: product.shippingFreight,
-        //metalcloak cost
-        metalcloak_cost: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "MetalCloak"
-        )?.vendor_cost,
-        meyer_cost: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "Meyer"
-        )?.vendor_cost,
-        meyer_inventory: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "Meyer"
-        )?.vendor_inventory,
-        keystone_cost: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "Keystone"
-        )?.vendor_cost,
-        wheelPros_cost: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "WheelPros"
-        )?.vendor_cost,
-        tireDiscounter_cost: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "Tire Discounter"
-        )?.vendor_cost,
-        dirtyDog_cost: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "Dirty Dog 4x4"
-        )?.vendor_cost,
-        keystone_inventory: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "Keystone"
-        )?.vendor_inventory,
-        northridge_price: product.competitorProducts.find(
-          (cp) => cp.competitor.name === "Northridge 4x4"
-        )?.competitor_price,
-        partsEngine_price: product.competitorProducts.find(
-          (cp) => cp.competitor.name === "Parts Engine" 
-        )?.competitor_price,
-        //lowriders price
-        lowriders_price: product.competitorProducts.find(
-          (cp) => cp.competitor.name === "Lowriders"
-        )?.competitor_price,
-        tdot_price: product.competitorProducts.find(
-          (cp) => cp.competitor.name === "TDOT"
-        )?.competitor_price,
-        omix_cost: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "Omix"
-        )?.vendor_cost,
-        quadratec_cost: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "Quadratec"
-        )?.vendor_cost,
-        //add rough country cost
-        rough_country_cost: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "Rough Country"
-        )?.vendor_cost,
-        //quadratec_sku from vendorProduct
-        quadratec_sku: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "Quadratec"
-        )?.quadratec_sku,
-        //vendor_inventory_string for quadratec
-        quadratec_inventory: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "Quadratec"
-        )?.vendor_inventory,
-        //rough country inventory
-        RC_inventory: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "Rough Country"
-        )?.vendor_inventory,
-        //omix inventory
-        omix_inventory: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "Omix"
-        )?.vendor_inventory,
-        //AEV COST
-        aev_cost: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "AEV"
-        )?.vendor_cost,
-        //keyparts cost
-        keyparts_cost: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "KeyParts"
-        )?.vendor_cost,
-        //wp inventory
-        WP_inventory: product.vendorProducts.find(
-          (vp) => vp.vendor.name === "WheelPros"
-        )?.vendor_inventory,
- 
+      setExportProgress({ visible: true, percent: 50, message: `Creating Excel file with ${productsToExport.length} products...` });
 
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("Product Data");
 
+      // Define column headers
+      sheet.columns = [
+        { header: "JJ Prefix", key: "jj_prefix" },
+        { header: "JJ SKU", key: "sku" },
+        { header: "MANUF. SKU", key: "searchable_sku" },
+        { header: "Price", key: "price" },
+        { header: "Shipping Freight", key: "shipping_freight" },
+        { header: "MAP", key: "MAP" },
+        { header: "Brand Name", key: "brand_name" },
+        { header: "Vendors", key: "vendors" },
+        { header: "Meyer Cost", key: "meyer_cost" },
+        { header: "Meyer Inventory", key: "meyer_inventory" },
+        { header: "Keystone Cost", key: "keystone_cost" },
+        { header: "Keystone Inventory", key: "keystone_inventory" },
+        { header: "Omix Cost", key: "omix_cost" },
+        { header: "Quadratec Cost", key: "quadratec_cost" },
+        { header: "Quadratec Inventory", key: "quadratec_inventory" },
+        { header: "WheelPros Cost", key: "wheelPros_cost" },
+        { header: "WP inventory", key: "WP_inventory" },
+        { header: "Tire Discounter Cost", key: "tireDiscounter_cost" },
+        { header: "Dirty Dog Cost", key: "dirtyDog_cost" },
+        { header: "Rough Country Cost", key: "rough_country_cost" },
+        { header: "TDOT Price", key: "tdot_price" },
+        { header: "PartsEngine Price", key: "partsEngine_price" },
+        { header: "Lowriders Price", key: "lowriders_price" },
+        { header: "Status", key: "status" },
+        { header: "Name", key: "name" },
+        { header: "Part Status Meyer", key: "partStatus_meyer" },
+        { header: "Keystone code", key: "keystone_code" },
+        { header: "Weight", key: "weight" },
+        { header: "Length", key: "length" },
+        { header: "Width", key: "width" },
+        { header: "Height", key: "height" },
+        { header: "Meyer Weight", key: "meyer_weight" },
+        { header: "Meyer Length", key: "meyer_length" },
+        { header: "Meyer Width", key: "meyer_width" },
+        { header: "Meyer Height", key: "meyer_height" },
+        { header: "Quadratec SKU", key: "quadratec_sku" },
+        { header: "Rough Country Inventory", key: "RC_inventory" },
+        { header: "Omix Inventory", key: "omix_inventory" },
+        { header: "Part", key: "part" },
+        { header: "Image", key: "thumbnail" },
+        { header: "AEV Cost", key: "aev_cost" },
+        { header: "Keyparts", key: "keyparts_cost" },
+        { header: "PartsEngine URL", key: "partsEngine_code" },
+        { header: "TDOT URL", key: "tdot_url" },
+        { header: "MetalCloak Cost", key: "metalcloak_cost" },
+      ];
 
-    
+      setExportProgress({ visible: true, percent: 70, message: 'Adding rows to Excel...' });
 
+      // Add rows to the sheet
+      productsToExport.forEach((product) => {
+        const row = {
+          partsEngine_code: product.partsEngine_code,
+          tdot_url: product.tdot_url,
+          keystone_code: product.keystone_code,
+          sku: product.sku,
+          name: product.name,
+          url_path: product.url_path,
+          status: product.status,
+          price: product.price,
+          MAP: product["MAP"],
+          searchable_sku: product.searchable_sku,
+          jj_prefix: product.jj_prefix,
+          image: product.image,
+          brand_name: product.brand_name,
+          vendors: product.vendors,
+          partStatus_meyer: product.partStatus_meyer,
+          weight: product.weight,
+          length: product.length,
+          width: product.width,
+          height: product.height,
+          meyer_weight: product.meyer_weight,
+          meyer_length: product.meyer_length,
+          meyer_width: product.meyer_width,
+          meyer_height: product.meyer_height,
+          part: product.part,
+          thumbnail: product.thumbnail,
+          shipping_freight: product.shippingFreight,
+          metalcloak_cost: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "MetalCloak"
+          )?.vendor_cost,
+          meyer_cost: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Meyer"
+          )?.vendor_cost,
+          meyer_inventory: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Meyer"
+          )?.vendor_inventory,
+          keystone_cost: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Keystone"
+          )?.vendor_cost,
+          wheelPros_cost: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "WheelPros"
+          )?.vendor_cost,
+          tireDiscounter_cost: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Tire Discounter"
+          )?.vendor_cost,
+          dirtyDog_cost: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Dirty Dog 4x4"
+          )?.vendor_cost,
+          keystone_inventory: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Keystone"
+          )?.vendor_inventory,
+          northridge_price: product.competitorProducts?.find(
+            (cp) => cp.competitor.name === "Northridge 4x4"
+          )?.competitor_price,
+          partsEngine_price: product.competitorProducts?.find(
+            (cp) => cp.competitor.name === "Parts Engine"
+          )?.competitor_price,
+          lowriders_price: product.competitorProducts?.find(
+            (cp) => cp.competitor.name === "Lowriders"
+          )?.competitor_price,
+          tdot_price: product.competitorProducts?.find(
+            (cp) => cp.competitor.name === "TDOT"
+          )?.competitor_price,
+          omix_cost: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Omix"
+          )?.vendor_cost,
+          quadratec_cost: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Quadratec"
+          )?.vendor_cost,
+          rough_country_cost: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Rough Country"
+          )?.vendor_cost,
+          quadratec_sku: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Quadratec"
+          )?.quadratec_sku,
+          quadratec_inventory: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Quadratec"
+          )?.vendor_inventory,
+          RC_inventory: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Rough Country"
+          )?.vendor_inventory,
+          omix_inventory: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Omix"
+          )?.vendor_inventory,
+          aev_cost: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "AEV"
+          )?.vendor_cost,
+          keyparts_cost: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "KeyParts"
+          )?.vendor_cost,
+          WP_inventory: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "WheelPros"
+          )?.vendor_inventory,
+        };
+        sheet.addRow(row);
+      });
 
+      setExportProgress({ visible: true, percent: 90, message: 'Generating file...' });
 
-      
-
-      };
-      sheet.addRow(row);
-    });
-  
-    // Generate and save the Excel file
-    workbook.xlsx.writeBuffer().then((buffer) => {
+      // Generate and save the Excel file
+      const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
-      saveAs(blob, "ProductData.xlsx");
-    });
+      saveAs(blob, "AllProducts.xlsx");
+
+      setExportProgress({ visible: true, percent: 100, message: `Successfully exported ${productsToExport.length} products!` });
+
+      // Close modal after 1.5 seconds
+      setTimeout(() => {
+        setExportProgress({ visible: false, percent: 0, message: '' });
+      }, 1500);
+
+    } catch (error) {
+      console.error('Export failed:', error);
+      setExportProgress({ visible: false, percent: 0, message: '' });
+      alert('Failed to export all products. Please try again.');
+    }
   }
 
   console.log("all products", allProducts);
@@ -1694,6 +1712,18 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
           </div>
         )}
       </div>
+
+      {/* Export Progress Modal */}
+      <Modal
+        title="Exporting data..."
+        open={exportProgress.visible}
+        footer={null}
+        closable={false}
+        centered
+      >
+        <Progress percent={exportProgress.percent} status="active" />
+        <p style={{ marginTop: 16, textAlign: 'center' }}>{exportProgress.message}</p>
+      </Modal>
     </div>
   );
 };
