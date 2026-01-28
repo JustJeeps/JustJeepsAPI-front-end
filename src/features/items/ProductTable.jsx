@@ -51,6 +51,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			dataIndex: 'brand_name',
 			key: 'brand_name',
 			width: 100,
+			align: 'center',
 			ellipsis: true,
 			render: brand => <span style={{ fontSize: '14px' }}>{brand}</span>,
 		},
@@ -60,6 +61,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			dataIndex: 'image',
 			key: 'image',
 			width: 55,
+			align: 'center',
 			render: image => <img src={image} alt='Product' width='50' />,
 		},
 		{
@@ -138,6 +140,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			dataIndex: 'competitorProducts',
 			key: 'competitor_prices',
 			width: 100,
+			align: 'center',
 			render: (competitorProducts, record) =>
 				competitorProducts.map(competitorProduct => {
 					const competitorName = competitorProduct.competitor.name.toLowerCase();
@@ -343,6 +346,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
   dataIndex: null,
   key: 'vendor_id',
   width: 100,
+  align: 'center',
   render: (_, record) => {
     // Find the best vendor (lowest cost)
     // Consider vendors that have inventory > 0 OR unknown inventory (null/undefined)
@@ -456,6 +460,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			dataIndex: 'vendorProducts',
 			key: 'vendor_cost',
 			width: 170,
+			align: 'center',
 			render: vendorProducts =>
 				vendorProducts.map(vendorProduct => (
 					<div
