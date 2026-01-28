@@ -1087,7 +1087,7 @@ Thank you,`
       title: "ETA",
       key: "email_all",
       align: "center",
-      width: 100,
+      width: 80,
       render: (_, record) => {
         const to = DEFAULT_PURCHASING_EMAIL;
         const subject = buildEmailSubject(record);
@@ -1098,53 +1098,47 @@ Thank you,`
         const mailtoSto = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyAllSto)}`;
 
         return (
-          <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-            <Tooltip title="Email ALL (DropShip)">
+          <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+            <Tooltip title="DropShip">
               <Button
                 size="small"
                 type="primary"
-                icon={<SendOutlined style={{ fontSize: 11 }} />}
+                icon={<SendOutlined style={{ fontSize: 14 }} />}
                 href={mailtoDS}
                 target="_self"
                 style={{
                   backgroundColor: '#d46b08',
                   borderColor: '#d46b08',
                   color: '#fff',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  height: 26,
-                  padding: '0 10px',
-                  borderRadius: 4,
+                  width: 32,
+                  height: 32,
+                  padding: 0,
+                  borderRadius: 6,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 4,
+                  justifyContent: 'center',
                 }}
-              >
-                DropShip
-              </Button>
+              />
             </Tooltip>
-            <Tooltip title="Email ALL (Ship to Store)">
+            <Tooltip title="Ship to Store">
               <Button
                 size="small"
-                icon={<ShopOutlined style={{ fontSize: 11 }} />}
+                icon={<ShopOutlined style={{ fontSize: 14 }} />}
                 href={mailtoSto}
                 target="_self"
                 style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  height: 26,
-                  padding: '0 10px',
-                  borderRadius: 4,
+                  width: 32,
+                  height: 32,
+                  padding: 0,
+                  borderRadius: 6,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 4,
+                  justifyContent: 'center',
                   backgroundColor: '#1890ff',
                   borderColor: '#1890ff',
                   color: '#fff',
                 }}
-              >
-                Store
-              </Button>
+              />
             </Tooltip>
           </div>
         );
@@ -1673,7 +1667,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
   title: "Request ETA",
   key: "request_eta",
   align: "center",
-  width: 180,
+  width: 90,
   render: (_, item) => {
     // parent order is the `record` that expandedRowRender closes over
     const order = record;
@@ -1698,49 +1692,47 @@ console.log("IS ARRAY?", Array.isArray(orders));
 
     return (
       <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
-        <Button
-          size="small"
-          type="primary"
-          icon={<SendOutlined style={{ fontSize: 11 }} />}
-          href={mailtoDS}
-          target="_self"
-          style={{
-            backgroundColor: '#d46b08',
-            borderColor: '#d46b08',
-            color: '#fff',
-            fontSize: '11px',
-            fontWeight: 600,
-            height: 26,
-            padding: '0 10px',
-            borderRadius: 4,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-          }}
-        >
-          DropShip
-        </Button>
-        <Button
-          size="small"
-          icon={<ShopOutlined style={{ fontSize: 11 }} />}
-          href={mailtoStore}
-          target="_self"
-          style={{
-            fontSize: '11px',
-            fontWeight: 600,
-            height: 26,
-            padding: '0 10px',
-            borderRadius: 4,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            backgroundColor: '#1890ff',
-            borderColor: '#1890ff',
-            color: '#fff',
-          }}
-        >
-          Store
-        </Button>
+        <Tooltip title="DropShip">
+          <Button
+            size="small"
+            type="primary"
+            icon={<SendOutlined style={{ fontSize: 14 }} />}
+            href={mailtoDS}
+            target="_self"
+            style={{
+              backgroundColor: '#d46b08',
+              borderColor: '#d46b08',
+              color: '#fff',
+              width: 32,
+              height: 32,
+              padding: 0,
+              borderRadius: 6,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          />
+        </Tooltip>
+        <Tooltip title="Ship to Store">
+          <Button
+            size="small"
+            icon={<ShopOutlined style={{ fontSize: 14 }} />}
+            href={mailtoStore}
+            target="_self"
+            style={{
+              width: 32,
+              height: 32,
+              padding: 0,
+              borderRadius: 6,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#1890ff',
+              borderColor: '#1890ff',
+              color: '#fff',
+            }}
+          />
+        </Tooltip>
       </div>
     );
   },

@@ -50,28 +50,28 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			title: 'Brand',
 			dataIndex: 'brand_name',
 			key: 'brand_name',
-			width: 80,
+			width: 100,
 			ellipsis: true,
-			render: brand => <span style={{ fontSize: '12px' }}>{brand}</span>,
+			render: brand => <span style={{ fontSize: '14px' }}>{brand}</span>,
 		},
 
 		{
 			title: 'Img',
 			dataIndex: 'image',
 			key: 'image',
-			width: 50,
-			render: image => <img src={image} alt='Product' width='45' />,
+			width: 55,
+			render: image => <img src={image} alt='Product' width='50' />,
 		},
 		{
 			title: 'Name',
 			dataIndex: 'name',
 			key: 'name',
-			width: 240,
+			width: 280,
 			render: name => (
 				<span style={{
-					fontSize: '13px',
+					fontSize: '14px',
 					fontWeight: 500,
-					lineHeight: 1.4,
+					lineHeight: 1.5,
 					display: 'block',
 					wordWrap: 'break-word',
 					whiteSpace: 'normal',
@@ -86,10 +86,10 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			dataIndex: 'price',
 			key: 'price',
 			align: 'center',
-			width: 70,
+			width: 80,
 			render: price => {
 				const displayPrice = props.orderProductPrice ? props.orderProductPrice : price;
-				return <span style={{ fontSize: '13px', fontWeight: 600 }}>${displayPrice.toFixed(2)}</span>;
+				return <span style={{ fontSize: '15px', fontWeight: 600 }}>${displayPrice.toFixed(2)}</span>;
 			},
 		},
 
@@ -258,21 +258,21 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			title: 'Brand Vendors',
 			key: 'vendors_for_brand',
 			dataIndex: 'vendors',
-			width: 90,
+			width: 100,
 			align: 'center',
 			render: (vendors) => {
 				if (!vendors) return '-';
 				const vendorList = vendors.split(',').map(v => v.trim());
 				return (
-					<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+					<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
 						{vendorList.map((vendor, idx) => (
 							<span
 								key={idx}
 								style={{
 									backgroundColor: '#fff3cd',
-									padding: '2px 6px',
-									borderRadius: '3px',
-									fontSize: '11px',
+									padding: '3px 8px',
+									borderRadius: '4px',
+									fontSize: '13px',
 									fontWeight: 500,
 									color: '#856404',
 									whiteSpace: 'nowrap',
@@ -342,31 +342,28 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
   title: 'Vendor',
   dataIndex: null,
   key: 'vendor_id',
-  width: 90,
+  width: 100,
   render: (_, record) => {
     // Find the best vendor (lowest cost with inventory > 0)
     const vendorsWithInventory = record.vendorProducts.filter(
       (vp) => vp.vendor_inventory > 0
     );
 
-    // Find the minimum cost vendor
-    let bestVendorCost = Infinity;
-    let bestVendorIndex = -1;
-    vendorsWithInventory.forEach((vp, idx) => {
-      if (vp.vendor_cost < bestVendorCost) {
-        bestVendorCost = vp.vendor_cost;
-        bestVendorIndex = idx;
+    // Find the minimum cost
+    let lowestCost = Infinity;
+    vendorsWithInventory.forEach((vp) => {
+      if (vp.vendor_cost < lowestCost) {
+        lowestCost = vp.vendor_cost;
       }
     });
-    const bestVendor = bestVendorIndex >= 0 ? vendorsWithInventory[bestVendorIndex] : null;
 
-    return record.vendorProducts.map(vendorProduct => {
+    return record.vendorProducts.map((vendorProduct, index) => {
       const vendorName = vendorProduct.vendor.name;
       const vendorSKU = vendorProduct.vendor_sku?.trim();
       const productSKU = vendorProduct.product_sku?.trim();
       const vendorNameLower = vendorName.toLowerCase();
-      // Compare by vendor_cost to identify the best vendor
-      const isBestVendor = bestVendor && vendorProduct.id === bestVendor.id;
+      // Compare by vendor_cost AND inventory to identify the best vendor
+      const isBestVendor = vendorProduct.vendor_inventory > 0 && vendorProduct.vendor_cost === lowestCost;
 
       let link = null;
 
@@ -427,16 +424,16 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
       }
 
       return (
-        <div key={vendorProduct.id} style={{ marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div key={vendorProduct.id} style={{ marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
           {isBestVendor && (
-            <TrophyFilled style={{ color: '#52c41a', fontSize: '14px' }} />
+            <TrophyFilled style={{ color: '#52c41a', fontSize: '16px' }} />
           )}
           {link ? (
-            <a href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px' }}>
+            <a href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '14px' }}>
               {vendorName}
             </a>
           ) : (
-            <span style={{ fontSize: '12px' }}>{vendorName}</span>
+            <span style={{ fontSize: '14px' }}>{vendorName}</span>
           )}
         </div>
       );
@@ -451,15 +448,15 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			title: 'Cost (CAD / USD)',
 			dataIndex: 'vendorProducts',
 			key: 'vendor_cost',
-			width: 150,
+			width: 170,
 			render: vendorProducts =>
 				vendorProducts.map(vendorProduct => (
 					<div
 						key={vendorProduct.id}
-						style={{ marginBottom: '3px' }}
+						style={{ marginBottom: '4px' }}
 					>
 						<CopyText text={`CAD$ ${vendorProduct.vendor_cost.toFixed(2)} / USD$ ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}`}>
-							<span style={{ whiteSpace: 'nowrap', fontSize: '13px' }}>
+							<span style={{ whiteSpace: 'nowrap', fontSize: '14px' }}>
 								${vendorProduct.vendor_cost.toFixed(2)} / ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}
 							</span>
 						</CopyText>
@@ -471,7 +468,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
   title: "Margin",
   key: "margin",
   align: "center",
-  width: 55,
+  width: 65,
   render: (record) => {
     const { vendorProducts } = record;
 
@@ -489,9 +486,10 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
           <Tag
             color={margin > 18 ? "#1f8e24" : "#f63535"}
             style={{
-              fontSize: "14px",
-              padding: "3px 6px",
+              fontSize: "15px",
+              padding: "4px 8px",
               marginBottom: "5px",
+              fontWeight: 600,
             }}
           >
             {isNaN(margin) ? "N/A" : `${margin.toFixed(0)}%`}
@@ -615,7 +613,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 				dataIndex: "vendorProducts",
 				key: "vendor_inventory",
 				align: "center",
-				width: 70,
+				width: 80,
 				render: (vendorProducts) => {
 					if (!Array.isArray(vendorProducts)) return <span>-</span>;
 
@@ -628,9 +626,10 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 											vendorProduct.vendor_inventory > 0 ? "#1f8e24" : "#f63535"
 										}
 										style={{
-											fontSize: "14px",
-											padding: "3px 6px",
+											fontSize: "15px",
+											padding: "4px 8px",
 											marginBottom: "5px",
+											fontWeight: 600,
 										}}
 									>
 										{vendorProduct.vendor_inventory}
@@ -651,8 +650,8 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 												: "#1f8e24"
 										}
 										style={{
-											fontSize: "12px",
-											padding: "3px 6px",
+											fontSize: "13px",
+											padding: "4px 8px",
 											marginBottom: "5px",
 										}}
 									>
@@ -666,8 +665,8 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 									<Tag
 										color="default"
 										style={{
-											fontSize: "12px",
-											padding: "3px 6px",
+											fontSize: "13px",
+											padding: "4px 8px",
 											marginBottom: "5px",
 										}}
 									>
@@ -741,8 +740,8 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
     columns={columns_by_sku}
     rowKey="sku"
     pagination={false}
-    scroll={{ x: 1000, y: 400 }}
-    size="small"
+    scroll={{ x: 1200, y: 400 }}
+    size="middle"
     tableLayout="fixed"
     // footer={() => (
     //   <div style={{ marginTop: '20px', textAlign: 'left' }}>
