@@ -28,10 +28,6 @@
   .ant-table-row {
     font-size: 15px;
     transition: background-color 0.2s ease;
-
-    &:hover {
-      background-color: #fff8e6 !important;
-    }
   }
 
   // Cell padding
@@ -40,13 +36,21 @@
     vertical-align: middle !important;
   }
 
-  // Alternating row colors
-  .ant-table-tbody .ant-table-row:nth-child(even) {
-    background-color: #fafafa;
+  // Alternating row colors - stronger zebra with white base
+  .ant-table-tbody .ant-table-row:nth-child(odd) {
+    background-color: #ffffff !important;
+
+    &:hover {
+      background-color: #fffef5 !important;
+    }
   }
 
-  .ant-table-tbody .ant-table-row:nth-child(odd) {
-    background-color: #ffffff;
+  .ant-table-tbody .ant-table-row:nth-child(even) {
+    background-color: #ebebeb !important;
+
+    &:hover {
+      background-color: #e5e5dc !important;
+    }
   }
 
   // Header styling - Main table
@@ -78,51 +82,56 @@
     }
   }
 
-  // Expanded row styling
+  // Expanded row styling - distinct visual hierarchy
   .ant-table-expanded-row {
-    background-color: #fffdf5 !important;
+    background-color: #d4e5f7 !important;
 
     > td {
-      padding: 10px 12px !important;
-      background-color: #fffdf5 !important;
+      padding: 16px 16px 16px 24px !important;
+      background-color: #d4e5f7 !important;
+      border-left: 4px solid #1890ff !important;
     }
 
     // Nested table styling
     .ant-table {
       border-radius: 6px;
       overflow: hidden;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-      border: 1px solid #d9d9d9;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+      border: 1px solid #91caff;
       margin: 2px 0;
     }
 
-    // Nested table header - black with white text
+    // Nested table header - dark blue for contrast
     .ant-table-thead .ant-table-cell {
-      background: #1a1a1a !important;
+      background: #1a3a5c !important;
       font-size: 11px !important;
       font-weight: 600 !important;
       text-transform: uppercase;
       letter-spacing: 0.4px;
       padding: 12px 10px !important;
       color: #ffffff !important;
-      border-bottom: 1px solid #333 !important;
+      border-bottom: 1px solid #0d2840 !important;
     }
 
     .ant-table-thead .ant-table-cell:hover {
-      background: #2a2a2a !important;
+      background: #234b6e !important;
     }
 
-    // Nested table rows - zebra striping with gray
-    .ant-table-tbody .ant-table-row {
+    // Nested table rows - light blue tint zebra
+    .ant-table-tbody .ant-table-row:nth-child(odd) {
       background-color: #ffffff !important;
 
       &:hover {
-        background-color: #f5f5f5 !important;
+        background-color: #e6f4ff !important;
       }
     }
 
     .ant-table-tbody .ant-table-row:nth-child(even) {
-      background-color: #f0f0f0 !important;
+      background-color: #f0f7ff !important;
+
+      &:hover {
+        background-color: #e6f4ff !important;
+      }
     }
 
     .ant-table-cell {
