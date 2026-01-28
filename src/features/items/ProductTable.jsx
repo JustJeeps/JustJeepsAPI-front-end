@@ -181,7 +181,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 						.replace('4 Wheel Parts', '4WP');
 
 					return (
-						<div key={competitorProduct.id} style={{ marginBottom: '3px' }}>
+						<div key={competitorProduct.id} style={{ marginBottom: '3px', textAlign: 'center' }}>
 							{link ? (
 								<a
 									href={link}
@@ -190,13 +190,14 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 									style={{
 										color: '#1890ff',
 										textDecoration: 'underline',
-										cursor: 'pointer'
+										cursor: 'pointer',
+										fontSize: '13px',
 									}}
 								>
 									{`$${competitorProduct.competitor_price} (${shortName})`}
 								</a>
 							) : (
-								`$${competitorProduct.competitor_price} (${shortName})`
+								<span style={{ fontSize: '13px' }}>{`$${competitorProduct.competitor_price} (${shortName})`}</span>
 							)}
 						</div>
 					);
@@ -342,36 +343,40 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 // },
 
 {
-  title: 'Vendor',
+  title: 'Vendor / Cost',
   dataIndex: null,
-  key: 'vendor_id',
-  width: 100,
+  key: 'vendor_cost_combined',
+  width: 260,
   align: 'center',
   render: (_, record) => {
-    // Find the best vendor (lowest cost)
-    // Consider vendors that have inventory > 0 OR unknown inventory (null/undefined)
-    // Only exclude vendors that explicitly have inventory === 0
+    // Find the best vendor (highest margin with inventory available)
+    // Only consider vendors that have inventory > 0 (exclude null/undefined/0)
     const availableVendors = record.vendorProducts.filter(
-      (vp) => vp.vendor_inventory === null || vp.vendor_inventory === undefined || vp.vendor_inventory > 0
+      (vp) => vp.vendor_inventory > 0 ||
+              (vp.vendor_inventory_string &&
+               !vp.vendor_inventory_string.toLowerCase().includes('out') &&
+               !vp.vendor_inventory_string.toLowerCase().includes('cad stock: 0 / us stock: 0'))
     );
 
-    // Find the minimum cost among available vendors
-    let lowestCost = Infinity;
+    let highestMargin = -Infinity;
     let bestVendorIndex = -1;
     availableVendors.forEach((vp, idx) => {
-      if (vp.vendor_cost < lowestCost) {
-        lowestCost = vp.vendor_cost;
+      const adjustedCost = props.currency === 'USD' ? vp.vendor_cost / 1.5 : vp.vendor_cost;
+      const margin = ((props.orderProductPrice - adjustedCost) / adjustedCost) * 100;
+      if (margin > highestMargin) {
+        highestMargin = margin;
         bestVendorIndex = idx;
       }
     });
     const bestVendor = bestVendorIndex >= 0 ? availableVendors[bestVendorIndex] : null;
 
-    return record.vendorProducts.map((vendorProduct, index) => {
+    return record.vendorProducts.map((vendorProduct) => {
       const vendorName = vendorProduct.vendor.name;
       const vendorSKU = vendorProduct.vendor_sku?.trim();
       const productSKU = vendorProduct.product_sku?.trim();
       const vendorNameLower = vendorName.toLowerCase();
-      // Best vendor = lowest cost among available vendors
+
+      // Check if this vendor is the best (highest margin with inventory)
       const isBestVendor = bestVendor &&
         vendorProduct.vendor.id === bestVendor.vendor.id &&
         vendorProduct.vendor_cost === bestVendor.vendor_cost;
@@ -435,46 +440,42 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
       }
 
       return (
-        <div key={vendorProduct.id} style={{ marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-          {isBestVendor && (
-            <TrophyFilled style={{ color: '#52c41a', fontSize: '16px' }} />
-          )}
-          {link ? (
-            <a href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '14px' }}>
-              {vendorName}
-            </a>
-          ) : (
-            <span style={{ fontSize: '14px' }}>{vendorName}</span>
-          )}
+        <div
+          key={vendorProduct.id}
+          style={{
+            marginBottom: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+            padding: '4px 8px',
+            backgroundColor: isBestVendor ? '#f6ffed' : 'transparent',
+            borderRadius: '4px',
+            border: isBestVendor ? '1px solid #b7eb8f' : '1px solid #f0f0f0',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            {isBestVendor && (
+              <TrophyFilled style={{ color: '#52c41a', fontSize: '16px' }} />
+            )}
+            {link ? (
+              <a href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '14px', fontWeight: 500 }}>
+                {vendorName}
+              </a>
+            ) : (
+              <span style={{ fontSize: '14px', fontWeight: 500 }}>{vendorName}</span>
+            )}
+          </div>
+          <CopyText text={`CAD$ ${vendorProduct.vendor_cost.toFixed(2)} / USD$ ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}`}>
+            <span style={{ whiteSpace: 'nowrap', fontSize: '14px', fontWeight: 700, color: '#1890ff' }}>
+              ${vendorProduct.vendor_cost.toFixed(2)} / ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}
+            </span>
+          </CopyText>
         </div>
       );
     });
   },
-}
-,
-
-
-		//vendor cost with currency concatenated
-		{
-			title: 'Cost (CAD / USD)',
-			dataIndex: 'vendorProducts',
-			key: 'vendor_cost',
-			width: 170,
-			align: 'center',
-			render: vendorProducts =>
-				vendorProducts.map(vendorProduct => (
-					<div
-						key={vendorProduct.id}
-						style={{ marginBottom: '4px' }}
-					>
-						<CopyText text={`CAD$ ${vendorProduct.vendor_cost.toFixed(2)} / USD$ ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}`}>
-							<span style={{ whiteSpace: 'nowrap', fontSize: '14px' }}>
-								${vendorProduct.vendor_cost.toFixed(2)} / ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}
-							</span>
-						</CopyText>
-					</div>
-				)),
-		},
+},
 
 {
   title: "Margin",
