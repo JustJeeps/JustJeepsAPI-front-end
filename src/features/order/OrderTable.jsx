@@ -796,7 +796,7 @@ Thank you,`
       dataIndex: "increment_id",
       key: "increment_id",
       align: "center",
-      width: 125,
+      width: 115,
       sorter: (a, b) => a.increment_id - b.increment_id,
       sortOrder: sortedInfo.columnKey === "increment_id" && sortedInfo.order,
       ...getColumnSearchProps("increment_id"),
@@ -892,10 +892,49 @@ Thank you,`
       ),
     },
     {
+      title: "Fraud",
+      dataIndex: "weltpixel_fraud_score",
+      key: "weltpixel_fraud_score",
+      align: "center",
+      width: 90,
+      sorter: (a, b) => {
+        const aScore = parseFloat(a.weltpixel_fraud_score);
+        const bScore = parseFloat(b.weltpixel_fraud_score);
+        return (isNaN(aScore) ? -1 : aScore) - (isNaN(bScore) ? -1 : bScore);
+      },
+      sortOrder: sortedInfo.columnKey === "weltpixel_fraud_score" && sortedInfo.order,
+      render: (text, record) => {
+        const score = parseFloat(record.weltpixel_fraud_score);
+        const grandTotal = parseFloat(record.grand_total);
+        const paymentSource = record.payment_method || record.method_title || "";
+        const isPayPal = /paypal/i.test(paymentSource);
+        const isHighFraud = !isPayPal && !isNaN(score) && score > 10;
+        const isQuebecHighValue = record.region?.toLowerCase() === "quebec" && !isNaN(grandTotal) && grandTotal > 300;
+        const showFraudWarning = !isPayPal && (isHighFraud || isQuebecHighValue);
+        const display = text ? text : "—";
+
+        return (
+          <span style={{
+            fontSize: '14px',
+            color: showFraudWarning ? '#cf1322' : '#262626',
+            fontWeight: showFraudWarning ? 600 : 500,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}>
+            {display}
+            {showFraudWarning && (
+              <ExclamationCircleOutlined style={{ fontSize: 12, color: '#cf1322' }} />
+            )}
+          </span>
+        );
+      },
+    },
+    {
       title: "Details",
       key: "details",
       align: "left",
-      width: 360,
+      width: 260,
       render: (_, record) => {
         // Status tag color mapping
         const statusConfig = {
@@ -908,14 +947,6 @@ Thank you,`
           holded: { bg: '#fff2e8', color: '#d4380d', border: '#ffbb96', label: 'On Hold' },
         };
         const statusStyle = statusConfig[record.status] || { bg: '#f5f5f5', color: '#595959', border: '#d9d9d9', label: record.status };
-
-        // Fraud warning check
-        const score = parseFloat(record.weltpixel_fraud_score);
-        const grandTotal = parseFloat(record.grand_total);
-        const isPayPal = /paypal/i.test(record.payment_method || "");
-        const isHighFraud = !isPayPal && !isNaN(score) && score > 10;
-        const isQuebecHighValue = record.region?.toLowerCase() === "quebec" && !isNaN(grandTotal) && grandTotal > 300;
-        const showFraudWarning = !isPayPal && (isHighFraud || isQuebecHighValue);
 
         // Due warning
         const isDue = record.base_total_due > 0;
@@ -967,7 +998,7 @@ Thank you,`
             {/* Bottom Row: Metrics Grid */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
+              gridTemplateColumns: 'repeat(3, 1fr)',
               gap: '4px',
               backgroundColor: '#fafafa',
               borderRadius: '6px',
@@ -990,32 +1021,6 @@ Thank you,`
                   fontWeight: 500,
                 }}>
                   {formatPayment(record.method_title)}
-                </span>
-              </div>
-
-              {/* Fraud Score */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                <span style={{
-                  fontSize: '11px',
-                  color: '#8c8c8c',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.4px',
-                  fontWeight: 500,
-                }}>
-                  Fraud
-                </span>
-                <span style={{
-                  fontSize: '13px',
-                  color: showFraudWarning ? '#cf1322' : '#262626',
-                  fontWeight: showFraudWarning ? 600 : 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                }}>
-                  {record.weltpixel_fraud_score || '—'}
-                  {showFraudWarning && (
-                    <ExclamationCircleOutlined style={{ fontSize: 12, color: '#cf1322' }} />
-                  )}
                 </span>
               </div>
 
