@@ -879,6 +879,19 @@ Thank you,`
       },
     },
     {
+      title: "Shipping Description",
+      dataIndex: "shipping_description",
+      key: "shipping_description",
+      align: "left",
+      width: 220,
+      sorter: (a, b) => a.shipping_description?.localeCompare(b.shipping_description),
+      sortOrder: sortedInfo.columnKey === "shipping_description" && sortedInfo.order,
+      ...getColumnSearchProps("shipping_description"),
+      render: (text) => (
+        <span style={{ fontSize: '14px', fontWeight: 500 }}>{text || "—"}</span>
+      ),
+    },
+    {
       title: "Details",
       key: "details",
       align: "left",
