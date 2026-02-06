@@ -796,7 +796,7 @@ Thank you,`
       dataIndex: "increment_id",
       key: "increment_id",
       align: "center",
-      width: 115,
+      width: 90,
       sorter: (a, b) => a.increment_id - b.increment_id,
       sortOrder: sortedInfo.columnKey === "increment_id" && sortedInfo.order,
       ...getColumnSearchProps("increment_id"),
