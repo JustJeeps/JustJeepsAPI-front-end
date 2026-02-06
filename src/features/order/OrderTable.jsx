@@ -879,11 +879,11 @@ Thank you,`
       },
     },
     {
-      title: "Shipping Description",
+      title: "Shipping or Pickup",
       dataIndex: "shipping_description",
       key: "shipping_description",
       align: "left",
-      width: 130,
+      width: 110,
       sorter: (a, b) => a.shipping_description?.localeCompare(b.shipping_description),
       sortOrder: sortedInfo.columnKey === "shipping_description" && sortedInfo.order,
       ...getColumnSearchProps("shipping_description"),
