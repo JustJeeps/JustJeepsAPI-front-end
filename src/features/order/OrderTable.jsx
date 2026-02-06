@@ -883,7 +883,7 @@ Thank you,`
       dataIndex: "shipping_description",
       key: "shipping_description",
       align: "left",
-      width: 220,
+      width: 30%,
       sorter: (a, b) => a.shipping_description?.localeCompare(b.shipping_description),
       sortOrder: sortedInfo.columnKey === "shipping_description" && sortedInfo.order,
       ...getColumnSearchProps("shipping_description"),
