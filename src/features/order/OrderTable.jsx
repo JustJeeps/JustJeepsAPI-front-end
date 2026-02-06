@@ -851,6 +851,45 @@ Thank you,`
         );
       },
     },
+        {
+      title: "Fraud",
+      dataIndex: "weltpixel_fraud_score",
+      key: "weltpixel_fraud_score",
+      align: "center",
+      width: 90,
+      sorter: (a, b) => {
+        const aScore = parseFloat(a.weltpixel_fraud_score);
+        const bScore = parseFloat(b.weltpixel_fraud_score);
+        return (isNaN(aScore) ? -1 : aScore) - (isNaN(bScore) ? -1 : bScore);
+      },
+      sortOrder: sortedInfo.columnKey === "weltpixel_fraud_score" && sortedInfo.order,
+      render: (text, record) => {
+        const score = parseFloat(record.weltpixel_fraud_score);
+        const grandTotal = parseFloat(record.grand_total);
+        const paymentSource = record.payment_method || record.method_title || "";
+        const isPayPal = /paypal/i.test(paymentSource);
+        const isHighFraud = !isPayPal && !isNaN(score) && score > 10;
+        const isQuebecHighValue = record.region?.toLowerCase() === "quebec" && !isNaN(grandTotal) && grandTotal > 300;
+        const showFraudWarning = !isPayPal && (isHighFraud || isQuebecHighValue);
+        const display = text ? text : "—";
+
+        return (
+          <span style={{
+            fontSize: '14px',
+            color: showFraudWarning ? '#cf1322' : '#262626',
+            fontWeight: showFraudWarning ? 600 : 500,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}>
+            {display}
+            {showFraudWarning && (
+              <ExclamationCircleOutlined style={{ fontSize: 12, color: '#cf1322' }} />
+            )}
+          </span>
+        );
+      },
+    },
     {
       title: "Region",
       dataIndex: "region",
@@ -891,45 +930,7 @@ Thank you,`
         <span style={{ fontSize: '14px', fontWeight: 500 }}>{text || "—"}</span>
       ),
     },
-    {
-      title: "Fraud",
-      dataIndex: "weltpixel_fraud_score",
-      key: "weltpixel_fraud_score",
-      align: "center",
-      width: 90,
-      sorter: (a, b) => {
-        const aScore = parseFloat(a.weltpixel_fraud_score);
-        const bScore = parseFloat(b.weltpixel_fraud_score);
-        return (isNaN(aScore) ? -1 : aScore) - (isNaN(bScore) ? -1 : bScore);
-      },
-      sortOrder: sortedInfo.columnKey === "weltpixel_fraud_score" && sortedInfo.order,
-      render: (text, record) => {
-        const score = parseFloat(record.weltpixel_fraud_score);
-        const grandTotal = parseFloat(record.grand_total);
-        const paymentSource = record.payment_method || record.method_title || "";
-        const isPayPal = /paypal/i.test(paymentSource);
-        const isHighFraud = !isPayPal && !isNaN(score) && score > 10;
-        const isQuebecHighValue = record.region?.toLowerCase() === "quebec" && !isNaN(grandTotal) && grandTotal > 300;
-        const showFraudWarning = !isPayPal && (isHighFraud || isQuebecHighValue);
-        const display = text ? text : "—";
 
-        return (
-          <span style={{
-            fontSize: '14px',
-            color: showFraudWarning ? '#cf1322' : '#262626',
-            fontWeight: showFraudWarning ? 600 : 500,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-          }}>
-            {display}
-            {showFraudWarning && (
-              <ExclamationCircleOutlined style={{ fontSize: 12, color: '#cf1322' }} />
-            )}
-          </span>
-        );
-      },
-    },
     {
       title: "Details",
       key: "details",
