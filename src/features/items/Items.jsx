@@ -1566,43 +1566,63 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
           
           <div>
 
+
             {brandData.length > 0 && (
             <div className="brand-statistic">
 
-           
+              {/* Widget: Products with max margin < 20% */}
+              {(() => {
+                // Helper to get max margin for a product (inventory-aware)
+                function getMaxMargin(product) {
+                  if (!Array.isArray(product.vendorProducts) || product.vendorProducts.length === 0) return null;
+                  const price = Number(product.price) || 0;
+                  // Vendors with inventory > 0
+                  const withInventory = product.vendorProducts.filter(vp => Number(vp.vendor_inventory) > 0 && Number(vp.vendor_cost) > 0);
+                  const allWithCost = product.vendorProducts.filter(vp => Number(vp.vendor_cost) > 0);
+                  const marginList = (withInventory.length > 0 ? withInventory : allWithCost).map(vp => ((price - Number(vp.vendor_cost)) / Number(vp.vendor_cost)) * 100);
+                  if (marginList.length === 0) return null;
+                  return Math.max(...marginList);
+                }
 
-              {/* <div className="widget">
-                <div className="left">
-                  <span className="title">
-                    <strong> PROMOTION SIMULATION:</strong>
-                  </span>
-                  <InputNumber
-                    min={0}
-                    max={50}
-                    defaultValue={0}
-                    onChange={onChange}
-                    formatter={(value) => `${value}%`}
-                    parser={(value) => value.replace("%", "")}
-                    size="large"
-                    style={{ width: 100, height: 45, marginLeft: 10, fontSize: 20, backgroundColor: "#e6e088" }}
-                  />
-                </div>
-                <div className="right">
-                  <MonetizationOnOutlinedIcon
-                    className="icon"
-                    style={{
-                      backgroundColor: "rgba(218, 165, 32, 0.2)",
-                      color: "goldenrod",
-                      fontSize: "30px",
-                    }}
-                  />
-                </div>
-              </div> */}
+                // Filter products with max margin < 20%
+                const lowMarginProducts = brandData.filter(product => {
+                  const maxMargin = getMaxMargin(product);
+                  return maxMargin !== null && maxMargin < 20;
+                });
+                const lowMarginPrices = lowMarginProducts.map(p => Number(p.price)).filter(p => !isNaN(p));
+                const minLowMarginPrice = lowMarginPrices.length > 0 ? Math.min(...lowMarginPrices) : 0;
+                const maxLowMarginPrice = lowMarginPrices.length > 0 ? Math.max(...lowMarginPrices) : 0;
+                return (
+                  <div className="widget">
+                    <div className="left">
+                      <span className="title">
+                        <strong>{searchTermSku.brand_name} </strong>Products with Margin &lt; 20%:
+                      </span>
+                      <span className="counter">{lowMarginProducts.length}</span>
+                      {lowMarginProducts.length > 0 && (
+                        <span style={{ marginLeft: 16, fontSize: 16 }}>
+                          Price Range: ${minLowMarginPrice} - ${maxLowMarginPrice}
+                        </span>
+                      )}
+                    </div>
+                    <div className="right">
+                      <MonetizationOnOutlinedIcon
+                        className="icon"
+                        style={{
+                          backgroundColor: "rgba(255, 0, 0, 0.15)",
+                          color: "#f63535",
+                          fontSize: "30px",
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="widget">
                 <div className="left">
                   <span className="title">
-                    <strong>{searchTermSku.brand_name} </strong>TOTAL PRODUCTS:
+                    <strong>{searchTermSku.brand_name} </strong>TOTAL PRODUCTS TEST:
                   </span>
                   <span className="counter">{brandData.length}</span>
                 </div>
