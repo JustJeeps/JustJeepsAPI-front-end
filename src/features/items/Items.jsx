@@ -1570,8 +1570,10 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
             {brandData.length > 0 && (
             <div className="brand-statistic">
 
-              {/* Widget: Products with max margin < 20% */}
+              {/* Toggleable Widget: Products with max margin < 20% */}
               {(() => {
+                // State for filter toggle
+                const [showLowMargin, setShowLowMargin] = useState(false);
                 // Helper to get max margin for a product (inventory-aware)
                 function getMaxMargin(product) {
                   if (!Array.isArray(product.vendorProducts) || product.vendorProducts.length === 0) return null;
@@ -1592,16 +1594,30 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
                 const lowMarginPrices = lowMarginProducts.map(p => Number(p.price)).filter(p => !isNaN(p));
                 const minLowMarginPrice = lowMarginPrices.length > 0 ? Math.min(...lowMarginPrices) : 0;
                 const maxLowMarginPrice = lowMarginPrices.length > 0 ? Math.max(...lowMarginPrices) : 0;
+
+                // Widget click handler
+                const handleWidgetClick = () => setShowLowMargin(prev => !prev);
+
+                // Expose filter state to parent
+                window.__showLowMargin = showLowMargin;
+                window.__lowMarginProducts = lowMarginProducts;
+
                 return (
-                  <div className="widget">
+                  <div className="widget" style={{ cursor: 'pointer', border: showLowMargin ? '2px solid #f63535' : undefined }} onClick={handleWidgetClick}>
                     <div className="left">
                       <span className="title">
-                        <strong>{searchTermSku.brand_name} </strong>Products with Margin &lt; 20%:
+                        <strong>{searchTermSku.brand_name} </strong>
+                        <span style={{ textDecoration: 'underline', color: '#f63535' }}>Products with Margin &lt; 20%:</span>
                       </span>
                       <span className="counter">{lowMarginProducts.length}</span>
                       {lowMarginProducts.length > 0 && (
                         <span style={{ marginLeft: 16, fontSize: 16 }}>
                           Price Range: ${minLowMarginPrice} - ${maxLowMarginPrice}
+                        </span>
+                      )}
+                      {showLowMargin && (
+                        <span style={{ marginLeft: 16, fontSize: 14, color: '#f63535' }}>
+                          (Filtered)
                         </span>
                       )}
                     </div>
@@ -1707,28 +1723,32 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
     
                    )}
 
-            <Table
-              {...tableProps}
-              dataSource={brandData}
-              columns={columns_by_sku}
-              // columns={columns_brands}
-              rowKey="sku"
-              size="large"
-              components={{
-                header: {
-                  cell: ResizableTitle,
-                },
-              }}
-              pagination={{
-                // pageSize: 20,
-                //move to top
-                position: ["topRight"],
-                //change font color
-      
-              }}
-              loading={loading}
-              scroll={{ y: 1000 }}
-            />
+            {/* Toggleable filter for low margin products */}
+            {(() => {
+              // Use filter state from widget
+              const showLowMargin = window.__showLowMargin;
+              const lowMarginProducts = window.__lowMarginProducts || [];
+              const tableData = showLowMargin ? lowMarginProducts : brandData;
+              return (
+                <Table
+                  {...tableProps}
+                  dataSource={tableData}
+                  columns={columns_by_sku}
+                  rowKey="sku"
+                  size="large"
+                  components={{
+                    header: {
+                      cell: ResizableTitle,
+                    },
+                  }}
+                  pagination={{
+                    position: ["topRight"],
+                  }}
+                  loading={loading}
+                  scroll={{ y: 1000 }}
+                />
+              );
+            })()}
           </div>
         )}
       </div>
