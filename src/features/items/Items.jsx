@@ -1601,7 +1601,7 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
                       <span className="counter">{lowMarginProducts.length}</span>
                       {lowMarginProducts.length > 0 && (
                         <span style={{ marginLeft: 16, fontSize: 16 }}>
-                          Price Range: ${minLowMarginPrice} - ${maxLowMarginPrice}
+              
                         </span>
                       )}
                     </div>
