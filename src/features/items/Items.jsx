@@ -346,13 +346,21 @@ const dataForExcel = transformData(brandData);
         { header: "PartsEngine URL", key: "partsEngine_code" },
         { header: "TDOT URL", key: "tdot_url" },
         { header: "MetalCloak Cost", key: "metalcloak_cost" },
+        //alpine costs
+        { header: "Alpine Cost", key: "alpine_cost" },
+        //add black_friday_sale from products table
+        { header: "Sale Code", key: "black_friday_sale" },
       ];
+
+
 
       setExportProgress({ visible: true, percent: 70, message: 'Adding rows to Excel...' });
 
       // Add rows to the sheet
       productsToExport.forEach((product) => {
         const row = {
+          //black_friday_sale from products table
+          black_friday_sale: product.black_friday_sale,
           partsEngine_code: product.partsEngine_code,
           tdot_url: product.tdot_url,
           keystone_code: product.keystone_code,
@@ -381,6 +389,10 @@ const dataForExcel = transformData(brandData);
           shipping_freight: product.shippingFreight,
           metalcloak_cost: product.vendorProducts?.find(
             (vp) => vp.vendor.name === "MetalCloak"
+          )?.vendor_cost,
+          //alpine cost
+          alpine_cost: product.vendorProducts?.find(
+            (vp) => vp.vendor.name === "Alpine"
           )?.vendor_cost,
           meyer_cost: product.vendorProducts?.find(
             (vp) => vp.vendor.name === "Meyer"
