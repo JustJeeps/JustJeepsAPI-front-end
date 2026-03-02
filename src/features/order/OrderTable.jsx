@@ -1400,55 +1400,55 @@ console.log("IS ARRAY?", Array.isArray(orders));
         },
       },
 
-      {
-        title: "Black Friday Sale",
-        dataIndex: ["product", "black_friday_sale"],
-        key: "black_friday_sale",
-        align: "center",
-        render: (text, record) => {
-          const blackFridayValue = record.product?.black_friday_sale;
+      // {
+      //   title: "Black Friday Sale",
+      //   dataIndex: ["product", "black_friday_sale"],
+      //   key: "black_friday_sale",
+      //   align: "center",
+      //   render: (text, record) => {
+      //     const blackFridayValue = record.product?.black_friday_sale;
           
-          if (!blackFridayValue) {
-            return <span style={{ color: "#999" }}>—</span>;
-          }
+      //     if (!blackFridayValue) {
+      //       return <span style={{ color: "#999" }}>—</span>;
+      //     }
 
-          // Style based on discount percentage
-          let bgColor = "#f0f0f0";
-          let textColor = "#333";
+      //     // Style based on discount percentage
+      //     let bgColor = "#f0f0f0";
+      //     let textColor = "#333";
           
-          if (blackFridayValue.includes("30%off")) {
-            bgColor = "#ff4d4f";
-            textColor = "white";
-          } else if (blackFridayValue.includes("25%off")) {
-            bgColor = "#fa8c16";
-            textColor = "white";
-          } else if (blackFridayValue.includes("20%off")) {
-            bgColor = "#faad14";
-            textColor = "white";
-          } else if (blackFridayValue.includes("15%off")) {
-            bgColor = "#52c41a";
-            textColor = "white";
-          }
+      //     if (blackFridayValue.includes("30%off")) {
+      //       bgColor = "#ff4d4f";
+      //       textColor = "white";
+      //     } else if (blackFridayValue.includes("25%off")) {
+      //       bgColor = "#fa8c16";
+      //       textColor = "white";
+      //     } else if (blackFridayValue.includes("20%off")) {
+      //       bgColor = "#faad14";
+      //       textColor = "white";
+      //     } else if (blackFridayValue.includes("15%off")) {
+      //       bgColor = "#52c41a";
+      //       textColor = "white";
+      //     }
 
-          return (
-            <span 
-              style={{ 
-                backgroundColor: bgColor,
-                color: textColor,
-                padding: "6px 12px",
-                borderRadius: "6px",
-                fontSize: "14px",
-                fontWeight: "bold",
-                display: "inline-block",
-                minWidth: "60px",
-                textAlign: "center"
-              }}
-            >
-              {blackFridayValue}
-            </span>
-          );
-        },
-      },
+      //     return (
+      //       <span 
+      //         style={{ 
+      //           backgroundColor: bgColor,
+      //           color: textColor,
+      //           padding: "6px 12px",
+      //           borderRadius: "6px",
+      //           fontSize: "14px",
+      //           fontWeight: "bold",
+      //           display: "inline-block",
+      //           minWidth: "60px",
+      //           textAlign: "center"
+      //         }}
+      //       >
+      //         {blackFridayValue}
+      //       </span>
+      //     );
+      //   },
+      // },
 
       {
         title: "SKU",
