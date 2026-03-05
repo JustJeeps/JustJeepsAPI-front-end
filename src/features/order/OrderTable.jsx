@@ -92,6 +92,7 @@ const OrderTable = () => {
     yesterdayCount: 0,
     last7DaysCount: 0,
     pmNotSetCount: 0,
+    kdNotSetCount: 0,
     gwCount: 0,
     totalCount: 0,
   });
@@ -2063,13 +2064,16 @@ console.log("IS ARRAY?", Array.isArray(orders));
                 yesterdayCount={metrics.yesterdayCount}
                 last7DaysCount={metrics.last7DaysCount}
                 onNotSetClick={() => handleFilterChange('poStatus', filters.poStatus === 'not_set' ? '' : 'not_set')}
-                onPmClick={() => handleFilterChange('poStatus', filters.poStatus === 'partial' ? '' : 'partial')}
+                onPmClick={() => handleFilterChange('poStatus', filters.poStatus === 'pm_not_set' ? '' : 'pm_not_set')}
+                onKdClick={() => handleFilterChange('poStatus', filters.poStatus === 'kd_not_set' ? '' : 'kd_not_set')}
                 onTodayClick={() => handleFilterChange('dateFilter', filters.dateFilter === 'today' ? '' : 'today')}
                 onYesterdayClick={() => handleFilterChange('dateFilter', filters.dateFilter === 'yesterday' ? '' : 'yesterday')}
                 onLast7DaysClick={() => handleFilterChange('dateFilter', filters.dateFilter === 'last7days' ? '' : 'last7days')}
+                activePoStatus={filters.poStatus}
                 activeDateFilter={filters.dateFilter}
                 gwCount={metrics.gwCount}
                 pmCount={metrics.pmNotSetCount}
+                kdCount={metrics.kdNotSetCount}
                 loading={metricsLoading}
               />
             </div>
@@ -2150,6 +2154,12 @@ console.log("IS ARRAY?", Array.isArray(orders));
                   </Select.Option>
                   <Select.Option value="partial">
                     <span style={{ color: '#faad14' }}>Partial</span>
+                  </Select.Option>
+                  <Select.Option value="pm_not_set">
+                    <span style={{ color: '#eb2f96' }}>PM Not Set</span>
+                  </Select.Option>
+                  <Select.Option value="kd_not_set">
+                    <span style={{ color: '#13c2c2' }}>KD Not Set</span>
                   </Select.Option>
                   <Select.Option value="set">
                     <span style={{ color: 'green' }}>Set</span>

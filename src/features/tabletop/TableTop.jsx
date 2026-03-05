@@ -8,11 +8,14 @@ const TableTop = ({
   last7DaysCount,
   gwCount,
   pmCount,
+  kdCount,
   onNotSetClick,
   onPmClick,
+  onKdClick,
   onTodayClick,
   onYesterdayClick,
   onLast7DaysClick,
+  activePoStatus,
   activeDateFilter,
   loading = false
 }) => {
@@ -25,7 +28,7 @@ const TableTop = ({
       bgColor: '#fff2f0',
       borderColor: '#ffccc7',
       onClick: onNotSetClick,
-      isActive: false,
+      isActive: activePoStatus === 'not_set',
     },
     {
       label: 'Today',
@@ -61,7 +64,16 @@ const TableTop = ({
       bgColor: '#fff0f6',
       borderColor: '#ffadd2',
       onClick: onPmClick,
-      isActive: false,
+      isActive: activePoStatus === 'pm_not_set',
+    },
+    {
+      label: 'KD Not Set',
+      value: kdCount,
+      color: '#13c2c2',
+      bgColor: '#e6fffb',
+      borderColor: '#87e8de',
+      onClick: onKdClick,
+      isActive: activePoStatus === 'kd_not_set',
     },
   ];
 
