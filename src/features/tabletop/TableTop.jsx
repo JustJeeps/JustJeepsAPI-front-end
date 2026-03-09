@@ -33,7 +33,7 @@ const TableTop = ({
       isActive: activePoStatus === 'not_set',
     },
     {
-      label: 'Not Set >4d',
+      label: 'Not Set > 4days',
       value: staleNotSetCount,
       color: '#cf1322',
       bgColor: '#fff1f0',
