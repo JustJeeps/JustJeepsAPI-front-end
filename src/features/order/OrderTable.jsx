@@ -88,6 +88,7 @@ const OrderTable = () => {
   // Metrics state (independent of pagination)
   const [metrics, setMetrics] = useState({
     notSetCount: 0,
+    staleNotSetCount: 0,
     todayCount: 0,
     yesterdayCount: 0,
     last7DaysCount: 0,
@@ -2060,10 +2061,12 @@ console.log("IS ARRAY?", Array.isArray(orders));
               <TableTop
                 orderCount={metrics.totalCount}
                 notSetCount={metrics.notSetCount}
+                staleNotSetCount={metrics.staleNotSetCount}
                 todayCount={metrics.todayCount}
                 yesterdayCount={metrics.yesterdayCount}
                 last7DaysCount={metrics.last7DaysCount}
                 onNotSetClick={() => handleFilterChange('poStatus', filters.poStatus === 'not_set' ? '' : 'not_set')}
+                onNotSet3DaysClick={() => handleFilterChange('poStatus', filters.poStatus === 'not_set_4days' ? '' : 'not_set_4days')}
                 onPmClick={() => handleFilterChange('poStatus', filters.poStatus === 'pm_not_set' ? '' : 'pm_not_set')}
                 onKdClick={() => handleFilterChange('poStatus', filters.poStatus === 'kd_not_set' ? '' : 'kd_not_set')}
                 onTodayClick={() => handleFilterChange('dateFilter', filters.dateFilter === 'today' ? '' : 'today')}
@@ -2151,6 +2154,9 @@ console.log("IS ARRAY?", Array.isArray(orders));
                 >
                   <Select.Option value="not_set">
                     <span style={{ color: 'red' }}>Not Set</span>
+                  </Select.Option>
+                  <Select.Option value="not_set_4days">
+                    <span style={{ color: '#cf1322' }}>Not Set {'>'} 4 Days</span>
                   </Select.Option>
                   <Select.Option value="partial">
                     <span style={{ color: '#faad14' }}>Partial</span>
@@ -2243,7 +2249,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
                     Showing {orders.length} of {pagination.total} orders
                     {filters.filterMode === 'items' && <Tag color="cyan" style={{ marginLeft: 8 }}>ITEMS MODE</Tag>}
                     {filters.status && <Tag color="blue" style={{ marginLeft: 4 }}>{filters.status.toUpperCase()}</Tag>}
-                    {filters.poStatus && <Tag color="orange" style={{ marginLeft: 4 }}>{filters.poStatus.replace('_', ' ').toUpperCase()}</Tag>}
+                    {filters.poStatus && <Tag color="orange" style={{ marginLeft: 4 }}>{filters.poStatus.replace(/_/g, ' ').toUpperCase()}</Tag>}
                     {filters.region && <Tag color="purple" style={{ marginLeft: 4 }}>{filters.region}</Tag>}
                     {filters.vendor && <Tag color="green" style={{ marginLeft: 4 }}>{filters.vendor}</Tag>}
                     {filters.dateFilter && <Tag color="geekblue" style={{ marginLeft: 4 }}>{filters.dateFilter.toUpperCase()}</Tag>}

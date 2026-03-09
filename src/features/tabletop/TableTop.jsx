@@ -3,6 +3,7 @@ import { Spin } from 'antd';
 const TableTop = ({
   orderCount,
   notSetCount,
+  staleNotSetCount,
   todayCount,
   yesterdayCount,
   last7DaysCount,
@@ -10,6 +11,7 @@ const TableTop = ({
   pmCount,
   kdCount,
   onNotSetClick,
+  onNotSet3DaysClick,
   onPmClick,
   onKdClick,
   onTodayClick,
@@ -29,6 +31,15 @@ const TableTop = ({
       borderColor: '#ffccc7',
       onClick: onNotSetClick,
       isActive: activePoStatus === 'not_set',
+    },
+    {
+      label: 'Not Set >4d',
+      value: staleNotSetCount,
+      color: '#cf1322',
+      bgColor: '#fff1f0',
+      borderColor: '#ffa39e',
+      onClick: onNotSet3DaysClick,
+      isActive: activePoStatus === 'not_set_4days',
     },
     {
       label: 'Today',
