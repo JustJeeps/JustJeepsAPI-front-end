@@ -388,9 +388,12 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
       } else if (vendorNameLower === 'omix') {
         link = `https://omixdealer.com/product-detail/${vendorSKU}`;
       } else if (vendorNameLower === 'quadratec') {
-        const quadCode = productSKU?.includes('-')
-          ? productSKU.split('-').slice(1).join('-')
-          : productSKU;
+				const normalizedProductSku = productSKU?.trim();
+				const quadCode = /^PS-/i.test(normalizedProductSku || '')
+					? normalizedProductSku.replace(/^PS-/i, '').replace(/-/g, '')
+					: normalizedProductSku?.includes('-')
+						? normalizedProductSku.split('-').slice(1).join('-')
+						: normalizedProductSku;
         link = `https://www.quadratecwholesale.com/catalogsearch/result/?q=${quadCode}`;
       } else if (vendorNameLower === 'tire discounter') {
         link = `https://www.tdgaccess.ca/Catalog/Search/1?search=${vendorSKU}`;
