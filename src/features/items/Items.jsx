@@ -484,6 +484,23 @@ const dataForExcel = transformData(brandData);
     }
   }
 
+  async function downloadSourceFile(fileKey, defaultFileName) {
+    try {
+      const response = await axios.get(`${API_URL}/api/files/download/${fileKey}`, {
+        responseType: 'blob',
+      });
+
+      const contentDisposition = response.headers['content-disposition'] || '';
+      const match = contentDisposition.match(/filename\*?=(?:UTF-8''|"?)([^";]+)/i);
+      const fileName = match ? decodeURIComponent(match[1].replace(/"/g, '')) : defaultFileName;
+
+      saveAs(response.data, fileName);
+    } catch (error) {
+      console.error('File download failed:', error);
+      alert('Failed to download file. Please try again.');
+    }
+  }
+
   console.log("all products", allProducts);
 
   const prices = brandData.reduce((acc, product) => {
@@ -1533,6 +1550,24 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
                         </Button>
                         <Button className="excel-export" onClick={exportToExcelAllProducts}>
                           <UploadOutlined /> Export ALL to Excel
+                        </Button>
+                        <Button
+                          className="excel-export"
+                          onClick={() => downloadSourceFile('quad-price', 'pricingSheet_quad.xlsx')}
+                        >
+                          <UploadOutlined /> Download Quad Price File
+                        </Button>
+                        <Button
+                          className="excel-export"
+                          onClick={() => downloadSourceFile('keystone-instock-price', 'keystone_instock_inventory.csv')}
+                        >
+                          <UploadOutlined /> Download Keystone In-Stock Price File
+                        </Button>
+                        <Button
+                          className="excel-export"
+                          onClick={() => downloadSourceFile('keystone-special-order-price', 'keystone_special_order_inventory.csv')}
+                        >
+                          <UploadOutlined /> Download Keystone Special Order Price File
                         </Button>
                       </div>
                     )}
