@@ -893,11 +893,24 @@ Thank you,`
       },
     },
     {
+      title: "Sales Rep",
+      dataIndex: "sales_rep",
+      key: "sales_rep",
+      align: "center",
+      width: 70,
+      sorter: (a, b) => (a.sales_rep || "").localeCompare(b.sales_rep || ""),
+      sortOrder: sortedInfo.columnKey === "sales_rep" && sortedInfo.order,
+      ...getColumnSearchProps("sales_rep"),
+      render: (text) => (
+        <span style={{ fontSize: '14px', fontWeight: 500 }}>{text || "—"}</span>
+      ),
+    },
+    {
       title: "Region",
       dataIndex: "region",
       key: "region",
       align: "center",
-      width: 120,
+      width: 100,
       sorter: (a, b) => a.region?.localeCompare(b.region),
       sortOrder: sortedInfo.columnKey === "region" && sortedInfo.order,
       ...getColumnSearchProps("region"),
