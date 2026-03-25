@@ -13,6 +13,7 @@ import {
   Space,
   Table,
   Input,
+  InputNumber,
   Button,
   Modal,
   Form,
@@ -56,6 +57,7 @@ const OrderTable = () => {
   const [currentOrderProductID, setCurrentOrderProductID] = useState(null);
   const [currentOrderProductPrice, setCurrentOrderProductPrice] =
     useState(null);
+  const [currentOrderIncrementId, setCurrentOrderIncrementId] = useState(null);
   const { Option } = Select;
   const [selectedOrder, setSelectedOrder] = useState(null);
 
@@ -98,11 +100,18 @@ const OrderTable = () => {
     totalCount: 0,
   });
   const [metricsLoading, setMetricsLoading] = useState(true);
+  const [orderShippingCosts, setOrderShippingCosts] = useState({});
+  const [unitCostEdits, setUnitCostEdits] = useState({});
+  const [savingUnitCost, setSavingUnitCost] = useState({});
+  const [textFromDrawer, setTextFromDrawer] = useState("");
+  const [expandedRowKeys, setExpandedRowKeys] = useState([]);
 
 
 
 
   const API_URL = import.meta.env.VITE_API_URL;
+
+  const getOrderRowKey = (record) => record.entity_id || record.id || record.key;
 
   // const BACKEND_URL = "https://jj-api-backend.herokuapp.com";
   
@@ -138,6 +147,41 @@ const getWeight = (item) => {
 
   const n = parseFloat(raw);
   return Number.isFinite(n) ? n : null;
+};
+
+const parseMoney = (value) => {
+  const numericValue = parseFloat(value);
+  return Number.isFinite(numericValue) ? numericValue : 0;
+};
+
+const getOrderSubtotalValue = (order) => {
+  const directSubtotal = parseFloat(order?.subtotal);
+  if (Number.isFinite(directSubtotal)) return directSubtotal;
+
+  const itemsSubtotal = (order?.items || []).reduce((acc, item) => {
+    const basePrice = parseMoney(item?.base_price);
+    const quantity = parseMoney(item?.qty_ordered);
+    return acc + basePrice * quantity;
+  }, 0);
+
+  return itemsSubtotal > 0 ? itemsSubtotal : null;
+};
+
+const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+
+const getUnitCost = (item) => {
+  if (hasOwn(unitCostEdits, item?.id)) {
+    return parseMoney(unitCostEdits[item.id]);
+  }
+
+  const fromSelectedSupplier = parseMoney(item?.selected_supplier_cost);
+  if (fromSelectedSupplier > 0) return fromSelectedSupplier;
+
+  const fromVendorProduct = parseMoney(item?.vendorProduct?.vendor_cost);
+  if (fromVendorProduct > 0) return fromVendorProduct;
+
+  const fromProduct = parseMoney(item?.product?.cost);
+  return fromProduct;
 };
 
 
@@ -653,6 +697,86 @@ Thank you,`
     );
   };
 
+  const updateItemUnitCostInState = (itemId, nextCost, nextSupplier = null, hasSupplierUpdate = false) => {
+    const applyToOrders = (ordersState) => {
+      if (!Array.isArray(ordersState)) return ordersState;
+
+      return ordersState.map((order) => ({
+        ...order,
+        items: (order.items || []).map((item) =>
+          item.id === itemId
+            ? {
+                ...item,
+                selected_supplier_cost: nextCost,
+                ...(hasSupplierUpdate ? { selected_supplier: nextSupplier } : {}),
+              }
+            : item
+        ),
+      }));
+    };
+
+    setOrders((prev) => applyToOrders(prev));
+    setOriginalOrders((prev) => applyToOrders(prev));
+  };
+
+  const normalizeUnitCostForApi = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+
+    const numericValue = parseFloat(value);
+    if (!Number.isFinite(numericValue)) return null;
+
+    return numericValue.toFixed(2);
+  };
+
+  const persistUnitCost = async (item, nextCost, nextSupplier = null, hasSupplierUpdate = false) => {
+    setSavingUnitCost((prev) => ({ ...prev, [item.id]: true }));
+
+    try {
+      const payload = {
+        selected_supplier: hasSupplierUpdate ? nextSupplier : item?.selected_supplier,
+        selected_supplier_cost: normalizeUnitCostForApi(nextCost),
+      };
+
+      const { data: updatedItem } = await axios.post(`${API_URL}/order_products/${item.id}/edit/selected_supplier`, payload);
+
+      updateItemUnitCostInState(
+        item.id,
+        updatedItem?.selected_supplier_cost ?? payload.selected_supplier_cost,
+        updatedItem?.selected_supplier ?? payload.selected_supplier,
+        hasSupplierUpdate
+      );
+      setUnitCostEdits((prev) => {
+        const copy = { ...prev };
+        delete copy[item.id];
+        return copy;
+      });
+    } catch (error) {
+      console.error("Failed to update unit cost:", error);
+      Modal.error({
+        title: "Could not save unit cost",
+        content: "Please try again. If the issue continues, refresh the page and retry.",
+      });
+    } finally {
+      setSavingUnitCost((prev) => ({ ...prev, [item.id]: false }));
+    }
+  };
+
+  const handleSaveUnitCost = (item) => {
+    const hasDraft = hasOwn(unitCostEdits, item.id);
+    if (!hasDraft) return;
+
+    const draftRaw = unitCostEdits[item.id];
+    const nextCost = draftRaw === null || draftRaw === undefined || draftRaw === ""
+      ? null
+      : parseMoney(draftRaw);
+
+    persistUnitCost(item, nextCost);
+  };
+
+  const handleRemoveUnitCost = (item) => {
+    persistUnitCost(item, null, null, true);
+  };
+
   //search function
   const handleSearch = (selectedKeys, confirm, dataIndex) => {
     confirm();
@@ -1085,20 +1209,20 @@ Thank you,`
       },
     },
     {
-      title: "Total",
-      dataIndex: "grand_total",
-      key: "grand_total",
+      title: "Subtotal",
+      dataIndex: "subtotal",
+      key: "subtotal",
       align: "center",
       width: 100,
-      sorter: (a, b) => a.grand_total - b.grand_total,
-      sortOrder: sortedInfo.columnKey === "grand_total" && sortedInfo.order,
-      ...getColumnSearchProps("grand_total"),
-      render: (text, record) => {
+      sorter: (a, b) => parseMoney(getOrderSubtotalValue(a)) - parseMoney(getOrderSubtotalValue(b)),
+      sortOrder: sortedInfo.columnKey === "subtotal" && sortedInfo.order,
+      render: (_, record) => {
         const currency = record.order_currency_code || 'CAD';
+        const displayValue = getOrderSubtotalValue(record);
         return (
           <div style={{ textAlign: 'center', lineHeight: 1.2 }}>
             <div style={{ fontWeight: 700, fontSize: '18px', color: '#1a1a1a' }}>
-              ${text?.toFixed(2)}
+              {displayValue === null ? '—' : `$${displayValue.toFixed(2)}`}
             </div>
             <div style={{ fontSize: '12px', color: '#888', fontWeight: 500 }}>{currency}</div>
           </div>
@@ -1266,6 +1390,11 @@ console.log("IS ARRAY?", Array.isArray(orders));
       }))
     : [];
 
+  const visibleData =
+    expandedRowKeys.length === 1
+      ? data.filter((row) => getOrderRowKey(row) === expandedRowKeys[0])
+      : data;
+
   // Metrics are now fetched from the server via loadMetrics()
 
 
@@ -1290,6 +1419,17 @@ console.log("IS ARRAY?", Array.isArray(orders));
   setCurrentCurrency(currency); // <-- new
   setOpen(true);
 };
+
+  const handlePopupVendorCostSelect = useCallback((orderProductId, selectedCost, selectedSupplier) => {
+    if (!orderProductId) return;
+    const normalizedCost = parseMoney(selectedCost);
+    updateItemUnitCostInState(orderProductId, normalizedCost, selectedSupplier, true);
+    setUnitCostEdits((prev) => {
+      const copy = { ...prev };
+      delete copy[orderProductId];
+      return copy;
+    });
+  }, []);
 
 
   const onClose = (record) => {
@@ -1318,6 +1458,8 @@ console.log("IS ARRAY?", Array.isArray(orders));
   };
 
   const expandedRowRender = (record) => {
+    const items = Array.isArray(record?.items) ? record.items : [];
+
     //render sub table here
     const nestedColumns = [
       // {
@@ -1518,6 +1660,53 @@ console.log("IS ARRAY?", Array.isArray(orders));
       },
 
             {
+        title: "BIS",
+        dataIndex: "shippingFreight",
+        key: "shippingFreight",
+        align: "center",
+        width: 100,
+        render: (text, record) => {
+          const shipping = record.product?.shippingFreight;
+          const numericValue = parseFloat(shipping);
+      
+          return (
+            <span>
+              {!isNaN(numericValue) ? `$${numericValue.toFixed(2)}` : "—"}
+            </span>
+          );
+        },
+      },
+
+
+    {
+      title: "Weight (lbs)",
+      dataIndex: ["product", "weight"],   // ✅ read from product
+      key: "weight",
+      align: "center",
+      width: 100,
+
+      sorter: (a, b) =>
+        (a.product?.weight ?? -Infinity) - (b.product?.weight ?? -Infinity),
+      render: (value) => {
+        if (typeof value !== "number") return "—";
+
+        const overLimit = value >= 50;
+
+        return (
+          <span style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {value.toFixed(2)}
+            {overLimit && (
+              <ExclamationCircleOutlined
+                style={{ marginLeft: 6, color: "red", fontSize: 18 }}
+                title="Heavy item (over 50 lbs)"
+              />
+            )}
+          </span>
+        );
+      },
+    },
+
+            {
         title: "Compare Vendor Costs",
         dataIndex: "operation",
         key: "operation",
@@ -1572,6 +1761,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
                           record.order_currency_code // <-- pass currency here
 
                         );
+                        setCurrentOrderIncrementId(record.increment_id);
                       }}
                     />
                   </Tooltip>
@@ -1612,51 +1802,86 @@ console.log("IS ARRAY?", Array.isArray(orders));
           }
         },
       },
- 
-
       {
-        title: "BIS",
-        dataIndex: "shippingFreight",
-        key: "shippingFreight",
+        title: "Unit Cost",
+        key: "unit_cost",
         align: "center",
-        render: (text, record) => {
-          const shipping = record.product?.shippingFreight;
-          const numericValue = parseFloat(shipping);
-      
+        width: 220,
+        render: (_, item) => {
+          const currentStoredCost = parseFloat(item?.selected_supplier_cost);
+          const costValue = hasOwn(unitCostEdits, item.id)
+            ? unitCostEdits[item.id]
+            : Number.isFinite(currentStoredCost)
+              ? currentStoredCost
+              : null;
+          const selectedSupplierName = item?.selected_supplier;
+          const hasDraft = hasOwn(unitCostEdits, item.id);
+          const loadingRow = !!savingUnitCost[item.id];
+
           return (
-            <span>
-              {!isNaN(numericValue) ? `$${numericValue.toFixed(2)}` : "—"}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              <Space size={6}>
+                <InputNumber
+                  min={0}
+                  precision={2}
+                  step={1}
+                  placeholder="0.00"
+                  value={costValue}
+                  onChange={(value) =>
+                    setUnitCostEdits((prev) => ({
+                      ...prev,
+                      [item.id]: value,
+                    }))
+                  }
+                  style={{ width: 92 }}
+                />
+                <Button
+                  size="small"
+                  type="primary"
+                  icon={<SaveOutlined />}
+                  disabled={!hasDraft}
+                  loading={loadingRow}
+                  onClick={() => handleSaveUnitCost(item)}
+                />
+                <Button
+                  size="small"
+                  danger
+                  loading={loadingRow}
+                  onClick={() => handleRemoveUnitCost(item)}
+                  style={{ minWidth: 28, padding: "0 6px" }}
+                >
+                  X
+                </Button>
+              </Space>
+              {selectedSupplierName ? (
+                <Tag color="blue" style={{ margin: 0, fontSize: 11 }}>
+                  {selectedSupplierName}
+                </Tag>
+              ) : null}
+            </div>
+          );
+        },
+      },
+      {
+        title: "Total Cost",
+        key: "line_cost",
+        align: "center",
+        width: 110,
+        render: (_, item) => {
+          const unitCost = getUnitCost(item);
+          const qty = parseMoney(item?.qty_ordered);
+          const lineCost = unitCost * qty;
+
+          return (
+            <span style={{ color: unitCost > 0 ? "#262626" : "#cf1322", fontWeight: 600 }}>
+              {unitCost > 0 ? `$${lineCost.toFixed(2)}` : "Not Set"}
             </span>
           );
         },
       },
+ 
 
 
-    {
-      title: "Weight (lbs)",
-      dataIndex: ["product", "weight"],   // ✅ read from product
-      key: "weight",
-      align: "center",
-      sorter: (a, b) =>
-        (a.product?.weight ?? -Infinity) - (b.product?.weight ?? -Infinity),
-      render: (value) => {
-        if (typeof value !== "number") return "—";
-
-        const overLimit = value >= 50;
-
-        return (
-          <span style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-            {value.toFixed(2)}
-            {overLimit && (
-              <ExclamationCircleOutlined
-                style={{ marginLeft: 6, color: "red", fontSize: 18 }}
-                title="Heavy item (over 50 lbs)"
-              />
-            )}
-          </span>
-        );
-      },
-    },
 
 
 // {
@@ -2010,35 +2235,220 @@ console.log("IS ARRAY?", Array.isArray(orders));
       // },
 
     ];
-    const total_cost = record.items?.reduce(
-      (acc, record) => acc + record.qty_ordered * record.selected_supplier_cost,
-      0
-    );
-    const total_price = record.items?.reduce(
+    const total_cost = items.reduce((acc, item) => {
+      const qty = parseMoney(item?.qty_ordered);
+      return acc + qty * getUnitCost(item);
+    }, 0);
+    const total_price = items.reduce(
       (acc, record) => acc + record.price * record.qty_ordered,
       0
     );
+    const subtotalRevenue = parseMoney(getOrderSubtotalValue(record));
+    const shippingRevenue = parseMoney(record?.shipping_amount);
+    const inferredTaxFromItems = Number(
+      items
+        .reduce((acc, item) => {
+          const qty = parseMoney(item?.qty_ordered);
+          const priceExTax = parseFloat(item?.price ?? item?.base_price);
+          const priceIncTax = parseFloat(
+            item?.price_incl_tax ?? item?.base_price_incl_tax
+          );
+
+          if (!Number.isFinite(priceExTax) || !Number.isFinite(priceIncTax)) {
+            return acc;
+          }
+
+          const unitTax = priceIncTax - priceExTax;
+          return acc + (unitTax > 0 ? unitTax * qty : 0);
+        }, 0)
+        .toFixed(2)
+    );
+
+    const storedTaxAmount = parseFloat(record?.tax_amount);
+    const hasStoredTax = Number.isFinite(storedTaxAmount);
+
+    const bisSourceValue =
+      record?.order_bis ??
+      record?.freight_shipping ??
+      record?.bulk_item_surcharge ??
+      record?.bulk_surcharge ??
+      record?.surcharge_amount ??
+      record?.handling_amount;
+    const storedBisAmount = parseFloat(bisSourceValue);
+    const hasStoredBis = Number.isFinite(storedBisAmount);
+    const grandTotal = parseFloat(record?.grand_total);
+    const inferredItemTaxRate =
+      subtotalRevenue > 0 ? inferredTaxFromItems / subtotalRevenue : 0;
+    const hasInferredItemTaxRate =
+      inferredItemTaxRate > 0 && inferredItemTaxRate < 1;
+
+    let derivedBis = hasStoredBis ? storedBisAmount : 0;
+    let derivedTax = hasStoredTax ? storedTaxAmount : inferredTaxFromItems;
+
+    if (!hasStoredBis && Number.isFinite(grandTotal)) {
+      if (hasStoredTax) {
+        derivedBis =
+          grandTotal - subtotalRevenue - shippingRevenue - storedTaxAmount;
+      } else if (hasInferredItemTaxRate) {
+        const preTaxRevenue =
+          (grandTotal - shippingRevenue) / (1 + inferredItemTaxRate);
+        derivedBis = preTaxRevenue - subtotalRevenue;
+        derivedTax =
+          grandTotal - subtotalRevenue - shippingRevenue - derivedBis;
+      } else {
+        derivedBis =
+          grandTotal - subtotalRevenue - shippingRevenue - derivedTax;
+      }
+    }
+
+    if (!hasStoredTax && Number.isFinite(grandTotal) && hasStoredBis) {
+      derivedTax =
+        grandTotal - subtotalRevenue - shippingRevenue - storedBisAmount;
+    }
+
+    const taxExcluded = Math.max(0, Number(derivedTax.toFixed(2)));
+    const bulkItemSurcharge = Math.max(0, Number(derivedBis.toFixed(2)));
+
+    const orderRevenue = subtotalRevenue + shippingRevenue + bulkItemSurcharge;
+    const getShippingCostParts = (orderId) => {
+      const stored = orderShippingCosts[orderId];
+      if (Array.isArray(stored)) {
+        return [0, 0, 0, 0].map((_, idx) => parseMoney(stored[idx]));
+      }
+      return [parseMoney(stored), 0, 0, 0];
+    };
+    const shippingCostParts = getShippingCostParts(record.entity_id);
+    const shippingCost = shippingCostParts.reduce((acc, value) => acc + parseMoney(value), 0);
+    const updateShippingCostPart = (orderId, index, value) => {
+      setOrderShippingCosts((prev) => {
+        const existing = prev[orderId];
+        const nextParts = Array.isArray(existing)
+          ? [...existing]
+          : [parseMoney(existing), 0, 0, 0];
+
+        while (nextParts.length < 4) nextParts.push(0);
+        nextParts[index] = parseMoney(value);
+
+        return {
+          ...prev,
+          [orderId]: nextParts,
+        };
+      });
+    };
+    const totalLandedCost = total_cost + shippingCost;
+    const marginAmount = orderRevenue - totalLandedCost;
+    const marginPercent = totalLandedCost > 0 ? (marginAmount / totalLandedCost) * 100 : 0;
+    const missingItemCosts = items.filter((item) => getUnitCost(item) <= 0).length;
+
     return (
       <Table
         columns={nestedColumns}
-        dataSource={record.items}
+        dataSource={items}
         pagination={false}
         size="large"
         footer={() => (
-          <span
+          <div
             style={{
-              fontWeight: "bold",
-              display: "inline-block",
-              textAlign: "right",
               width: "100%",
-              fontSize: "1.2rem",
+              overflowX: "auto",
+              display: "flex",
+              justifyContent: "flex-end",
             }}
           >
-            {/* Total Sales : ${total_price?.toFixed(2)} <br />
-            Total Cost : ${total_cost?.toFixed(2)} <br />
-            Total Margin :{" "}
-            {(((total_price - total_cost) / total_price) * 100).toFixed(2)}% */}
-          </span>
+            <table
+              style={{
+                width: "100%",
+                maxWidth: 720,
+                borderCollapse: "collapse",
+                fontSize: 13,
+                background: "#fff",
+              }}
+            >
+              <tbody>
+                <tr>
+                  <td style={{ width: 220, fontWeight: 600, padding: "8px 10px", border: "1px solid #f0f0f0", background: "#fafafa" }}>
+                    Revenue
+                  </td>
+                  <td style={{ fontWeight: 700, padding: "8px 10px", border: "1px solid #f0f0f0" }}>
+                    ${orderRevenue.toFixed(2)}
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ width: 220, fontWeight: 600, padding: "8px 10px", border: "1px solid #f0f0f0", background: "#fafafa" }}>
+                    Revenue Breakdown
+                  </td>
+                  <td style={{ padding: "8px 10px", border: "1px solid #f0f0f0" }}>
+                    Sub: ${subtotalRevenue.toFixed(2)} + Ship: ${shippingRevenue.toFixed(2)} + BIS: ${bulkItemSurcharge.toFixed(2)}
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ width: 220, fontWeight: 600, padding: "8px 10px", border: "1px solid #f0f0f0", background: "#fafafa" }}>
+                    Tax Excluded
+                  </td>
+                  <td style={{ padding: "8px 10px", border: "1px solid #f0f0f0", color: "#8c8c8c", fontWeight: 600 }}>
+                    ${taxExcluded.toFixed(2)}
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ width: 220, fontWeight: 600, padding: "8px 10px", border: "1px solid #f0f0f0", background: "#fafafa" }}>
+                    Product Cost
+                  </td>
+                  <td style={{ fontWeight: 700, padding: "8px 10px", border: "1px solid #f0f0f0" }}>
+                    ${total_cost.toFixed(2)}
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ width: 220, fontWeight: 600, padding: "8px 10px", border: "1px solid #f0f0f0", background: "#fafafa" }}>
+                    Shipping We Pay
+                  </td>
+                  <td style={{ padding: "8px 10px", border: "1px solid #f0f0f0" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {[0, 1, 2, 3].map((idx) => (
+                        <InputNumber
+                          key={idx}
+                          min={0}
+                          precision={2}
+                          step={1}
+                          value={shippingCostParts[idx]}
+                          onChange={(value) => updateShippingCostPart(record.entity_id, idx, value)}
+                          placeholder="0.00"
+                          style={{ width: 95 }}
+                        />
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 6, fontWeight: 600, color: "#595959" }}>
+                      Total Shipping We Pay: ${shippingCost.toFixed(2)}
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ width: 220, fontWeight: 600, padding: "8px 10px", border: "1px solid #f0f0f0", background: "#fafafa" }}>
+                    Final Margin
+                  </td>
+                  <td
+                    style={{
+                      padding: "8px 10px",
+                      border: "1px solid #f0f0f0",
+                      fontWeight: 700,
+                      color: marginAmount >= 0 ? "#389e0d" : "#cf1322",
+                    }}
+                  >
+                    ${marginAmount.toFixed(2)} ({marginPercent.toFixed(2)}%)
+                  </td>
+                </tr>
+                {missingItemCosts > 0 && (
+                  <tr>
+                    <td style={{ width: 220, fontWeight: 600, padding: "8px 10px", border: "1px solid #f0f0f0", background: "#fafafa" }}>
+                      Cost Alert
+                    </td>
+                    <td style={{ padding: "8px 10px", border: "1px solid #f0f0f0" }}>
+                      <Tag color="red">{missingItemCosts} item(s) missing product cost</Tag>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
       />
     );
@@ -2279,11 +2689,26 @@ console.log("IS ARRAY?", Array.isArray(orders));
           <Form form={form}>
             <Table
               columns={columns}
-              expandable={{ expandedRowRender }} //, onExpand: handleExpand remove expandable
-              dataSource={data}
+              expandable={{
+                expandedRowRender,
+                expandedRowKeys,
+                onExpand: (expanded, record) => {
+                  const rowKey = getOrderRowKey(record);
+                  setExpandedRowKeys(expanded ? [rowKey] : []);
+                  if (expanded) {
+                    requestAnimationFrame(() => {
+                      window.scrollTo({
+                        top: 0,
+                        behavior: "smooth",
+                      });
+                    });
+                  }
+                },
+              }} //, onExpand: handleExpand remove expandable
+              dataSource={visibleData}
               bordered
               scroll={{ x: 1100 }}
-              rowKey={(record) => record.id}
+              rowKey={getOrderRowKey}
               onChange={handleTableChange}
               size="small"
               loading={loading}
@@ -2341,7 +2766,9 @@ console.log("IS ARRAY?", Array.isArray(orders));
           sku={currentSku}
           orderProductId={currentOrderProductID}
           orderProductPrice={currentOrderProductPrice}
+          orderIncrementId={currentOrderIncrementId}
           currency={currentCurrency} // ✅ Add this line
+          onVendorCostSelect={handlePopupVendorCostSelect}
 
         />
       )}

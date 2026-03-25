@@ -17,20 +17,50 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 	// const BACKEND_URL = "https://jj-api-backend.herokuapp.com";
   const BACKEND_URL = "http://localhost:8080";
 
+	const getSelectedCostByOrder = vendorProduct => {
+		const incrementId = String(props.orderIncrementId || '');
+		const rawCadCost = parseFloat(vendorProduct?.vendor_cost);
+		if (!Number.isFinite(rawCadCost)) return null;
+
+		if (incrementId.startsWith('3000')) {
+			return Number((rawCadCost / 1.5).toFixed(2));
+		}
+
+		if (incrementId.startsWith('2000')) {
+			return Number(rawCadCost.toFixed(2));
+		}
+
+		if (props.currency === 'USD') {
+			return Number((rawCadCost / 1.5).toFixed(2));
+		}
+
+		return Number(rawCadCost.toFixed(2));
+	};
+
 	// Function to update an order product
 	const handleVendorCostClick = vendorProduct => {
 		console.log('vendorProduct', vendorProduct);
-		setSelectedVendorCost(vendorProduct.vendor_cost);
+		const selectedCost = getSelectedCostByOrder(vendorProduct);
+		if (!Number.isFinite(selectedCost)) return;
+
+		setSelectedVendorCost(selectedCost);
 		axios
 			.post(
 				`${API_URL}/order_products/${props.orderProductId}/edit/selected_supplier`,
 				{
-					selected_supplier_cost: vendorProduct.vendor_cost.toString(),
+					selected_supplier_cost: selectedCost.toFixed(2),
 					selected_supplier: vendorProduct.vendor.name,
 				}
 			)
 			.then(res => {
 				console.log(res.data);
+				if (typeof props.onVendorCostSelect === 'function') {
+					props.onVendorCostSelect(
+						props.orderProductId,
+						selectedCost,
+						vendorProduct?.vendor?.name || null
+					);
+				}
 			})
 			.catch(error => {
 				console.error(error);
@@ -60,7 +90,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			title: 'Img',
 			dataIndex: 'image',
 			key: 'image',
-			width: 55,
+			width: 40,
 			align: 'center',
 			render: image => <img src={image} alt='Product' width='50' />,
 		},
@@ -68,7 +98,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			title: 'Name',
 			dataIndex: 'name',
 			key: 'name',
-			width: 280,
+			width: 50,
 			render: name => (
 				<span style={{
 					fontSize: '14px',
@@ -346,7 +376,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
   title: 'Vendor / Cost',
   dataIndex: null,
   key: 'vendor_cost_combined',
-  width: 260,
+  width: "18%",
   align: 'center',
   render: (_, record) => {
     // Find the best vendor (highest margin with inventory available)
@@ -445,6 +475,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
       return (
         <div
           key={vendorProduct.id}
+					onClick={() => handleVendorCostClick(vendorProduct)}
           style={{
             marginBottom: '6px',
             display: 'flex',
@@ -455,6 +486,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
             backgroundColor: isBestVendor ? '#f6ffed' : 'transparent',
             borderRadius: '4px',
             border: isBestVendor ? '1px solid #b7eb8f' : '1px solid #f0f0f0',
+					cursor: 'pointer',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -629,7 +661,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 				dataIndex: "vendorProducts",
 				key: "vendor_inventory",
 				align: "center",
-				width: 80,
+				width:100,
 				render: (vendorProducts) => {
 					if (!Array.isArray(vendorProducts)) return <span>-</span>;
 

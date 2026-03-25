@@ -4,7 +4,7 @@ import { ClearOutlined, CoffeeOutlined } from '@ant-design/icons';
 import ProductTable from '../items/ProductTable';
 import axios from 'axios';
 
-const Popup = ({ placement, onClose, sku, orderProductId, orderProductPrice, currency}) => {
+const Popup = ({ placement, onClose, sku, orderProductId, orderProductPrice, currency, orderIncrementId, onVendorCostSelect }) => {
 	const [searchTermSku, setSearchTermSku] = useState(sku);
 	const [dataProduct, setDataProduct] = useState([]);
 	const [dataOrderProductID, setDataOrderProductID] = useState(orderProductId);
@@ -87,7 +87,9 @@ const Popup = ({ placement, onClose, sku, orderProductId, orderProductPrice, cur
 					searchTermSku={searchTermSku}
 					data={dataProduct}
 					orderProductId={dataOrderProductID} orderProductPrice={dataOrderProductPrice}
+					orderIncrementId={orderIncrementId}
 					currency={currency} // ✅ Pass it here
+					onVendorCostSelect={onVendorCostSelect}
 
 				/>
 			</div>
