@@ -58,6 +58,8 @@ const OrderTable = () => {
   const [currentOrderProductPrice, setCurrentOrderProductPrice] =
     useState(null);
   const [currentOrderIncrementId, setCurrentOrderIncrementId] = useState(null);
+  // Simulated extra charge for margin simulation
+  const [simulatedExtraCharge, setSimulatedExtraCharge] = useState(0);
   const { Option } = Select;
   const [selectedOrder, setSelectedOrder] = useState(null);
 
@@ -2342,6 +2344,10 @@ console.log("IS ARRAY?", Array.isArray(orders));
     const totalLandedCost = total_cost + shippingCost;
     const marginAmount = orderRevenue - totalLandedCost;
     const marginPercent = totalLandedCost > 0 ? (marginAmount / totalLandedCost) * 100 : 0;
+    // Simulated margin calculation
+    const simulatedRevenue = orderRevenue + Number(simulatedExtraCharge || 0);
+    const simulatedMarginAmount = simulatedRevenue - totalLandedCost;
+    const simulatedMarginPercent = totalLandedCost > 0 ? (simulatedMarginAmount / totalLandedCost) * 100 : 0;
     const missingItemCosts = items.filter((item) => getUnitCost(item) <= 0).length;
 
     return (
@@ -2438,6 +2444,44 @@ console.log("IS ARRAY?", Array.isArray(orders));
                     }}
                   >
                     ${marginAmount.toFixed(2)} ({marginPercent.toFixed(2)}%)
+                  </td>
+                </tr>
+                {/* Simulated Margin Row */}
+                <tr>
+                  <td style={{ width: 220, fontWeight: 600, padding: "8px 10px", border: "1px solid #f0f0f0", background: "#e6f7ff" }}>
+                    Simulate Extra Charge
+                  </td>
+                  <td style={{ padding: "8px 10px", border: "1px solid #f0f0f0", background: "#e6f7ff" }}>
+                    <InputNumber
+                      min={0}
+                      precision={2}
+                      step={1}
+                      value={simulatedExtraCharge}
+                      onChange={setSimulatedExtraCharge}
+                      placeholder="0.00"
+                      style={{ width: 120, marginRight: 8 }}
+                    />
+                    <span style={{ color: '#888' }}>
+                      (adds to revenue for margin simulation)
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ width: 220, fontWeight: 600, padding: "8px 10px", border: "1px solid #f0f0f0", background: "#e6f7ff" }}>
+                    Simulated Margin
+                  </td>
+                  <td
+                    style={{
+                      padding: "8px 10px",
+                      border: "1px solid #f0f0f0",
+                      fontWeight: 700,
+                      color: simulatedMarginAmount >= 0 ? "#389e0d" : "#cf1322",
+                    }}
+                  >
+                    ${simulatedMarginAmount.toFixed(2)} ({simulatedMarginPercent.toFixed(2)}%)
+                    <span style={{ marginLeft: 12, color: '#888', fontWeight: 400 }}>
+                      Δ ${ (simulatedMarginAmount - marginAmount).toFixed(2) } ({ (simulatedMarginPercent - marginPercent).toFixed(2) }%)
+                    </span>
                   </td>
                 </tr>
                 {missingItemCosts > 0 && (
