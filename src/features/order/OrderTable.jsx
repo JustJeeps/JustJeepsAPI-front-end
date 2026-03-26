@@ -1390,8 +1390,12 @@ console.log("IS ARRAY?", Array.isArray(orders));
       }))
     : [];
 
+  // Expand mode toggle: 'single' (only one expanded at a time) or 'multi' (multiple allowed)
+  const [expandMode, setExpandMode] = useState('single'); // 'single' or 'multi'
+
+  // Only filter visibleData in 'single' mode
   const visibleData =
-    expandedRowKeys.length === 1
+    expandMode === 'single' && expandedRowKeys.length === 1
       ? data.filter((row) => getOrderRowKey(row) === expandedRowKeys[0])
       : data;
 
@@ -2454,14 +2458,13 @@ console.log("IS ARRAY?", Array.isArray(orders));
     );
   };
 
+
   return (
     <>
-
       <div className="container-fluid" style={{ maxWidth: '100%' }}>
         <div className="container-xl" style={{ maxWidth: '100%', padding: '0 15px' }}>
           <div className="container mb-3" 
-            style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '10px', marginTop: '5px' }}>  
-
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '10px', marginTop: '5px' }}>
             <Button 
               type="primary" 
               onClick={handleSeedOrders}
@@ -2479,6 +2482,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
             >
               Update Orders
             </Button>
+
 
             <div style={{ flex: 1 }}>
               <TableTop
@@ -2668,6 +2672,22 @@ console.log("IS ARRAY?", Array.isArray(orders));
               <Col xs={24} sm={12} md={6} lg={8} style={{ textAlign: 'right' }}>
                 <Space>
                   <FilterOutlined style={{ color: '#1890ff' }} />
+
+
+            {/* Expand Mode Toggle */}
+            <div style={{ marginLeft: 16, marginRight: 16 }}>
+              <span style={{ fontWeight: 500, marginRight: 8 }}>Expand Mode:</span>
+              <Segmented
+                options={[
+                  { label: 'Expand One', value: 'single' },
+                  { label: 'Expand Multi', value: 'multi' },
+                ]}
+                value={expandMode}
+                onChange={setExpandMode}
+                style={{ minWidth: 180 }}
+              />
+            </div>
+
                   <span style={{ color: '#666' }}>
                     Showing {orders.length} of {pagination.total} orders
                     {filters.filterMode === 'items' && <Tag color="cyan" style={{ marginLeft: 8 }}>ITEMS MODE</Tag>}
@@ -2694,17 +2714,28 @@ console.log("IS ARRAY?", Array.isArray(orders));
                 expandedRowKeys,
                 onExpand: (expanded, record) => {
                   const rowKey = getOrderRowKey(record);
-                  setExpandedRowKeys(expanded ? [rowKey] : []);
-                  if (expanded) {
-                    requestAnimationFrame(() => {
-                      window.scrollTo({
-                        top: 0,
-                        behavior: "smooth",
+                  if (expandMode === 'single') {
+                    setExpandedRowKeys(expanded ? [rowKey] : []);
+                    if (expanded) {
+                      requestAnimationFrame(() => {
+                        window.scrollTo({
+                          top: 0,
+                          behavior: "smooth",
+                        });
                       });
+                    }
+                  } else {
+                    // Multi-expand: add/remove rowKey from expandedRowKeys
+                    setExpandedRowKeys(prev => {
+                      if (expanded) {
+                        return [...prev, rowKey];
+                      } else {
+                        return prev.filter(key => key !== rowKey);
+                      }
                     });
                   }
                 },
-              }} //, onExpand: handleExpand remove expandable
+              }}
               dataSource={visibleData}
               bordered
               scroll={{ x: 1100 }}
