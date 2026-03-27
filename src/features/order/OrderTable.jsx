@@ -1007,28 +1007,28 @@ Thank you,`
         );
       },
     },
-    {
-      title: "Order Note",
-      dataIndex: "custom_order_note",
-      key: "custom_order_note",
-      align: "center",
-      width: 160,
-      ...getColumnSearchProps("custom_order_note"),
-      render: (text) => (
-        <span style={{ fontSize: '14px', color: text ? '#1a1a1a' : '#888' }}>{text || '—'}</span>
-      ),
-    },
-    {
-      title: "Ship Status",
-      dataIndex: "custom_ship_status",
-      key: "custom_ship_status",
-      align: "center",
-      width: 120,
-      ...getColumnSearchProps("custom_ship_status"),
-      render: (text) => (
-        <span style={{ fontSize: '14px', color: text ? '#1a1a1a' : '#888' }}>{text || '—'}</span>
-      ),
-    },
+    // {
+    //   title: "Order Note",
+    //   dataIndex: "custom_order_note",
+    //   key: "custom_order_note",
+    //   align: "center",
+    //   width: 160,
+    //   ...getColumnSearchProps("custom_order_note"),
+    //   render: (text) => (
+    //     <span style={{ fontSize: '14px', color: text ? '#1a1a1a' : '#888' }}>{text || '—'}</span>
+    //   ),
+    // // },
+    // {
+    //   title: "Ship Status",
+    //   dataIndex: "custom_ship_status",
+    //   key: "custom_ship_status",
+    //   align: "center",
+    //   width: 120,
+    //   ...getColumnSearchProps("custom_ship_status"),
+    //   render: (text) => (
+    //     <span style={{ fontSize: '14px', color: text ? '#1a1a1a' : '#888' }}>{text || '—'}</span>
+    //   ),cd
+    // },
         {
       title: "Fraud",
       dataIndex: "weltpixel_fraud_score",
