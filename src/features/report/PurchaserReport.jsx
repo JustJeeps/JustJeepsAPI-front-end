@@ -43,21 +43,54 @@ export default function PurchaserReport() {
       // Query backend for orders matching initials only (server-side filtering)
       const params = {
         search: initials.join(' '),
-        limit: 1000 // or higher if needed
+        searchMode: 'any',
+        limit: 200,
       };
-      const response = await axios.get('/api/orders', { params });
-      const orders = response.data.data || response.data;
+      let page = 1;
+      let allOrders = [];
+      let hasMore = true;
+      let safeguard = 0;
+      while (hasMore && safeguard < 50) {
+        const response = await axios.get('/api/orders', { params: { ...params, page } });
+        const batch = response.data.data || response.data || [];
+        allOrders = allOrders.concat(batch);
+        hasMore = batch.length === params.limit;
+        page += 1;
+        safeguard += 1;
+      }
+      const orders = allOrders;
       // Client-side classify into closed/followedUp/waiting using same logic as before
       const dateStr = date;
+      const normalizePo = (value) =>
+        (value || '')
+          .toString()
+          .toLowerCase()
+          .replace(/[-_/]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      const escapeRegex = (value) => value.replace(/([.*+?^=!:${}()|[\]\\])/g, '\\$1');
+      const tokensFromInput = (value) =>
+        value
+          .toString()
+          .toLowerCase()
+          .split(/\s+/)
+          .map((token) => token.trim())
+          .filter(Boolean);
       const closed = [], followedUp = [], waiting = [];
       for (const o of orders) {
         const po = o.custom_po_number;
         if (!po) continue;
-        const poNorm = po.toLowerCase().replace(/[-_/]/g, ' ').replace(/\s+/g, ' ').trim();
+        const poNorm = normalizePo(po);
         const notSet = /\bnot set\b/i.test(poNorm);
-        const hasInitials = initials.some(init => new RegExp(`\\b${init}\\b`, 'i').test(po));
-        const dateNorm = dateStr.toLowerCase().replace(/\s+/g, ' ').trim();
-        const hasDate = new RegExp(`\\b${dateNorm.replace(/([.*+?^=!:${}()|[\\]\\])/g, "\\$1")}\\b`, 'i').test(poNorm);
+        const hasInitials = initials.some((init) =>
+          new RegExp(`\\b${escapeRegex(init)}\\b`, 'i').test(poNorm)
+        );
+        const dateTokens = tokensFromInput(dateStr);
+        const hasDate =
+          dateTokens.length > 0 &&
+          dateTokens.every((token) =>
+            new RegExp(`\\b${escapeRegex(token)}\\b`, 'i').test(poNorm)
+          );
         if (!notSet && hasInitials && hasDate) closed.push(o);
         else if (notSet && hasInitials && hasDate) followedUp.push(o);
         else if (notSet && hasInitials && !hasDate) waiting.push(o);
