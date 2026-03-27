@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import OrderTable from './features/order/OrderTable.jsx';
 import { Route, Routes } from 'react-router-dom';
+import PurchaserReport from './features/report/PurchaserReport.jsx';
 import { SupplierTable } from './features/supplier/SupplierTable.jsx';
 import { DashBoard } from './features/dashboard/DashBoard.jsx';
 import { DashBoardPO } from './features/dashboard/DashBoardPO.jsx';
@@ -14,6 +15,15 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
 
 function App() {
+	// Orders state for PurchaserReport
+	const [orders, setOrders] = useState([]);
+	// Fetch orders once for the report page
+	useEffect(() => {
+		axios.get('/api/orders').then(res => {
+			setOrders(res.data.data || res.data);
+		});
+	}, []);
+
 	return (
 		<AuthProvider>
 			<Navbar />
@@ -57,6 +67,11 @@ function App() {
 				<Route path='/items' element={
 					<ProtectedRoute>
 						<Items />
+					</ProtectedRoute>
+				} />
+				<Route path='/purchaser-report' element={
+					<ProtectedRoute>
+						<PurchaserReport orders={orders} />
 					</ProtectedRoute>
 				} />
 			</Routes>

@@ -42,6 +42,15 @@ import {
 
 
 const OrderTable = () => {
+    // Map of sales rep IDs to labels (names)
+    const salesRepMap = {
+      '1': 'Alice Smith',
+      '2': 'Bob Johnson',
+      '3': 'Charlie Lee',
+      '4': 'Diana Patel',
+      '5': 'Evan Kim',
+      // Add more mappings as needed
+    };
   const [orders, setOrders] = useState([]);
   const [originalOrders, setOriginalOrders] = useState([]);
   const [sortedInfo, setSortedInfo] = useState({});
@@ -84,6 +93,7 @@ const OrderTable = () => {
     region: '',
     vendor: '', // vendor filter (only for items mode)
     dateFilter: '', // 'today', 'yesterday', 'last7days', or ''
+    exclude: '', // Exclude keywords for global search
   });
 
   // Vendors list for dropdown
@@ -406,21 +416,27 @@ Thank you,`
         limit: pageSize,
         ...(currentFilters.filterMode && { filterMode: currentFilters.filterMode }),
         ...(currentFilters.status && { status: currentFilters.status }),
-        ...(currentFilters.search && { search: currentFilters.search }),
         ...(currentFilters.poStatus && { poStatus: currentFilters.poStatus }),
         ...(currentFilters.region && { region: currentFilters.region }),
         ...(currentFilters.vendor && { vendor: currentFilters.vendor }),
         ...(currentFilters.dateFilter && { dateFilter: currentFilters.dateFilter }),
+        ...(currentFilters.search && { search: currentFilters.search }),
+        ...(currentFilters.exclude && { exclude: currentFilters.exclude }),
       };
 
       const response = await axios.get(`${API_URL}/api/orders`, { params });
 
-      // Handle both old format (array) and new format (paginated object)
-      const ordersData = response.data.data || response.data;
+      // All filtering is now server-side
+      let ordersData = response.data.data || response.data;
       const paginationData = response.data.pagination;
 
       setOriginalOrders(ordersData);
       setOrders(ordersData);
+      if (ordersData && ordersData.length) {
+        console.log('First order from API:', ordersData[0]);
+      } else {
+        console.log('No orders returned from API');
+      }
 
       if (paginationData) {
         setPagination({
@@ -857,8 +873,20 @@ Thank you,`
         }}
       />
     ),
-    onFilter: (value, record) =>
-      record[dataIndex]?.toString().toLowerCase().includes(value.toLowerCase()),
+    onFilter: (value, record) => {
+      if (!value) return true;
+      const keywords = value.toLowerCase().split(/\s+/).filter(Boolean);
+      // Special handling for PO# column: search in custom_po_number only
+      if (dataIndex === 'custom_po_number') {
+        // Normalize PO# value: remove extra spaces, lowercase
+        const field = (record.custom_po_number || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        // Match if all keywords are present anywhere, in any order
+        return keywords.every((kw) => field.includes(kw));
+      }
+      // Default: search in the specified column
+      const field = record[dataIndex]?.toString().toLowerCase() || "";
+      return keywords.every((kw) => field.includes(kw));
+    },
     onFilterDropdownOpenChange: (visible) => {
       if (visible) {
         setTimeout(() => searchInput.current?.select(), 100);
@@ -979,6 +1007,28 @@ Thank you,`
         );
       },
     },
+    {
+      title: "Order Note",
+      dataIndex: "custom_order_note",
+      key: "custom_order_note",
+      align: "center",
+      width: 160,
+      ...getColumnSearchProps("custom_order_note"),
+      render: (text) => (
+        <span style={{ fontSize: '14px', color: text ? '#1a1a1a' : '#888' }}>{text || '—'}</span>
+      ),
+    },
+    {
+      title: "Ship Status",
+      dataIndex: "custom_ship_status",
+      key: "custom_ship_status",
+      align: "center",
+      width: 120,
+      ...getColumnSearchProps("custom_ship_status"),
+      render: (text) => (
+        <span style={{ fontSize: '14px', color: text ? '#1a1a1a' : '#888' }}>{text || '—'}</span>
+      ),
+    },
         {
       title: "Fraud",
       dataIndex: "weltpixel_fraud_score",
@@ -1027,9 +1077,10 @@ Thank you,`
       sorter: (a, b) => (a.sales_rep || "").localeCompare(b.sales_rep || ""),
       sortOrder: sortedInfo.columnKey === "sales_rep" && sortedInfo.order,
       ...getColumnSearchProps("sales_rep"),
-      render: (text) => (
-        <span style={{ fontSize: '14px', fontWeight: 500 }}>{text || "—"}</span>
-      ),
+      render: (text) => {
+        const label = salesRepMap[text] || text || "—";
+        return <span style={{ fontSize: '14px', fontWeight: 500 }}>{label}</span>;
+      },
     },
     {
       title: "Region",
@@ -2588,6 +2639,16 @@ console.log("IS ARRAY?", Array.isArray(orders));
                   value={filters.search}
                   onChange={(e) => handleFilterChange('search', e.target.value)}
                   onSearch={(value) => handleFilterChange('search', value)}
+                  style={{ width: '100%' }}
+                />
+              </Col>
+              {/* Exclude Keywords Field */}
+              <Col xs={24} sm={12} md={6} lg={4}>
+                <Input
+                  placeholder="Exclude keywords (space-separated)"
+                  allowClear
+                  value={filters.exclude}
+                  onChange={e => handleFilterChange('exclude', e.target.value)}
                   style={{ width: '100%' }}
                 />
               </Col>

@@ -8,6 +8,7 @@ import logo_jeeps from './logo_jeeps.png';
 import { useAuth } from '../../context/AuthContext';
 import LoginModal from '../../components/auth/LoginModal';
 
+const ALLOWED_USERS = ['tess', 'paula', 'karoline'];
 const Navbar = () => {
 	const { authEnabled, isAuthenticated, user, logout } = useAuth();
 	const [showLoginModal, setShowLoginModal] = useState(false);
@@ -55,7 +56,17 @@ const Navbar = () => {
 								Orders
 							</Link>
 						</li>
-
+						{/* Only show Purchaser Report for allowed users */}
+						{user && ALLOWED_USERS.includes((user.username || user.name || '').toLowerCase()) && (
+						  <li className='nav-item'>
+						    <Link
+						      className='nav-link active fs-5 mx-4'
+						      to='/purchaser-report'
+						    >
+						      Purchaser Report
+						    </Link>
+						  </li>
+						)}
 						<li className='nav-item'>
 							<Link
 								className='aria-current nav-link active fs-5 mx-4'
