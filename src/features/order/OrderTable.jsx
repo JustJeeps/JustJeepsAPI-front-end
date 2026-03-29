@@ -42,15 +42,6 @@ import {
 
 
 const OrderTable = () => {
-    // Map of sales rep IDs to labels (names)
-    const salesRepMap = {
-      '1': 'Alice Smith',
-      '2': 'Bob Johnson',
-      '3': 'Charlie Lee',
-      '4': 'Diana Patel',
-      '5': 'Evan Kim',
-      // Add more mappings as needed
-    };
   const [orders, setOrders] = useState([]);
   const [originalOrders, setOriginalOrders] = useState([]);
   const [sortedInfo, setSortedInfo] = useState({});
@@ -1077,10 +1068,9 @@ Thank you,`
       sorter: (a, b) => (a.sales_rep || "").localeCompare(b.sales_rep || ""),
       sortOrder: sortedInfo.columnKey === "sales_rep" && sortedInfo.order,
       ...getColumnSearchProps("sales_rep"),
-      render: (text) => {
-        const label = salesRepMap[text] || text || "—";
-        return <span style={{ fontSize: '14px', fontWeight: 500 }}>{label}</span>;
-      },
+      render: (text) => (
+        <span style={{ fontSize: '14px', fontWeight: 500 }}>{text || "—"}</span>
+      ),
     },
     {
       title: "Region",
