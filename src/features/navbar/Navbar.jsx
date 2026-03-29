@@ -40,7 +40,7 @@ const Navbar = () => {
 	];
 
 	return (
-		<nav className='navbar navbar-expand-lg bg-body-tertiary'>
+		<nav className='navbar navbar-expand-lg'>
 			<div className='container'>
 				<Link className='nav-link active fs-5 mx-4' to='/'>
 					<img src={logo_jeeps} alt='logo'/>
