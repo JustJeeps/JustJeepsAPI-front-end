@@ -102,8 +102,9 @@ export default function PurchaserReport() {
       while (hasMore && safeguard < 50) {
         const response = await axios.get('/api/orders', { params: { ...params, page } });
         const batch = response.data.data || response.data || [];
+        const totalPages = response.data?.pagination?.totalPages;
         allOrders = allOrders.concat(batch);
-        hasMore = batch.length === params.limit;
+        hasMore = Number.isFinite(totalPages) ? page < totalPages : batch.length === params.limit;
         page += 1;
         safeguard += 1;
       }
