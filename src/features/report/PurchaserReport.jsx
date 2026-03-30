@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { saveAs } from 'file-saver';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -27,6 +27,8 @@ function exportToExcel(report, dateStr) {
     // { key: 'shipping_cost', label: 'Shipping Cost' },
   ];
   const headerRow = columns.map((col) => col.label);
+  const headerRowIndexes = [];
+  const sectionTitleRowIndexes = [];
   const formatRow = (row) =>
     columns.map((col) => {
       if (col.key === 'created_at') {
@@ -38,23 +40,49 @@ function exportToExcel(report, dateStr) {
       return row[col.key] ?? '';
     });
   const buildSectionRows = (title, rows) => {
-    const sectionTitle = `${title} (${rows.length})`;
-    return [
-      [sectionTitle, ...Array(headerRow.length - 1).fill('')],
-      headerRow,
-      ...rows.map(formatRow),
-      [],
-    ];
+    const sectionTitle = title;
+    const startIndex = sheetRows.length;
+    sectionTitleRowIndexes.push(startIndex);
+    headerRowIndexes.push(startIndex + 1);
+    sheetRows.push([sectionTitle, ...Array(headerRow.length - 1).fill('')]);
+    sheetRows.push(headerRow);
+    sheetRows.push(...rows.map(formatRow));
+    sheetRows.push([]);
   };
-  const sheetRows = [
-    ...buildSectionRows(`Orders closed on ${dateStr}`, report?.closed || []),
-    ...buildSectionRows(`Orders followed up on ${dateStr}`, report?.followedUp || []),
-    ...buildSectionRows('Orders waiting for a response', report?.waiting || []),
-  ];
+  const sheetRows = [];
+  buildSectionRows(`Orders closed on ${dateStr}`, report?.closed || []);
+  buildSectionRows(`Orders followed up on ${dateStr}`, report?.followedUp || []);
+  buildSectionRows('Orders waiting for a response', report?.waiting || []);
   if (sheetRows.length && sheetRows[sheetRows.length - 1].length === 0) {
     sheetRows.pop();
   }
   const ws = XLSX.utils.aoa_to_sheet(sheetRows);
+  const applyBorders = (sheet, { headerRows, titleRows, color }) => {
+    if (!sheet['!ref']) return;
+    const range = XLSX.utils.decode_range(sheet['!ref']);
+    const headerSet = new Set(headerRows);
+    const titleSet = new Set(titleRows);
+    for (let r = range.s.r; r <= range.e.r; r += 1) {
+      const isEmphasisRow = headerSet.has(r) || titleSet.has(r);
+      const style = isEmphasisRow ? 'medium' : 'thin';
+      const font = isEmphasisRow ? { bold: true } : undefined;
+      for (let c = range.s.c; c <= range.e.c; c += 1) {
+        const cellRef = XLSX.utils.encode_cell({ r, c });
+        const cell = sheet[cellRef];
+        if (!cell) continue;
+        cell.s = cell.s || {};
+        cell.s.border = {
+          top: { style, color: { rgb: color } },
+          bottom: { style, color: { rgb: color } },
+          left: { style, color: { rgb: color } },
+          right: { style, color: { rgb: color } },
+        };
+        if (font) {
+          cell.s.font = { ...(cell.s.font || {}), ...font };
+        }
+      }
+    }
+  };
   const columnWidths = headerRow.map((_, colIndex) => {
     let maxLen = 0;
     sheetRows.forEach((row) => {
@@ -67,8 +95,13 @@ function exportToExcel(report, dateStr) {
   });
   ws['!cols'] = columnWidths;
   ws['!views'] = [{ state: 'frozen', xSplit: 0, ySplit: 2 }];
+  applyBorders(ws, {
+    headerRows: headerRowIndexes,
+    titleRows: sectionTitleRowIndexes,
+    color: '000000',
+  });
   XLSX.utils.book_append_sheet(wb, ws, 'Purchaser Report');
-  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array', cellStyles: true });
   saveAs(new Blob([wbout], { type: 'application/octet-stream' }), `PurchaserReport_${dateStr}.xlsx`);
 }
 
