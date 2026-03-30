@@ -156,6 +156,7 @@ function ReportTable({ rows }) {
     { key: 'created_at', label: 'Order Date' },
     { key: 'increment_id', label: 'Order ID' },
     { key: 'total_qty_ordered', label: 'Items Ordered Qty' },
+    { key: 'base_total_due', label: 'Total Due' },
     { key: 'custom_po_number', label: 'PO#' },
     { key: 'custom_ship_status', label: 'Ship Status' },
     { key: 'custom_order_note', label: 'Order Note' },
@@ -175,7 +176,17 @@ function ReportTable({ rows }) {
             {columns.map(col => (
               <td key={col.key} style={{ padding: '8px 8px', borderBottom: '1px solid #f5f5f5' }}>
                 {col.key === 'created_at' && row[col.key] ? new Date(row[col.key]).toLocaleDateString()
-                  : row[col.key] || ''}
+                  : col.key === 'increment_id' && row.increment_id && row.entity_id ? (
+                    <a
+                      href={`https://www.justjeeps.com/admin_19q7yi/sales/order/view/order_id/${row.entity_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#1890ff', fontWeight: 600, textDecoration: 'none' }}
+                    >
+                      {row.increment_id}
+                    </a>
+                  )
+                    : (row[col.key] ?? '')}
               </td>
             ))}
           </tr>
