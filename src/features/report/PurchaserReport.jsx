@@ -5,6 +5,7 @@ import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 const PURCHASER_INITIALS = ['PM', 'KD', 'JD', 'JK'];
 
 function exportToExcel(report, dateStr) {
@@ -100,7 +101,7 @@ export default function PurchaserReport() {
       let hasMore = true;
       let safeguard = 0;
       while (hasMore && safeguard < 50) {
-        const response = await axios.get('/api/orders', { params: { ...params, page } });
+        const response = await axios.get(`${API_BASE_URL}/api/orders`, { params: { ...params, page } });
         const batch = response.data.data || response.data || [];
         const totalPages = response.data?.pagination?.totalPages;
         allOrders = allOrders.concat(batch);
