@@ -14,12 +14,14 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 // AuthTestPage removido por segurança - não expor página de teste em produção
 import LoginPage from "./pages/LoginPage";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
 function App() {
 	// Orders state for PurchaserReport
 	const [orders, setOrders] = useState([]);
 	// Fetch orders once for the report page
 	useEffect(() => {
-		axios.get('/api/orders').then(res => {
+		axios.get(`${API_BASE_URL}/api/orders`).then(res => {
 			setOrders(res.data.data || res.data);
 		});
 	}, []);
