@@ -1434,7 +1434,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
     : [];
 
   // Expand mode toggle: 'single' (only one expanded at a time) or 'multi' (multiple allowed)
-  const [expandMode, setExpandMode] = useState('single'); // 'single' or 'multi'
+  const [expandMode, setExpandMode] = useState('multi'); // 'single' or 'multi'
 
   // Only filter visibleData in 'single' mode
   const visibleData =
