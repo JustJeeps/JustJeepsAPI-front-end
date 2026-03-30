@@ -17,14 +17,14 @@ function getShippingCostValue(row) {
 function exportToExcel(report, dateStr) {
   const wb = XLSX.utils.book_new();
   const columns = [
-    { key: 'created_at', label: 'Order Date' },
+    // { key: 'created_at', label: 'Order Date' },
     { key: 'increment_id', label: 'Order ID' },
     { key: 'custom_po_number', label: 'PO#' },
     { key: 'custom_order_note', label: 'Order Note' },
-    { key: 'total_qty_ordered', label: 'Items Ordered Qty' },
-    { key: 'base_total_due', label: 'Total Due' },
-    { key: 'custom_ship_status', label: 'Ship Status' },
-    { key: 'shipping_cost', label: 'Shipping Cost' },
+    // { key: 'total_qty_ordered', label: 'Items Ordered Qty' },
+    // { key: 'base_total_due', label: 'Total Due' },
+    // { key: 'custom_ship_status', label: 'Ship Status' },
+    // { key: 'shipping_cost', label: 'Shipping Cost' },
   ];
   const headerRow = columns.map((col) => col.label);
   const formatRow = (row) =>
