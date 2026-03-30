@@ -371,6 +371,23 @@ export default function PurchaserReport() {
           text-decoration: none;
         }
 
+        .pr-alert {
+          color: #b42318;
+          font-weight: 700;
+        }
+
+        .pr-alert-pill {
+          display: inline-block;
+          margin-right: 8px;
+          padding: 2px 8px;
+          border-radius: 999px;
+          background: #fee4e2;
+          color: #b42318;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.02em;
+        }
+
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(8px); }
           to { opacity: 1; transform: translateY(0); }
@@ -498,7 +515,13 @@ function ReportTable({ rows }) {
           {rows.map((row, i) => (
             <tr key={i}>
               {columns.map(col => (
-                <td key={col.key} className={['total_qty_ordered', 'base_total_due'].includes(col.key) ? 'num' : ''}>
+                <td
+                  key={col.key}
+                  className={[
+                    ['total_qty_ordered', 'base_total_due'].includes(col.key) ? 'num' : '',
+                    col.key === 'base_total_due' && Number.isFinite(Number(row[col.key])) && Number(row[col.key]) > 0 ? 'pr-alert' : '',
+                  ].filter(Boolean).join(' ')}
+                >
                   {col.key === 'created_at' && row[col.key] ? new Date(row[col.key]).toLocaleDateString()
                     : col.key === 'increment_id' && row.increment_id && row.entity_id ? (
                       <a
@@ -510,7 +533,15 @@ function ReportTable({ rows }) {
                         {row.increment_id}
                       </a>
                     )
-                      : (row[col.key] ?? '')}
+                      : col.key === 'base_total_due' ? (
+                        <>
+                          {Number.isFinite(Number(row[col.key])) && Number(row[col.key]) > 0 && (
+                            <span className="pr-alert-pill">DUE</span>
+                          )}
+                          {row[col.key] ?? ''}
+                        </>
+                      )
+                        : (row[col.key] ?? '')}
                 </td>
               ))}
             </tr>
