@@ -9,10 +9,53 @@ const PURCHASER_INITIALS = ['PM', 'KD', 'JD', 'JK'];
 
 function exportToExcel(report, dateStr) {
   const wb = XLSX.utils.book_new();
-  Object.entries(report).forEach(([key, rows]) => {
-    const ws = XLSX.utils.json_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb, ws, key);
+  const columns = [
+    { key: 'created_at', label: 'Order Date' },
+    { key: 'increment_id', label: 'Order ID' },
+    { key: 'total_qty_ordered', label: 'Items Ordered Qty' },
+    { key: 'base_total_due', label: 'Total Due' },
+    { key: 'custom_po_number', label: 'PO#' },
+    { key: 'custom_ship_status', label: 'Ship Status' },
+    { key: 'custom_order_note', label: 'Order Note' },
+  ];
+  const headerRow = columns.map((col) => col.label);
+  const formatRow = (row) =>
+    columns.map((col) => {
+      if (col.key === 'created_at') {
+        return row[col.key] ? new Date(row[col.key]).toLocaleDateString() : '';
+      }
+      return row[col.key] ?? '';
+    });
+  const buildSectionRows = (title, rows) => {
+    const sectionTitle = `${title} (${rows.length})`;
+    return [
+      [sectionTitle, ...Array(headerRow.length - 1).fill('')],
+      headerRow,
+      ...rows.map(formatRow),
+      [],
+    ];
+  };
+  const sheetRows = [
+    ...buildSectionRows(`Orders closed on ${dateStr}`, report?.closed || []),
+    ...buildSectionRows(`Orders followed up on ${dateStr}`, report?.followedUp || []),
+    ...buildSectionRows('Orders waiting for a response', report?.waiting || []),
+  ];
+  if (sheetRows.length && sheetRows[sheetRows.length - 1].length === 0) {
+    sheetRows.pop();
+  }
+  const ws = XLSX.utils.aoa_to_sheet(sheetRows);
+  const columnWidths = headerRow.map((_, colIndex) => {
+    let maxLen = 0;
+    sheetRows.forEach((row) => {
+      const cell = row[colIndex];
+      if (cell === null || cell === undefined) return;
+      const cellText = String(cell);
+      if (cellText.length > maxLen) maxLen = cellText.length;
+    });
+    return { wch: Math.min(Math.max(maxLen + 2, 10), 60) };
   });
+  ws['!cols'] = columnWidths;
+  XLSX.utils.book_append_sheet(wb, ws, 'Purchaser Report');
   const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
   saveAs(new Blob([wbout], { type: 'application/octet-stream' }), `PurchaserReport_${dateStr}.xlsx`);
 }
@@ -34,6 +77,11 @@ export default function PurchaserReport() {
   const [report, setReport] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [error, setError] = useState('');
+  const [collapsed, setCollapsed] = useState({
+    closed: false,
+    followedUp: false,
+    waiting: false,
+  });
 
   const handleGenerate = async () => {
     if (!date || !initials.length) return;
@@ -135,12 +183,41 @@ export default function PurchaserReport() {
       </div>
       {report && (
         <div>
-          <h3>Orders closed on {date} ({report.closed.length})</h3>
-          <ReportTable rows={report.closed} />
-          <h3>Orders followed up on {date} ({report.followedUp.length})</h3>
-          <ReportTable rows={report.followedUp} />
-          <h3>Orders waiting for a response ({report.waiting.length})</h3>
-          <ReportTable rows={report.waiting} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              type="button"
+              onClick={() => setCollapsed((prev) => ({ ...prev, closed: !prev.closed }))}
+              style={{ padding: '4px 10px', borderRadius: 4, border: '1px solid #ccc', background: '#fff' }}
+            >
+              {collapsed.closed ? '▶' : '▼'}
+            </button>
+            <h3 style={{ margin: 0 }}>Orders closed on {date} ({report.closed.length})</h3>
+          </div>
+          {!collapsed.closed && <ReportTable rows={report.closed} />}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              type="button"
+              onClick={() => setCollapsed((prev) => ({ ...prev, followedUp: !prev.followedUp }))}
+              style={{ padding: '4px 10px', borderRadius: 4, border: '1px solid #ccc', background: '#fff' }}
+            >
+              {collapsed.followedUp ? '▶' : '▼'}
+            </button>
+            <h3 style={{ margin: 0 }}>Orders followed up on {date} ({report.followedUp.length})</h3>
+          </div>
+          {!collapsed.followedUp && <ReportTable rows={report.followedUp} />}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              type="button"
+              onClick={() => setCollapsed((prev) => ({ ...prev, waiting: !prev.waiting }))}
+              style={{ padding: '4px 10px', borderRadius: 4, border: '1px solid #ccc', background: '#fff' }}
+            >
+              {collapsed.waiting ? '▶' : '▼'}
+            </button>
+            <h3 style={{ margin: 0 }}>Orders waiting for a response ({report.waiting.length})</h3>
+          </div>
+          {!collapsed.waiting && <ReportTable rows={report.waiting} />}
         </div>
       )}
     </div>
