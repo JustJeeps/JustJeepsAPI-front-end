@@ -8,22 +8,32 @@ import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 const PURCHASER_INITIALS = ['PM', 'KD', 'JD', 'JK'];
 
+function getShippingCostValue(row) {
+  if (!row) return '';
+  if (row.shipping_cost_jj !== undefined && row.shipping_cost_jj !== null) return row.shipping_cost_jj;
+  return '';
+}
+
 function exportToExcel(report, dateStr) {
   const wb = XLSX.utils.book_new();
   const columns = [
     { key: 'created_at', label: 'Order Date' },
     { key: 'increment_id', label: 'Order ID' },
+    { key: 'custom_po_number', label: 'PO#' },
+    { key: 'custom_order_note', label: 'Order Note' },
     { key: 'total_qty_ordered', label: 'Items Ordered Qty' },
     { key: 'base_total_due', label: 'Total Due' },
-    { key: 'custom_po_number', label: 'PO#' },
     { key: 'custom_ship_status', label: 'Ship Status' },
-    { key: 'custom_order_note', label: 'Order Note' },
+    { key: 'shipping_cost', label: 'Shipping Cost' },
   ];
   const headerRow = columns.map((col) => col.label);
   const formatRow = (row) =>
     columns.map((col) => {
       if (col.key === 'created_at') {
         return row[col.key] ? new Date(row[col.key]).toLocaleDateString() : '';
+      }
+      if (col.key === 'shipping_cost') {
+        return getShippingCostValue(row);
       }
       return row[col.key] ?? '';
     });
@@ -501,6 +511,7 @@ function ReportTable({ rows }) {
     { key: 'base_total_due', label: 'Total Due' },
     { key: 'custom_po_number', label: 'PO#' },
     { key: 'custom_ship_status', label: 'Ship Status' },
+    { key: 'shipping_cost', label: 'Shipping Cost' },
     { key: 'custom_order_note', label: 'Order Note' },
   ];
   return (
@@ -520,7 +531,7 @@ function ReportTable({ rows }) {
                 <td
                   key={col.key}
                   className={[
-                    ['total_qty_ordered', 'base_total_due'].includes(col.key) ? 'num' : '',
+                    ['total_qty_ordered', 'base_total_due', 'shipping_cost'].includes(col.key) ? 'num' : '',
                     col.key === 'base_total_due' && Number.isFinite(Number(row[col.key])) && Number(row[col.key]) > 0 ? 'pr-alert' : '',
                   ].filter(Boolean).join(' ')}
                 >
@@ -543,6 +554,9 @@ function ReportTable({ rows }) {
                           {row[col.key] ?? ''}
                         </>
                       )
+                        : col.key === 'shipping_cost' ? (
+                          getShippingCostValue(row)
+                        )
                         : (row[col.key] ?? '')}
                 </td>
               ))}

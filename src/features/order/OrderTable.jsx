@@ -25,7 +25,6 @@ import {
   Col,
   Card,
   Segmented,
-  Progress,
 } from "antd";
 import { FilterOutlined, ClearOutlined, ReloadOutlined } from "@ant-design/icons";
 import Highlighter from "react-highlight-words";
@@ -109,13 +108,6 @@ const OrderTable = () => {
   const [savingUnitCost, setSavingUnitCost] = useState({});
   const [textFromDrawer, setTextFromDrawer] = useState("");
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
-  const [seedAllJobId, setSeedAllJobId] = useState(null);
-  const [seedAllProgress, setSeedAllProgress] = useState({
-    processed: 0,
-    total: 0,
-    status: "idle",
-  });
-  const [seedAllLoading, setSeedAllLoading] = useState(false);
 
 
 
@@ -483,65 +475,16 @@ Thank you,`
     setLoading(true);
     try {
       await axios.get(`${API_URL}/api/seed-orders`, { params: { limit: 200 } });
-      const refreshDelays = [3000, 8000, 15000];
-      for (const delay of refreshDelays) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        await loadData(pagination.current, pagination.pageSize, filters);
-        await loadMetrics();
-      }
+      setTimeout(() => {
+        loadData(pagination.current, pagination.pageSize, filters); // fetch updated orders after background seed
+        loadMetrics(); // refresh metrics after seeding
+      }, 3000);
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
     }
   };
-
-  const handleSeedAllOrders = async () => {
-    if (seedAllLoading) return;
-    setSeedAllLoading(true);
-    setSeedAllProgress({ processed: 0, total: 0, status: "starting" });
-
-    try {
-      const { data } = await axios.post(`${API_URL}/api/seed-orders/start`, {
-        limit: 4000,
-      });
-      setSeedAllJobId(data.jobId);
-    } catch (error) {
-      console.error(error);
-      setSeedAllLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!seedAllJobId) return;
-
-    let isActive = true;
-    const intervalId = setInterval(async () => {
-      try {
-        const { data } = await axios.get(
-          `${API_URL}/api/seed-orders/status/${seedAllJobId}`
-        );
-
-        if (!isActive) return;
-        setSeedAllProgress(data);
-
-        if (data.status === "done" || data.status === "error") {
-          clearInterval(intervalId);
-          setSeedAllJobId(null);
-          setSeedAllLoading(false);
-          await loadData(pagination.current, pagination.pageSize, filters);
-          await loadMetrics();
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    }, 2000);
-
-    return () => {
-      isActive = false;
-      clearInterval(intervalId);
-    };
-  }, [API_URL, seedAllJobId, pagination.current, pagination.pageSize, filters, loadData, loadMetrics]);
 
   //delete an order
   const handleDeleteOrder = (record) => {
@@ -2613,8 +2556,6 @@ console.log("IS ARRAY?", Array.isArray(orders));
               type="primary" 
               onClick={handleSeedOrders}
               size="large"
-              loading={loading}
-              disabled={loading}
               style={{ 
                 backgroundColor: "#dc3545",
                 borderColor: "white",
@@ -2628,6 +2569,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
             >
               Update Orders
             </Button>
+
 
             <div style={{ flex: 1 }}>
               <TableTop
@@ -2653,33 +2595,6 @@ console.log("IS ARRAY?", Array.isArray(orders));
               />
             </div>
           </div>
-
-          {(seedAllLoading || seedAllProgress.status === "running") && (
-            <div style={{ marginBottom: 12 }}>
-              <Progress
-                percent={
-                  seedAllProgress.total
-                    ? Math.min(
-                        100,
-                        Math.round(
-                          (seedAllProgress.processed / seedAllProgress.total) * 100
-                        )
-                      )
-                    : 0
-                }
-                status={
-                  seedAllProgress.status === "error"
-                    ? "exception"
-                    : "active"
-                }
-                showInfo
-              />
-              <div style={{ color: "#666", marginTop: 4 }}>
-                Updating {seedAllProgress.processed || 0}
-                {seedAllProgress.total ? ` / ${seedAllProgress.total}` : ""} orders
-              </div>
-            </div>
-          )}
 
           {/* Filter Row */}
           <Card
@@ -2869,24 +2784,6 @@ console.log("IS ARRAY?", Array.isArray(orders));
                 style={{ minWidth: 180 }}
               />
             </div>
-
-            <Button
-              type="default"
-              onClick={handleSeedAllOrders}
-              size="small"
-              loading={seedAllLoading}
-              disabled={seedAllLoading}
-              style={{
-                backgroundColor: "#fff",
-                borderColor: "#dc3545",
-                color: "#dc3545",
-                fontWeight: "600",
-                borderRadius: "5px",
-                height: "32px",
-              }}
-            >
-              Update All Orders
-            </Button>
 
                   <span style={{ color: '#666' }}>
                     Showing {orders.length} of {pagination.total} orders
