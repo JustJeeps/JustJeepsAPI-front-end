@@ -475,10 +475,12 @@ Thank you,`
     setLoading(true);
     try {
       await axios.get(`${API_URL}/api/seed-orders`, { params: { limit: 200 } });
-      setTimeout(() => {
-        loadData(pagination.current, pagination.pageSize, filters); // fetch updated orders after background seed
-        loadMetrics(); // refresh metrics after seeding
-      }, 3000);
+      const refreshDelays = [3000, 8000, 15000];
+      for (const delay of refreshDelays) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        await loadData(pagination.current, pagination.pageSize, filters);
+        await loadMetrics();
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -2556,6 +2558,8 @@ console.log("IS ARRAY?", Array.isArray(orders));
               type="primary" 
               onClick={handleSeedOrders}
               size="large"
+              loading={loading}
+              disabled={loading}
               style={{ 
                 backgroundColor: "#dc3545",
                 borderColor: "white",
