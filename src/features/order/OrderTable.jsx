@@ -474,9 +474,11 @@ Thank you,`
   const handleSeedOrders = async () => {
     setLoading(true);
     try {
-      await axios.get(`${API_URL}/api/seed-orders`);
-      loadData(pagination.current, pagination.pageSize, filters); // fetch the updated orders with current pagination and filters
-      loadMetrics(); // refresh metrics after seeding
+      await axios.get(`${API_URL}/api/seed-orders`, { params: { limit: 200 } });
+      setTimeout(() => {
+        loadData(pagination.current, pagination.pageSize, filters); // fetch updated orders after background seed
+        loadMetrics(); // refresh metrics after seeding
+      }, 3000);
     } catch (error) {
       console.error(error);
     } finally {
