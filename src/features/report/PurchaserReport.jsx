@@ -8,6 +8,11 @@ import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 const PURCHASER_INITIALS = ['PM', 'KD', 'JD', 'JK'];
 
+function getTodayLabel() {
+  const now = new Date();
+  return now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 function getShippingCostValue(row) {
   if (!row) return '';
   if (row.shipping_cost_jj !== undefined && row.shipping_cost_jj !== null) return row.shipping_cost_jj;
@@ -193,7 +198,7 @@ export default function PurchaserReport() {
     // Hide everything, show only access denied
     return null;
   }
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState(getTodayLabel());
   const [initials, setInitials] = useState(PURCHASER_INITIALS);
   const [report, setReport] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
