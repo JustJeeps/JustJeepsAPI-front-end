@@ -511,6 +511,10 @@ export default function PurchaserReport() {
           animation: fadeUp 0.4s ease;
         }
 
+        .pr-section.collapsed {
+          min-height: 0;
+        }
+
         .pr-section-header {
           display: flex;
           align-items: center;
@@ -653,7 +657,7 @@ export default function PurchaserReport() {
 
         {report && (
           <div className="pr-shell">
-            <div className="pr-section">
+            <div className={`pr-section${collapsed.closed ? ' collapsed' : ''}`}>
               <div className="pr-section-header">
                 <button
                   type="button"
@@ -667,7 +671,7 @@ export default function PurchaserReport() {
               {!collapsed.closed && <ReportTable rows={report.closed} />}
             </div>
 
-            <div className="pr-section">
+            <div className={`pr-section${collapsed.followedUp ? ' collapsed' : ''}`}>
               <div className="pr-section-header">
                 <button
                   type="button"
@@ -681,7 +685,7 @@ export default function PurchaserReport() {
               {!collapsed.followedUp && <ReportTable rows={report.followedUp} />}
             </div>
 
-            <div className="pr-section">
+            <div className={`pr-section${collapsed.waiting ? ' collapsed' : ''}`}>
               <div className="pr-section-header">
                 <button
                   type="button"
