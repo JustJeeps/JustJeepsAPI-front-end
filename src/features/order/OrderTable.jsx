@@ -46,6 +46,7 @@ const OrderTable = () => {
   const [originalOrders, setOriginalOrders] = useState([]);
   const [sortedInfo, setSortedInfo] = useState({});
   const [loading, setLoading] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
   const searchInput = useRef(null);
@@ -108,6 +109,8 @@ const OrderTable = () => {
   const [savingUnitCost, setSavingUnitCost] = useState({});
   const [textFromDrawer, setTextFromDrawer] = useState("");
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
+  const seedPollRef = useRef(null);
+  const seedPollCountRef = useRef(0);
 
 
 
@@ -398,6 +401,15 @@ Thank you,`
     loadData(1, pagination.pageSize, filters);
   }, [filters]);
 
+  useEffect(() => {
+    return () => {
+      if (seedPollRef.current) {
+        clearInterval(seedPollRef.current);
+        seedPollRef.current = null;
+      }
+    };
+  }, []);
+
   //load all data with pagination and filters
   const loadData = useCallback(async (page = 1, pageSize = 25, currentFilters = filters) => {
     setLoading(true);
@@ -472,15 +484,44 @@ Thank you,`
 
   //seed orders
   const handleSeedOrders = async () => {
+    if (isSeeding) return;
+
+    const pollIntervalMs = 2500;
+    const maxPollAttempts = 12;
+
+    const stopPolling = () => {
+      if (seedPollRef.current) {
+        clearInterval(seedPollRef.current);
+        seedPollRef.current = null;
+      }
+      seedPollCountRef.current = 0;
+      setIsSeeding(false);
+    };
+
+    const startPolling = () => {
+      if (seedPollRef.current) {
+        clearInterval(seedPollRef.current);
+      }
+      seedPollCountRef.current = 0;
+      seedPollRef.current = setInterval(() => {
+        seedPollCountRef.current += 1;
+        loadData(pagination.current, pagination.pageSize, filters);
+        loadMetrics();
+
+        if (seedPollCountRef.current >= maxPollAttempts) {
+          stopPolling();
+        }
+      }, pollIntervalMs);
+    };
+
     setLoading(true);
+    setIsSeeding(true);
     try {
       await axios.get(`${API_URL}/api/seed-orders`, { params: { limit: 200 } });
-      setTimeout(() => {
-        loadData(pagination.current, pagination.pageSize, filters); // fetch updated orders after background seed
-        loadMetrics(); // refresh metrics after seeding
-      }, 3000);
+      startPolling();
     } catch (error) {
       console.error(error);
+      stopPolling();
     } finally {
       setLoading(false);
     }
@@ -2556,6 +2597,8 @@ console.log("IS ARRAY?", Array.isArray(orders));
               type="primary" 
               onClick={handleSeedOrders}
               size="large"
+              disabled={isSeeding}
+              loading={isSeeding}
               style={{ 
                 backgroundColor: "#dc3545",
                 borderColor: "white",
@@ -2567,7 +2610,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
                 width: "200px",
               }}
             >
-              Update Orders
+              {isSeeding ? "Seeding..." : "Update Orders"}
             </Button>
 
 
