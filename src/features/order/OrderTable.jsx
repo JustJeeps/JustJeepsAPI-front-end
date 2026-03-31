@@ -528,6 +528,50 @@ Thank you,`
     }
   };
 
+  const handleSeedOrdersAll = async () => {
+    if (isSeeding) return;
+
+    const pollIntervalMs = 2500;
+    const maxPollAttempts = 12;
+
+    const stopPolling = () => {
+      if (seedPollRef.current) {
+        clearInterval(seedPollRef.current);
+        seedPollRef.current = null;
+      }
+      seedPollCountRef.current = 0;
+      setSeedingType(null);
+    };
+
+    const startPolling = () => {
+      if (seedPollRef.current) {
+        clearInterval(seedPollRef.current);
+      }
+      seedPollCountRef.current = 0;
+      seedPollRef.current = setInterval(() => {
+        seedPollCountRef.current += 1;
+        loadData(pagination.current, pagination.pageSize, filters);
+        loadMetrics();
+
+        if (seedPollCountRef.current >= maxPollAttempts) {
+          stopPolling();
+        }
+      }, pollIntervalMs);
+    };
+
+    setLoading(true);
+    setSeedingType("orders-all");
+    try {
+      await axios.get(`${API_URL}/api/seed-orders-all`);
+      startPolling();
+    } catch (error) {
+      console.error(error);
+      stopPolling();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   //delete an order
   const handleDeleteOrder = (record) => {
     Modal.confirm({
@@ -2828,6 +2872,23 @@ console.log("IS ARRAY?", Array.isArray(orders));
                   onChange={setExpandMode}
                   style={{ minWidth: 180 }}
                 />
+                <Button
+                  type="primary"
+                  onClick={handleSeedOrdersAll}
+                  size="small"
+                  disabled={isSeeding}
+                  loading={seedingType === "orders-all"}
+                  style={{
+                    marginLeft: 12,
+                    backgroundColor: "#0f766e",
+                    borderColor: "#0f766e",
+                    color: "white",
+                    fontWeight: 600,
+                    borderRadius: 6,
+                  }}
+                >
+                  {seedingType === "orders-all" ? "Seeding All..." : "Update Orders (All)"}
+                </Button>
               </div>
             </div>
 
