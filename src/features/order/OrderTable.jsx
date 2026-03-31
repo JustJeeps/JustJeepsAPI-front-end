@@ -46,7 +46,7 @@ const OrderTable = () => {
   const [originalOrders, setOriginalOrders] = useState([]);
   const [sortedInfo, setSortedInfo] = useState({});
   const [loading, setLoading] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
+  const [seedingType, setSeedingType] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
   const searchInput = useRef(null);
@@ -72,7 +72,7 @@ const OrderTable = () => {
   // Pagination state for server-side pagination
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 25,
+    pageSize: 250,
     total: 0,
   });
 
@@ -111,6 +111,7 @@ const OrderTable = () => {
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
   const seedPollRef = useRef(null);
   const seedPollCountRef = useRef(0);
+  const isSeeding = seedingType !== null;
 
 
 
@@ -483,7 +484,7 @@ Thank you,`
   };
 
   //seed orders
-  const handleSeedOrders = async () => {
+  const handleSeedOrders = async (limit = 200) => {
     if (isSeeding) return;
 
     const pollIntervalMs = 2500;
@@ -495,7 +496,7 @@ Thank you,`
         seedPollRef.current = null;
       }
       seedPollCountRef.current = 0;
-      setIsSeeding(false);
+      setSeedingType(null);
     };
 
     const startPolling = () => {
@@ -515,9 +516,9 @@ Thank you,`
     };
 
     setLoading(true);
-    setIsSeeding(true);
+    setSeedingType("orders");
     try {
-      await axios.get(`${API_URL}/api/seed-orders`, { params: { limit: 200 } });
+      await axios.get(`${API_URL}/api/seed-orders`, { params: { limit } });
       startPolling();
     } catch (error) {
       console.error(error);
@@ -2595,10 +2596,10 @@ console.log("IS ARRAY?", Array.isArray(orders));
             style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '10px', marginTop: '5px' }}>
             <Button 
               type="primary" 
-              onClick={handleSeedOrders}
+              onClick={() => handleSeedOrders(200)}
               size="large"
               disabled={isSeeding}
-              loading={isSeeding}
+              loading={seedingType === "orders"}
               style={{ 
                 backgroundColor: "#dc3545",
                 borderColor: "white",
@@ -2610,7 +2611,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
                 width: "200px",
               }}
             >
-              {isSeeding ? "Seeding..." : "Update Orders"}
+              {seedingType === "orders" ? "Seeding..." : "Update Orders"}
             </Button>
 
 
@@ -2816,16 +2817,18 @@ console.log("IS ARRAY?", Array.isArray(orders));
 
             {/* Expand Mode Toggle */}
             <div style={{ marginLeft: 16, marginRight: 16 }}>
-              <span style={{ fontWeight: 500, marginRight: 8 }}>Expand Mode:</span>
-              <Segmented
-                options={[
-                  { label: 'Expand One', value: 'single' },
-                  { label: 'Expand Multi', value: 'multi' },
-                ]}
-                value={expandMode}
-                onChange={setExpandMode}
-                style={{ minWidth: 180 }}
-              />
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <span style={{ fontWeight: 500, marginRight: 8 }}>Expand Mode:</span>
+                <Segmented
+                  options={[
+                    { label: 'Expand One', value: 'single' },
+                    { label: 'Expand Multi', value: 'multi' },
+                  ]}
+                  value={expandMode}
+                  onChange={setExpandMode}
+                  style={{ minWidth: 180 }}
+                />
+              </div>
             </div>
 
                   <span style={{ color: '#666' }}>
