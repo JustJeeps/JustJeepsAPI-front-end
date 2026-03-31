@@ -7,6 +7,7 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 const PURCHASER_INITIALS = ['PM', 'KD', 'JD', 'JK'];
+const WAITING_RESPONSE_DAYS = 30;
 
 function getTodayLabel() {
   const now = new Date();
@@ -92,6 +93,38 @@ function buildEmailHtml(report, dateStr, initials) {
       ${renderSection('Orders waiting for a response', report?.waiting || [])}
     </div>
   `;
+}
+
+function isOlderThanDays(isoDate, days) {
+  if (!isoDate) return false;
+  const createdAt = new Date(isoDate);
+  if (Number.isNaN(createdAt.getTime())) return false;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  return createdAt < cutoff;
+}
+
+function buildWaitingOverdueEmail(orders) {
+  const subject = 'Orders waiting for a response (30+ days)';
+  const lines = [
+    'Hi Jerry,',
+    '',
+    'Could you please cancel the orders below? I have not received a response for over 30 days.',
+    '',
+    'Order ID:',
+  ];
+  orders.forEach((order, index) => {
+    const orderId = order.increment_id || order.entity_id || 'Unknown';
+    const note = order.custom_order_note ? ` (Order Note: ${order.custom_order_note})` : '';
+    lines.push(`${index + 1}. ${orderId}${note}`);
+  });
+  if (!orders.length) {
+    lines.push('No orders found.');
+  }
+  return {
+    subject,
+    body: lines.join('\n'),
+  };
 }
 
 function exportToExcel(report, dateStr) {
@@ -317,6 +350,16 @@ export default function PurchaserReport() {
     } catch (err) {
       setCopyStatus('Failed to copy HTML.');
     }
+  };
+
+  const waitingOverdue = (report?.waiting || []).filter((order) =>
+    isOlderThanDays(order.created_at, WAITING_RESPONSE_DAYS)
+  );
+
+  const handleWaitingOverdueEmail = () => {
+    const { subject, body } = buildWaitingOverdueEmail(waitingOverdue);
+    const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
   };
 
   return (
@@ -720,6 +763,14 @@ export default function PurchaserReport() {
                   {collapsed.waiting ? '▶' : '▼'}
                 </button>
                 <h3 className="pr-section-title">Orders waiting for a response ({report.waiting.length})</h3>
+                <button
+                  type="button"
+                  className="pr-btn secondary"
+                  onClick={handleWaitingOverdueEmail}
+                  disabled={!waitingOverdue.length}
+                >
+                  Email 30+ day waiting ({waitingOverdue.length})
+                </button>
               </div>
               {!collapsed.waiting && <ReportTable rows={report.waiting} />}
             </div>
