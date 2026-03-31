@@ -83,7 +83,6 @@ function buildEmailHtml(report, dateStr, initials) {
     <div style=\"font-family:Arial,sans-serif;max-width:920px;margin:0 auto;color:#1c2430;\">
       ${renderSection(`Orders closed on ${dateStr}`, report?.closed || [])}
       ${renderSection(`Orders followed up on ${dateStr}`, report?.followedUp || [])}
-      ${renderSection(`Orders with tickets on ${dateStr}`, report?.tickets || [])}
       ${renderSection('Orders waiting for a response', report?.waiting || [])}
     </div>
   `;
@@ -127,7 +126,6 @@ function exportToExcel(report, dateStr) {
   const sheetRows = [];
   buildSectionRows(`Orders closed on ${dateStr}`, report?.closed || []);
   buildSectionRows(`Orders followed up on ${dateStr}`, report?.followedUp || []);
-  buildSectionRows(`Orders with tickets on ${dateStr}`, report?.tickets || []);
   buildSectionRows('Orders waiting for a response', report?.waiting || []);
   if (sheetRows.length && sheetRows[sheetRows.length - 1].length === 0) {
     sheetRows.pop();
@@ -204,7 +202,6 @@ export default function PurchaserReport() {
   const [collapsed, setCollapsed] = useState({
     closed: false,
     followedUp: false,
-    tickets: false,
     waiting: false,
   });
 
@@ -251,13 +248,12 @@ export default function PurchaserReport() {
           .split(/\s+/)
           .map((token) => token.trim())
           .filter(Boolean);
-      const closed = [], followedUp = [], tickets = [], waiting = [];
+      const closed = [], followedUp = [], waiting = [];
       for (const o of orders) {
         const po = o.custom_po_number;
         if (!po) continue;
         const poNorm = normalizePo(po);
         const notSet = /\bnot set\b/i.test(poNorm);
-        const hasTicket = /\bticket\b/i.test(poNorm);
         const hasInitials = initials.some((init) =>
           new RegExp(`\\b${escapeRegex(init)}\\b`, 'i').test(poNorm)
         );
@@ -267,12 +263,11 @@ export default function PurchaserReport() {
           dateTokens.every((token) =>
             new RegExp(`\\b${escapeRegex(token)}\\b`, 'i').test(poNorm)
           );
-        if (!notSet && hasInitials && hasDate && hasTicket) tickets.push(o);
-        else if (!notSet && hasInitials && hasDate && !hasTicket) closed.push(o);
+        if (!notSet && hasInitials && hasDate) closed.push(o);
         else if (notSet && hasInitials && hasDate) followedUp.push(o);
         else if (notSet && hasInitials && !hasDate) waiting.push(o);
       }
-      setReport({ closed, followedUp, tickets, waiting });
+      setReport({ closed, followedUp, waiting });
     } catch (err) {
       setError('Failed to fetch report data.');
     } finally {
@@ -339,7 +334,7 @@ export default function PurchaserReport() {
         }
 
         .pr-shell {
-          max-width: 1200px;
+          max-width: 1600px;
           margin: 0 auto;
           display: grid;
           gap: 28px;
@@ -684,20 +679,6 @@ export default function PurchaserReport() {
                 <h3 className="pr-section-title">Orders followed up on {date} ({report.followedUp.length})</h3>
               </div>
               {!collapsed.followedUp && <ReportTable rows={report.followedUp} />}
-            </div>
-
-            <div className="pr-section">
-              <div className="pr-section-header">
-                <button
-                  type="button"
-                  className="pr-toggle"
-                  onClick={() => setCollapsed((prev) => ({ ...prev, tickets: !prev.tickets }))}
-                >
-                  {collapsed.tickets ? '▶' : '▼'}
-                </button>
-                <h3 className="pr-section-title">Orders with tickets on {date} ({report.tickets.length})</h3>
-              </div>
-              {!collapsed.tickets && <ReportTable rows={report.tickets} />}
             </div>
 
             <div className="pr-section">
