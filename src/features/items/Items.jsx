@@ -54,6 +54,50 @@ export const Items = () => {
   const toUpper = (s) => (s ?? "").toString().toUpperCase();
   const flat = (s) => toUpper(s).replace(/[^A-Z0-9]/g, "");
 
+  const normalizeSkuValue = (value) =>
+    (value ?? "").toString().trim().toLowerCase();
+
+  const selectedSkuValue = searchTermSku?.sku
+    ? normalizeSkuValue(searchTermSku.sku)
+    : normalizeSkuValue(typedSku);
+
+  const matchedSkuProduct = Array.isArray(data) && selectedSkuValue
+    ? data.find((product) => {
+        const productSku = normalizeSkuValue(product?.sku);
+        const searchableSku = normalizeSkuValue(product?.searchable_sku);
+        return productSku === selectedSkuValue || searchableSku === selectedSkuValue;
+      })
+    : null;
+
+  const replaceOeValue =
+    matchedSkuProduct?.replace_oe ||
+    (Array.isArray(data) && data.length === 1 ? data[0]?.replace_oe : null);
+
+  const buildCroSkuVariants = (replaceOe) => {
+    const base = (replaceOe ?? "").toString().trim();
+    if (!base) return [];
+    return [
+      `CRO-${base}`,
+      `CRO-J${base}`,
+      `CRO-J0${base}`,
+      `CRO-J00${base}`,
+    ];
+  };
+
+  const fetchProductBySku = async (skuValue) => {
+    const normalized = (skuValue ?? "").toString().trim();
+    if (!normalized) return null;
+    try {
+      const res = await axios.get(
+        `${API_URL}/api/products/${encodeURIComponent(normalized)}`
+      );
+      return res.data || null;
+    } catch (error) {
+      return null;
+    }
+  };
+
+
   // Return true if product matches query in any relevant field
   const productMatches = (p, q) => {
   // 🚫 Skip SKUs ending with a dash
@@ -620,13 +664,73 @@ const fetchProducts = async (page = 1, search = '', pageSize = pagination.limit)
 
     // Handle paginated response
     if (response.data.products) {
-      setData(response.data.products);
-      setPagination(response.data.pagination);
-      setAllProducts(response.data.products);
+      const products = response.data.products || [];
+      let mergedProducts = products;
+
+      if (search) {
+        const normalizedSearch = normalizeSkuValue(search);
+        const baseMatch = products.find((product) => {
+          const productSku = normalizeSkuValue(product?.sku);
+          const searchableSku = normalizeSkuValue(product?.searchable_sku);
+          return productSku === normalizedSearch || searchableSku === normalizedSearch;
+        });
+        const replaceOe = baseMatch?.replace_oe;
+        if (replaceOe) {
+          const variants = buildCroSkuVariants(replaceOe);
+          const extraProducts = (await Promise.all(
+            variants.map((variant) => fetchProductBySku(variant))
+          )).filter(Boolean);
+          const seen = new Set(products.map((p) => normalizeSkuValue(p?.sku)));
+          mergedProducts = [...products];
+          extraProducts.forEach((product) => {
+            const key = normalizeSkuValue(product?.sku);
+            if (key && !seen.has(key)) {
+              seen.add(key);
+              mergedProducts.push(product);
+            }
+          });
+        }
+      }
+
+      const extraCount = mergedProducts.length - products.length;
+      setData(mergedProducts);
+      setPagination({
+        ...response.data.pagination,
+        total: response.data.pagination.total + extraCount,
+      });
+      setAllProducts(mergedProducts);
       setAllLoaded(true);
     } else {
       // Fallback for non-paginated response (backward compatibility)
-      setData(response.data || []);
+      const products = response.data || [];
+      let mergedProducts = products;
+
+      if (search) {
+        const normalizedSearch = normalizeSkuValue(search);
+        const baseMatch = products.find((product) => {
+          const productSku = normalizeSkuValue(product?.sku);
+          const searchableSku = normalizeSkuValue(product?.searchable_sku);
+          return productSku === normalizedSearch || searchableSku === normalizedSearch;
+        });
+        const replaceOe = baseMatch?.replace_oe;
+        if (replaceOe) {
+          const variants = buildCroSkuVariants(replaceOe);
+          const extraProducts = (await Promise.all(
+            variants.map((variant) => fetchProductBySku(variant))
+          )).filter(Boolean);
+          const seen = new Set(products.map((p) => normalizeSkuValue(p?.sku)));
+          mergedProducts = [...products];
+          extraProducts.forEach((product) => {
+            const key = normalizeSkuValue(product?.sku);
+            if (key && !seen.has(key)) {
+              seen.add(key);
+              mergedProducts.push(product);
+            }
+          });
+        }
+      }
+
+      setData(mergedProducts);
     }
   } catch (err) {
     console.error("Failed to fetch products:", err);
@@ -702,6 +806,31 @@ const handleTableChange = (newPage, newPageSize) => {
       dataIndex: "sku",
       key: "sku",
       align: "center",
+      render: (skuValue, record) => (
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <span>{skuValue}</span>
+          {record?.replace_oe ? (
+            (() => {
+              const croVariants = buildCroSkuVariants(record.replace_oe);
+              return croVariants.length ? (
+                <span style={{ fontSize: "12px", fontWeight: 600 }}>
+                  {croVariants.join(", ")}
+                </span>
+              ) : null;
+            })()
+          ) : null}
+          {record?.replace_oe ? (
+            <a
+              href="https://www.crownautomotive.net/search.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontSize: "12px", fontWeight: 600, color: "#1890ff" }}
+            >
+              Replace OE: {record.replace_oe}
+            </a>
+          ) : null}
+        </div>
+      ),
     },
     // {
     //   title: "Status",
@@ -1600,9 +1729,11 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
                         }}
                       title={() => (
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          {Array.isArray(data) && data.length > 0 && data[0]?.vendors ? (
-                            <h5 style={{ margin: 0 }}>Vendors for this Brand: {data[0].vendors}</h5>
-                          ) : <span />}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            {Array.isArray(data) && data.length > 0 && data[0]?.vendors ? (
+                              <h5 style={{ margin: 0 }}>Vendors for this Brand: {data[0].vendors}</h5>
+                            ) : <span />}
+                          </div>
                           <span style={{ fontWeight: 'bold' }}>
                             Total: {pagination.total.toLocaleString()} produtos
                           </span>
