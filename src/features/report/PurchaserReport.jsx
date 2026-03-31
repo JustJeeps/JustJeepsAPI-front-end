@@ -14,6 +14,80 @@ function getShippingCostValue(row) {
   return '';
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function buildEmailHtml(report, dateStr, initials) {
+  const columns = [
+    {
+      key: 'increment_id',
+      label: 'Order ID',
+      width: 120,
+      format: (row) => {
+        if (!row.increment_id) return '';
+        if (row.entity_id) {
+          const href = `https://www.justjeeps.com/admin_19q7yi/sales/order/view/order_id/${row.entity_id}`;
+          return `<a href=\"${escapeHtml(href)}\" style=\"color:#235789;text-decoration:none;font-weight:600;\">${escapeHtml(row.increment_id)}</a>`;
+        }
+        return escapeHtml(row.increment_id);
+      },
+    },
+    { key: 'custom_po_number', label: 'PO#', width: 160 },
+    { key: 'custom_order_note', label: 'Order Note', width: 420 },
+  ];
+
+  const colWidthStyle = (col) => col.width ? `min-width:${col.width}px;` : '';
+
+  const table = (rows) => {
+    const header = `
+      <tr>
+        ${columns.map((col) => `<th style=\"text-align:left;padding:10px 12px;background:#f8f4ef;border:1px solid #d9d9d9;font-size:13px;color:#5b6676;${colWidthStyle(col)}\">${escapeHtml(col.label)}</th>`).join('')}
+      </tr>
+    `;
+
+    const body = rows.map((row, index) => {
+      const bg = index % 2 === 0 ? '#ffffff' : '#fcfbf9';
+      const cells = columns.map((col) => {
+        const raw = col.format ? col.format(row) : escapeHtml(row[col.key] ?? '');
+        const align = ['total_qty_ordered', 'base_total_due', 'shipping_cost'].includes(col.key) ? 'right' : 'left';
+        const color = col.key === 'base_total_due' && Number(row.base_total_due) > 0 ? '#b42318' : '#1c2430';
+        return `<td style=\"padding:10px 12px;border:1px solid #d9d9d9;text-align:${align};color:${color};${colWidthStyle(col)}\">${raw}</td>`;
+      }).join('');
+      return `<tr style=\"background:${bg};\">${cells}</tr>`;
+    }).join('');
+
+    return `
+      <table style=\"width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px;table-layout:auto;\">
+        <thead>${header}</thead>
+        <tbody>${body}</tbody>
+      </table>
+    `;
+  };
+
+  const renderSection = (title, rows) => {
+    if (!rows.length) return '';
+    return `
+      <h3 style=\"margin:16px 0 8px;color:#1c2430;\">${escapeHtml(title)}</h3>
+      ${table(rows)}
+    `;
+  };
+
+  const initialsText = Array.isArray(initials) && initials.length ? initials.join(', ') : 'All';
+  return `
+    <div style=\"font-family:Arial,sans-serif;max-width:920px;margin:0 auto;color:#1c2430;\">
+      ${renderSection(`Orders closed on ${dateStr}`, report?.closed || [])}
+      ${renderSection(`Orders followed up on ${dateStr}`, report?.followedUp || [])}
+      ${renderSection('Orders waiting for a response', report?.waiting || [])}
+    </div>
+  `;
+}
+
 function exportToExcel(report, dateStr) {
   const wb = XLSX.utils.book_new();
   const columns = [
@@ -121,6 +195,9 @@ export default function PurchaserReport() {
   const [initials, setInitials] = useState(PURCHASER_INITIALS);
   const [report, setReport] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState('');
+  const [copyStatus, setCopyStatus] = useState('');
   const [error, setError] = useState('');
   const [collapsed, setCollapsed] = useState({
     closed: false,
@@ -132,6 +209,7 @@ export default function PurchaserReport() {
     if (!date || !initials.length) return;
     setReportLoading(true);
     setError('');
+    setCopyStatus('');
     try {
       // Query backend for orders matching initials only (server-side filtering)
       const params = {
@@ -199,6 +277,36 @@ export default function PurchaserReport() {
 
   const handleExport = () => {
     if (report && date) exportToExcel(report, date);
+  };
+
+  const handlePreview = () => {
+    if (!report || !date) return;
+    const html = buildEmailHtml(report, date, initials);
+    setPreviewHtml(html);
+    setCopyStatus('');
+    setPreviewOpen(true);
+  };
+
+  const handleCopyHtml = async () => {
+    if (!previewHtml) return;
+    try {
+      if (navigator.clipboard && window.ClipboardItem) {
+        const htmlBlob = new Blob([previewHtml], { type: 'text/html' });
+        const textBlob = new Blob([previewHtml], { type: 'text/plain' });
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': htmlBlob,
+            'text/plain': textBlob,
+          }),
+        ]);
+        setCopyStatus('Copied formatted table to clipboard.');
+      } else {
+        await navigator.clipboard.writeText(previewHtml);
+        setCopyStatus('Copied HTML to clipboard.');
+      }
+    } catch (err) {
+      setCopyStatus('Failed to copy HTML.');
+    }
   };
 
   return (
@@ -332,6 +440,63 @@ export default function PurchaserReport() {
         .pr-error {
           color: #b42318;
           font-weight: 500;
+        }
+
+        .pr-success {
+          color: #027a48;
+          font-weight: 600;
+        }
+
+        .pr-modal-backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.45);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 999;
+          padding: 24px;
+        }
+
+        .pr-modal {
+          width: min(980px, 100%);
+          max-height: 90vh;
+          background: #fff;
+          border-radius: 16px;
+          border: 1px solid var(--stroke);
+          box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
+          display: grid;
+          grid-template-rows: auto 1fr auto;
+        }
+
+        .pr-modal-header {
+          padding: 16px 20px;
+          border-bottom: 1px solid var(--stroke);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .pr-modal-title {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--ink);
+        }
+
+        .pr-modal-body {
+          padding: 16px 20px;
+          overflow: auto;
+          background: #f9fafb;
+        }
+
+        .pr-modal-footer {
+          padding: 12px 20px;
+          border-top: 1px solid var(--stroke);
+          display: flex;
+          gap: 12px;
+          justify-content: flex-end;
         }
 
         .pr-section {
@@ -478,8 +643,12 @@ export default function PurchaserReport() {
             <button className="pr-btn secondary" onClick={handleExport} disabled={!report}>
               Export to Excel
             </button>
+            <button className="pr-btn secondary" onClick={handlePreview} disabled={!report}>
+              Preview Email
+            </button>
           </div>
           {error && <div className="pr-error">{error}</div>}
+          {copyStatus && <div className="pr-success">{copyStatus}</div>}
         </div>
 
         {report && (
@@ -528,6 +697,22 @@ export default function PurchaserReport() {
           </div>
         )}
       </div>
+      {previewOpen && (
+        <div className="pr-modal-backdrop" onClick={() => setPreviewOpen(false)}>
+          <div className="pr-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="pr-modal-header">
+              <h3 className="pr-modal-title">Email Preview</h3>
+              <button className="pr-btn secondary" onClick={() => setPreviewOpen(false)}>Close</button>
+            </div>
+            <div className="pr-modal-body">
+              <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
+            </div>
+            <div className="pr-modal-footer">
+              <button className="pr-btn secondary" onClick={handleCopyHtml}>Copy Table</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
