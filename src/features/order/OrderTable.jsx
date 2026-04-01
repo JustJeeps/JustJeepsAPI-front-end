@@ -267,45 +267,61 @@ const buildEmailBody = (order, item, brand = "") => {
   const qty   = Number(item?.qty_ordered ?? 1);
   const sku   = formatSkuForEmail(item?.sku);
   const line  = `${qty} x ${brand ? brand + " " : ""}${sku}`;
-  const emph  = underline("ETA, cost, and shipping cost"); // 👈 underlined phrase
 
   return (
-`Could you please confirm the ${emph} for the items listed below?
+`Could you please confirm the following for the item(s) below:
 
 ${line}
+
+Please provide:
+
+ETA:
+Unit cost:
+Shipping cost:
 
 Ship to:
 ${buildShipToBlock(order)}
 
-Thank you,`
+Thank you,
+
+`
   );
 };
 
 // DS template (with Ship to:)
 const buildBody_DS = (order, item, brand = "") => {
   const line = buildItemLine(item, brand);
-  const emph = underline("ETA, cost, and shipping cost");
   return (
-`Could you please confirm the ${emph} for the item listed below?
+`Could you please confirm the following for the item(s) below:
 
 ${line}
+
+Please provide:
+
+ETA:
+Unit cost:
+Shipping cost:
 
 Ship to:
 ${buildShipToBlock(order)}
 
-Thank you,`
+Thank you,
+
+`
   );
 };
 
 // Ship-to-Store template (short & simple, no address)
 const buildBody_Store = (item, brand = "") => {
   const line = buildItemLine(item, brand);
-  const emph = underline("ETA and cost");
   return (
-`Could you please confirm the ${emph} for the item listed below?
+`Could you please confirm the ETA and unit cost for the item below?
+
 ${line}
 
-Thank you,`
+Thank you,
+
+`
   );
 };
 
@@ -344,22 +360,33 @@ const buildAllItemLines = (order) =>
 
 // DS template (all items, includes Ship to)
 const buildBodyAll_DS = (order) => (
-`Could you please confirm the ${underline("ETA, cost, and shipping cost")} for the items listed below?
+`Could you please confirm the following for the item(s) below:
 
 ${buildAllItemLines(order)}
+
+Please provide:
+
+ETA:
+Unit cost:
+Shipping cost:
 
 Ship to:
 ${buildShipToBlock(order)}
 
-Thank you,`
+Thank you,
+
+`
 );
 
 // Ship-to-Store template (all items, short)
 const buildBodyAll_Store = (order) => (
-`Could you please confirm the ${underline("ETA and cost")} for the items listed below?
+`Could you please confirm the ETA and unit cost for the item(s) below?
+
 ${buildAllItemLines(order)}
 
-Thank you,`
+Thank you,
+
+`
 );
 
 const buildBinCheckProductLines = (order) => {
