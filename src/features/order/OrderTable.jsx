@@ -2849,6 +2849,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
           {/* Filter Row */}
           <Card
             size="small"
+            className="order-filters-card"
             style={{ marginBottom: 16, backgroundColor: '#fafafa' }}
             bodyStyle={{ padding: '12px 16px' }}
           >
@@ -3022,8 +3023,8 @@ console.log("IS ARRAY?", Array.isArray(orders));
 
 
             {/* Expand Mode Toggle */}
-            <div style={{ marginLeft: 16, marginRight: 16 }}>
-              <div style={{ display: "flex", alignItems: "center" }}>
+            <div className="order-expand-controls" style={{ marginLeft: 16, marginRight: 16 }}>
+              <div className="order-expand-row" style={{ display: "flex", alignItems: "center" }}>
                 <span style={{ fontWeight: 500, marginRight: 8 }}>Expand Mode:</span>
                 <Segmented
                   options={[
@@ -3038,6 +3039,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
                   type="primary"
                   onClick={handleSeedOrdersAll}
                   size="small"
+                  className="update-orders-all-btn"
                   disabled={isSeeding}
                   loading={seedingType === "orders-all"}
                   style={{

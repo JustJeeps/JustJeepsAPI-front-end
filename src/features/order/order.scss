@@ -208,6 +208,58 @@
     --tt-label-size: 10px;
     --tt-value-size: 16px;
   }
+
+  .order-filters-card .ant-row {
+    row-gap: 10px !important;
+  }
+
+  .order-filters-card .ant-segmented {
+    width: 100% !important;
+  }
+
+  .order-filters-card .ant-space {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .order-filters-card .ant-space-item {
+    width: 100%;
+  }
+
+  .order-filters-card .ant-btn {
+    width: 100%;
+  }
+
+  .order-filters-card .ant-col[style*='text-align: right'] {
+    text-align: left !important;
+  }
+
+  .order-filters-card .ant-col[style*='text-align: right'] > .ant-space {
+    width: 100%;
+    align-items: flex-start;
+  }
+
+  .order-expand-controls {
+    margin: 0 !important;
+    width: 100%;
+  }
+
+  .order-expand-row {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .order-expand-row .ant-segmented {
+    flex: 1 1 100%;
+    min-width: 0 !important;
+  }
+
+  .update-orders-all-btn {
+    width: 100%;
+    margin-left: 0 !important;
+  }
 }
 
 @media (max-width: 600px) {
