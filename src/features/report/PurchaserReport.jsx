@@ -37,10 +37,6 @@ function buildEmailHtml(report, dateStr, initials) {
       width: 120,
       format: (row) => {
         if (!row.increment_id) return '';
-        if (row.entity_id) {
-          const href = `https://www.justjeeps.com/admin_19q7yi/sales/order/view/order_id/${row.entity_id}`;
-          return `<a href=\"${escapeHtml(href)}\" style=\"color:#235789;text-decoration:none;font-weight:600;\">${escapeHtml(row.increment_id)}</a>`;
-        }
         return escapeHtml(row.increment_id);
       },
     },
