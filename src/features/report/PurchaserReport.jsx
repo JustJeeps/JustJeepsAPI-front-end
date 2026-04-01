@@ -127,6 +127,73 @@ function buildWaitingOverdueEmail(orders) {
   };
 }
 
+function buildDateTokens(input) {
+  if (!input) return { all: [], month: [], day: [] };
+  const monthMap = {
+    jan: 'january',
+    feb: 'february',
+    mar: 'march',
+    apr: 'april',
+    may: 'may',
+    jun: 'june',
+    jul: 'july',
+    aug: 'august',
+    sep: 'september',
+    sept: 'september',
+    oct: 'october',
+    nov: 'november',
+    dec: 'december',
+  };
+  const raw = input.toString().toLowerCase().trim();
+  if (!raw) return { all: [], month: [], day: [] };
+  const parts = raw.split(/\s+/).filter(Boolean);
+  const tokens = new Set(parts);
+  const monthTokens = new Set();
+  const dayTokens = new Set();
+  const monthPart = parts.find((part) => /[a-z]/.test(part));
+  const dayPart = parts.find((part) => /\d/.test(part));
+  if (monthPart) {
+    const cleanedMonth = monthPart.replace(/[^a-z]/g, '');
+    if (cleanedMonth) {
+      tokens.add(cleanedMonth);
+      monthTokens.add(cleanedMonth);
+      if (monthMap[cleanedMonth]) {
+        tokens.add(monthMap[cleanedMonth]);
+        monthTokens.add(monthMap[cleanedMonth]);
+      } else {
+        const normalizedKey = cleanedMonth.slice(0, 3);
+        if (monthMap[normalizedKey]) {
+          tokens.add(normalizedKey);
+          tokens.add(monthMap[normalizedKey]);
+          monthTokens.add(normalizedKey);
+          monthTokens.add(monthMap[normalizedKey]);
+        }
+      }
+    }
+  }
+  if (dayPart) {
+    const digits = dayPart.replace(/\D/g, '');
+    if (digits) {
+      const dayNumber = String(Number(digits));
+      const dayZero = digits.padStart(2, '0');
+      tokens.add(dayNumber);
+      tokens.add(dayZero);
+      dayTokens.add(dayNumber);
+      dayTokens.add(dayZero);
+    }
+  }
+  return {
+    all: Array.from(tokens).filter(Boolean),
+    month: Array.from(monthTokens).filter(Boolean),
+    day: Array.from(dayTokens).filter(Boolean),
+  };
+}
+
+function matchesDateTokenSet(poNorm, tokens) {
+  if (!tokens.length) return true;
+  return tokens.some((token) => new RegExp(`\\b${token}\\b`, 'i').test(poNorm));
+}
+
 function exportToExcel(report, dateStr) {
   const wb = XLSX.utils.book_new();
   const columns = [
@@ -282,13 +349,6 @@ export default function PurchaserReport() {
           .replace(/\s+/g, ' ')
           .trim();
       const escapeRegex = (value) => value.replace(/([.*+?^=!:${}()|[\]\\])/g, '\\$1');
-      const tokensFromInput = (value) =>
-        value
-          .toString()
-          .toLowerCase()
-          .split(/\s+/)
-          .map((token) => token.trim())
-          .filter(Boolean);
       const closed = [], followedUp = [], tickets = [], waiting = [];
       for (const o of orders) {
         const po = o.custom_po_number;
@@ -299,12 +359,11 @@ export default function PurchaserReport() {
         const hasInitials = initials.some((init) =>
           new RegExp(`\\b${escapeRegex(init)}\\b`, 'i').test(poNorm)
         );
-        const dateTokens = tokensFromInput(dateStr);
+        const dateTokens = buildDateTokens(dateStr);
         const hasDate =
-          dateTokens.length > 0 &&
-          dateTokens.every((token) =>
-            new RegExp(`\\b${escapeRegex(token)}\\b`, 'i').test(poNorm)
-          );
+          dateTokens.all.length > 0 &&
+          matchesDateTokenSet(poNorm, dateTokens.month) &&
+          matchesDateTokenSet(poNorm, dateTokens.day);
         if (!notSet && hasInitials && hasDate && hasTicket) tickets.push(o);
         else if (!notSet && hasInitials && hasDate && !hasTicket) closed.push(o);
         else if (notSet && hasInitials && hasDate) followedUp.push(o);
