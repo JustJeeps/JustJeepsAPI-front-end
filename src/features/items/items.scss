@@ -60,6 +60,42 @@
   }
 }
 
+@media (max-width: 900px) {
+  .items {
+    flex-direction: column;
+    margin: 110px 0 0 0;
+  }
+
+  .items .explore-content {
+    margin: 12px;
+  }
+
+  .items .explore-content .brand-statistic {
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 12px 0;
+  }
+
+  .items .explore-content .brand-statistic .widget {
+    width: 100%;
+    height: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .items {
+    margin: 96px 0 0 0;
+  }
+
+  .items .explore-content .brand-statistic .widget .left .title {
+    font-size: 15px;
+  }
+
+  .items .explore-content .brand-statistic .widget .left .counter {
+    font-size: 20px;
+  }
+}
+
 .sidebar-brand {
   // padding: 0.5rem 1.25rem;
   font-size: 1.25rem;

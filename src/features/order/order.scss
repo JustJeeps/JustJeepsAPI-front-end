@@ -177,6 +177,52 @@
   }
 }
 
+// Top bar layout tuning for mobile
+.order-top-bar {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .order-top-bar {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .order-top-bar .update-orders-btn {
+    width: 100%;
+    height: 48px !important;
+    font-size: 1.1rem !important;
+  }
+
+  .order-top-bar .order-top-metrics {
+    width: 100%;
+  }
+
+  .tabletop-metrics {
+    justify-content: flex-start !important;
+    --tt-card-gap: 6px;
+    --tt-card-padding: 6px 10px;
+    --tt-card-min-width: 72px;
+    --tt-card-height: 52px;
+    --tt-label-size: 10px;
+    --tt-value-size: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .order-top-bar .update-orders-btn {
+    font-size: 1rem !important;
+    height: 44px !important;
+  }
+
+  .tabletop-metrics {
+    --tt-card-min-width: 68px;
+    --tt-card-height: 48px;
+    --tt-value-size: 15px;
+  }
+}
+
 // ============================================
 // GLOBAL STYLES - Apply everywhere
 // ============================================

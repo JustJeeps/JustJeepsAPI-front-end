@@ -2797,9 +2797,10 @@ console.log("IS ARRAY?", Array.isArray(orders));
     <>
       <div className="container-fluid" style={{ maxWidth: '100%' }}>
         <div className="container-xl" style={{ maxWidth: '100%', padding: '0 15px' }}>
-          <div className="container mb-3" 
+          <div className="container mb-3 order-top-bar" 
             style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '10px', marginTop: '5px' }}>
             <Button 
+              className="update-orders-btn"
               type="primary" 
               onClick={() => handleSeedOrders(200)}
               size="large"
@@ -2820,7 +2821,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
             </Button>
 
 
-            <div style={{ flex: 1 }}>
+            <div className="order-top-metrics" style={{ flex: 1 }}>
               <TableTop
                 orderCount={metrics.totalCount}
                 notSetCount={metrics.notSetCount}

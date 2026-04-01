@@ -711,6 +711,67 @@ export default function PurchaserReport() {
           letter-spacing: 0.02em;
         }
 
+        @media (max-width: 900px) {
+          .pr-shell {
+            gap: 18px;
+          }
+
+          .pr-toolbar {
+            grid-template-columns: 1fr;
+            padding: 14px;
+          }
+
+          .pr-actions {
+            width: 100%;
+          }
+
+          .pr-btn {
+            width: 100%;
+            text-align: center;
+          }
+
+          .pr-section {
+            padding: 16px;
+          }
+
+          .pr-table-wrap {
+            max-height: 60vh;
+          }
+        }
+
+        @media (max-width: 600px) {
+          .pr-container {
+            padding: 48px 16px 90px;
+          }
+
+          .pr-title {
+            font-size: 26px;
+          }
+
+          .pr-subtitle {
+            font-size: 13px;
+          }
+
+          .pr-modal {
+            max-height: 92vh;
+          }
+
+          .pr-modal-header,
+          .pr-modal-body,
+          .pr-modal-footer {
+            padding: 12px 14px;
+          }
+
+          .pr-table {
+            font-size: 12px;
+          }
+
+          .pr-table th,
+          .pr-table td {
+            padding: 8px 10px;
+          }
+        }
+
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(8px); }
           to { opacity: 1; transform: translateY(0); }

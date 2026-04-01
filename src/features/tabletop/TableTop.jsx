@@ -89,24 +89,28 @@ const TableTop = ({
   ];
 
   return (
-    <div style={{
-      display: 'flex',
-      gap: '8px',
-      flexWrap: 'wrap',
-      justifyContent: 'flex-end',
-    }}>
+    <div
+      className="tabletop-metrics"
+      style={{
+        display: 'flex',
+        gap: 'var(--tt-card-gap, 8px)',
+        flexWrap: 'wrap',
+        justifyContent: 'flex-end',
+      }}
+    >
       {metrics.map((metric, index) => (
         <div
           key={index}
           onClick={metric.onClick}
+          className={`tabletop-card${metric.isActive ? ' tabletop-card-active' : ''}`}
           style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '8px 16px',
-            minWidth: '80px',
-            height: '60px',
+            padding: 'var(--tt-card-padding, 8px 16px)',
+            minWidth: 'var(--tt-card-min-width, 80px)',
+            height: 'var(--tt-card-height, 60px)',
             borderRadius: '8px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
@@ -134,7 +138,7 @@ const TableTop = ({
           }}
         >
           <span style={{
-            fontSize: '11px',
+            fontSize: 'var(--tt-label-size, 11px)',
             fontWeight: 500,
             color: '#666',
             textTransform: 'uppercase',
@@ -146,7 +150,7 @@ const TableTop = ({
             <Spin size="small" />
           ) : (
             <span style={{
-              fontSize: '20px',
+              fontSize: 'var(--tt-value-size, 20px)',
               fontWeight: 700,
               color: metric.color,
               lineHeight: 1.2,
