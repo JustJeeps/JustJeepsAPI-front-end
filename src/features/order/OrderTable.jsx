@@ -362,6 +362,92 @@ ${buildAllItemLines(order)}
 Thank you,`
 );
 
+const buildBinCheckProductLines = (order) => {
+  const items = Array.isArray(order?.items) ? order.items : [];
+  if (!items.length) return "—";
+
+  return items
+    .map((item) => {
+      const sku = item?.sku || "—";
+      const name = item?.name || item?.product?.name || "—";
+      return `${sku}: ${name}`;
+    })
+    .join("\n");
+};
+
+const buildBinCheckBody = (order) => {
+  const fraudScore = order?.weltpixel_fraud_score ?? "—";
+  const subtotalValue = getOrderSubtotalValue(order);
+  const orderTotal = subtotalValue === null ? "—" : `$${subtotalValue.toFixed(2)}`;
+  const region = order?.region || "—";
+  const customerName = [order?.customer_firstname, order?.customer_lastname]
+    .filter(Boolean)
+    .join(" ") || "—";
+  const customerEmail = order?.customer_email || "—";
+  const customerPhone =
+    order?.shipping_telephone ||
+    order?.telephone ||
+    order?.billing_telephone ||
+    "—";
+  const products = buildBinCheckProductLines(order);
+
+  return (
+`Hi Jacob,
+
+Could you please confirm whether you'd like me to run a BIN check on this order, or should I go ahead and proceed?
+
+FRAUD SCORE: ${fraudScore}
+ORDER TOTAL: ${orderTotal}
+REGION: ${region}
+CUSTOMER: ${customerName}
+EMAIL: ${customerEmail}
+PHONE: ${customerPhone}
+
+PRODUCTS:
+${products}
+
+Thank you!
+
+`
+
+  );
+};
+
+const buildShippingQuoteItems = (order) => {
+  const items = Array.isArray(order?.items) ? order.items : [];
+  if (!items.length) return "—";
+
+  return items
+    .map((item) => {
+      const qty = Number(item?.qty_ordered ?? 1);
+      const sku = item?.sku || "—";
+      return `${qty} x ${sku}`;
+    })
+    .join("\n");
+};
+
+const buildShippingQuoteBody = (order) => {
+  const items = buildShippingQuoteItems(order);
+  const shipTo = buildShipToBlock(order);
+  const email = order?.customer_email || "—";
+
+  return (
+`Hi Anthony,
+
+Could you please provide the shipping cost for:
+${items}
+
+Ship to:
+
+${shipTo}
+Email: ${email}
+
+Thank you!
+
+`
+  );
+};
+
 
 
 
@@ -1376,15 +1462,23 @@ Thank you,`
       title: "ETA",
       key: "email_all",
       align: "center",
-      width: 80,
+      width: 150,
       render: (_, record) => {
         const to = DEFAULT_PURCHASING_EMAIL;
         const subject = buildEmailSubject(record);
         const bodyAllDS = buildBodyAll_DS(record);
         const bodyAllSto = buildBodyAll_Store(record);
+        const binTo = "jkemper@justjeeps.com";
+        const binSubject = `Order ${record?.increment_id || ""} - BIN check`;
+        const binBody = buildBinCheckBody(record);
+        const shippingTo = "asmith@justjeeps.com,jkemper@justjeeps.com";
+        const shippingSubject = `Order ${record?.increment_id || ""} - Shipping quote`;
+        const shippingBody = buildShippingQuoteBody(record);
 
         const mailtoDS = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyAllDS)}`;
         const mailtoSto = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyAllSto)}`;
+        const mailtoBin = `mailto:${binTo}?subject=${encodeURIComponent(binSubject)}&body=${encodeURIComponent(binBody)}`;
+        const mailtoShipping = `mailto:${shippingTo}?subject=${encodeURIComponent(shippingSubject)}&body=${encodeURIComponent(shippingBody)}`;
 
         return (
           <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
@@ -1425,6 +1519,46 @@ Thank you,`
                   justifyContent: 'center',
                   backgroundColor: '#1890ff',
                   borderColor: '#1890ff',
+                  color: '#fff',
+                }}
+              />
+            </Tooltip>
+            <Tooltip title="BIN check">
+              <Button
+                size="small"
+                icon={<QuestionCircleOutlined style={{ fontSize: 14 }} />}
+                href={mailtoBin}
+                target="_self"
+                style={{
+                  width: 32,
+                  height: 32,
+                  padding: 0,
+                  borderRadius: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#595959',
+                  borderColor: '#595959',
+                  color: '#fff',
+                }}
+              />
+            </Tooltip>
+            <Tooltip title="Shipping quote">
+              <Button
+                size="small"
+                icon={<GlobalOutlined style={{ fontSize: 14 }} />}
+                href={mailtoShipping}
+                target="_self"
+                style={{
+                  width: 32,
+                  height: 32,
+                  padding: 0,
+                  borderRadius: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#096dd9',
+                  borderColor: '#096dd9',
                   color: '#fff',
                 }}
               />
