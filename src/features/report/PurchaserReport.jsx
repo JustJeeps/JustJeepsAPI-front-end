@@ -8,6 +8,7 @@ import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 const PURCHASER_INITIALS = ['PM', 'KD', 'JD', 'JK'];
 const WAITING_RESPONSE_DAYS = 30;
+const TORONTO_TIMEZONE = 'America/Toronto';
 
 function getTodayLabel() {
   const now = new Date();
@@ -18,6 +19,43 @@ function getShippingCostValue(row) {
   if (!row) return '';
   if (row.shipping_cost_jj !== undefined && row.shipping_cost_jj !== null) return row.shipping_cost_jj;
   return '';
+}
+
+function parseMagentoTimestamp(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  const raw = String(value).trim();
+  if (!raw) return null;
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(raw)) {
+    return new Date(`${raw.replace(' ', 'T')}Z`);
+  }
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function formatDateToronto(value) {
+  const parsed = parseMagentoTimestamp(value);
+  if (!parsed) return '';
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: TORONTO_TIMEZONE,
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(parsed);
+}
+
+function formatDateTimeToronto(value) {
+  const parsed = parseMagentoTimestamp(value);
+  if (!parsed) return '';
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: TORONTO_TIMEZONE,
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(parsed);
 }
 
 function escapeHtml(value) {
@@ -196,6 +234,7 @@ function exportToExcel(report, dateStr) {
   const columns = [
     // { key: 'created_at', label: 'Order Date' },
     { key: 'increment_id', label: 'Order ID' },
+    // { key: 'updated_at', label: 'Updated At' },
     { key: 'custom_po_number', label: 'PO#' },
     { key: 'custom_order_note', label: 'Order Note' },
     // { key: 'total_qty_ordered', label: 'Items Ordered Qty' },
@@ -209,7 +248,10 @@ function exportToExcel(report, dateStr) {
   const formatRow = (row) =>
     columns.map((col) => {
       if (col.key === 'created_at') {
-        return row[col.key] ? new Date(row[col.key]).toLocaleDateString() : '';
+        return formatDateToronto(row[col.key]);
+      }
+      if (col.key === 'updated_at') {
+        return formatDateTimeToronto(row[col.key]);
       }
       if (col.key === 'shipping_cost') {
         return getShippingCostValue(row);
@@ -970,7 +1012,7 @@ function ReportTable({ rows }) {
                     col.key === 'base_total_due' && Number.isFinite(Number(row[col.key])) && Number(row[col.key]) > 0 ? 'pr-alert' : '',
                   ].filter(Boolean).join(' ')}
                 >
-                  {col.key === 'created_at' && row[col.key] ? new Date(row[col.key]).toLocaleDateString()
+                  {col.key === 'created_at' ? formatDateToronto(row[col.key])
                     : col.key === 'increment_id' && row.increment_id && row.entity_id ? (
                       <a
                         className="pr-link"
