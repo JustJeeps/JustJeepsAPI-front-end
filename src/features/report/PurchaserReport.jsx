@@ -86,6 +86,7 @@ function buildEmailHtml(report, dateStr, initials) {
       ${renderSection(`Orders closed on ${dateStr}`, report?.closed || [])}
       ${renderSection(`Orders followed up on ${dateStr}`, report?.followedUp || [])}
       ${renderSection(`Orders with tickets on ${dateStr}`, report?.tickets || [])}
+      ${renderSection(`Orders assigned to staff on ${dateStr}`, report?.assigned || [])}
       ${renderSection('Orders waiting for a response', report?.waiting || [])}
     </div>
   `;
@@ -229,6 +230,7 @@ function exportToExcel(report, dateStr) {
   buildSectionRows(`Orders closed on ${dateStr}`, report?.closed || []);
   buildSectionRows(`Orders followed up on ${dateStr}`, report?.followedUp || []);
   buildSectionRows(`Orders with tickets on ${dateStr}`, report?.tickets || []);
+  buildSectionRows(`Orders assigned to staff on ${dateStr}`, report?.assigned || []);
   buildSectionRows('Orders waiting for a response', report?.waiting || []);
   if (sheetRows.length && sheetRows[sheetRows.length - 1].length === 0) {
     sheetRows.pop();
@@ -306,6 +308,7 @@ export default function PurchaserReport() {
     closed: false,
     followedUp: false,
     tickets: false,
+    assigned: false,
     waiting: false,
   });
 
@@ -345,10 +348,9 @@ export default function PurchaserReport() {
           .replace(/\s+/g, ' ')
           .trim();
       const escapeRegex = (value) => value.replace(/([.*+?^=!:${}()|[\]\\])/g, '\\$1');
-      const closed = [], followedUp = [], tickets = [], waiting = [];
+      const closed = [], followedUp = [], tickets = [], assigned = [], waiting = [];
       for (const o of orders) {
         const po = o.custom_po_number;
-        if (!po) continue;
         const poNorm = normalizePo(po);
         const notSet = /\bnot set\b/i.test(poNorm);
         const hasTicket = /\bticket\b/i.test(poNorm);
@@ -360,12 +362,17 @@ export default function PurchaserReport() {
           dateTokens.all.length > 0 &&
           matchesDateTokenSet(poNorm, dateTokens.month) &&
           matchesDateTokenSet(poNorm, dateTokens.day);
+        const noteNorm = normalizePo(o.custom_order_note);
+        const isAssigned = /\bassigned\s+to\b/i.test(noteNorm) &&
+          matchesDateTokenSet(noteNorm, dateTokens.month) &&
+          matchesDateTokenSet(noteNorm, dateTokens.day);
         if (!notSet && hasInitials && hasDate && hasTicket) tickets.push(o);
+        else if (isAssigned) assigned.push(o);
         else if (!notSet && hasInitials && hasDate && !hasTicket) closed.push(o);
         else if (notSet && hasInitials && hasDate) followedUp.push(o);
         else if (notSet && hasInitials && !hasDate) waiting.push(o);
       }
-      setReport({ closed, followedUp, tickets, waiting });
+      setReport({ closed, followedUp, tickets, assigned, waiting });
     } catch (err) {
       setError('Failed to fetch report data.');
     } finally {
@@ -867,6 +874,20 @@ export default function PurchaserReport() {
                 <h3 className="pr-section-title">Orders with tickets on {date} ({report.tickets.length})</h3>
               </div>
               {!collapsed.tickets && <ReportTable rows={report.tickets} />}
+            </div>
+
+            <div className={`pr-section${collapsed.assigned ? ' collapsed' : ''}`}>
+              <div className="pr-section-header">
+                <button
+                  type="button"
+                  className="pr-toggle"
+                  onClick={() => setCollapsed((prev) => ({ ...prev, assigned: !prev.assigned }))}
+                >
+                  {collapsed.assigned ? '▶' : '▼'}
+                </button>
+                <h3 className="pr-section-title">Orders assigned to staff on {date} ({report.assigned.length})</h3>
+              </div>
+              {!collapsed.assigned && <ReportTable rows={report.assigned} />}
             </div>
 
             <div className={`pr-section${collapsed.waiting ? ' collapsed' : ''}`}>
