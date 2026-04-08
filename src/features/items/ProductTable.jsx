@@ -409,7 +409,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 					{ key: 'ctp', label: 'CTP' },
 					{ key: 'grandwest', label: 'Grandwest' },
 					{ key: 't14', label: 'T14' },
-					{ key: 'apg', label: 'APG' },
+					{ key: 'apg', label: 'APG (Premier Performance)' },
 					{ key: 'amazon', label: 'Amazon.ca' },
 				];
 
@@ -421,7 +421,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 						ctp: ['ctp', 'ctp distributors'],
 						grandwest: ['grandwest'],
 						t14: ['t14', 'turn14'],
-						apg: ['apg'],
+						apg: ['apg', 'premier performance'],
 						amazon: ['amazon'],
 					};
 
@@ -549,6 +549,12 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
       const vendorSKU = vendorProduct.vendor_sku?.trim();
       const productSKU = vendorProduct.product_sku?.trim();
       const vendorNameLower = vendorName.toLowerCase();
+				const searchableSku = record.searchable_sku?.trim();
+				const sku = record.sku?.trim();
+				const displayVendorName =
+					vendorNameLower === 'premier performance' || vendorNameLower === 'apg'
+						? 'APG (Premier Performance)'
+						: vendorName;
 
       // Check if this vendor is the best (highest margin with inventory)
       const isBestVendor = bestVendor &&
@@ -609,6 +615,11 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
         link = vendorSKU
           ? `https://turn14.com/search/index.php?vmmPart=${encodeURIComponent(vendorSKU)}`
           : null;
+				} else if (vendorNameLower === 'apg' || vendorNameLower === 'premier performance') {
+					const vendorSku = vendorSKU || searchableSku || sku;
+					link = vendorSku
+						? `https://apgwholesale.com/pages/search-results-page?q=${encodeURIComponent(vendorSku)}`
+						: 'https://apgwholesale.com/';
       } else if (vendorNameLower === 'metalcloak') {
         const metalCloakCode = vendorSKU?.replace(/^MTK-/, '');
         link = metalCloakCode
@@ -639,10 +650,10 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
             )}
             {link ? (
               <a href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '14px', fontWeight: 500 }}>
-                {vendorName}
+							{displayVendorName}
               </a>
             ) : (
-              <span style={{ fontSize: '14px', fontWeight: 500 }}>{vendorName}</span>
+						<span style={{ fontSize: '14px', fontWeight: 500 }}>{displayVendorName}</span>
             )}
           </div>
           <CopyText text={`CAD$ ${vendorProduct.vendor_cost.toFixed(2)} / USD$ ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}`}>
