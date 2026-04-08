@@ -320,6 +320,141 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			},
 		},
 
+		{
+			title: 'No Cost Vendors',
+			key: 'no_cost_vendors',
+			width: 120,
+			align: 'center',
+			render: (record) => {
+				const vendorProducts = Array.isArray(record.vendorProducts)
+					? record.vendorProducts
+					: [];
+				const searchableSku = record.searchable_sku?.trim();
+				const sku = record.sku?.trim();
+				const productSku = record.product_sku?.trim();
+				const keystoneCode = record.keystone_code_site?.trim();
+
+				const getVendorSku = (vendorNameLower) => {
+					const match = vendorProducts.find(
+						(vp) => vp?.vendor?.name?.toLowerCase() === vendorNameLower
+					);
+					return match?.vendor_sku?.trim() || searchableSku || sku || '';
+				};
+
+				const buildLink = (vendorKey) => {
+					switch (vendorKey) {
+						case 'keystone': {
+							if (keystoneCode) {
+								let formattedCode = keystoneCode;
+								if (/^BES\d{7}$/.test(keystoneCode)) {
+									formattedCode = `${keystoneCode.slice(0, -2)}-${keystoneCode.slice(-2)}`;
+								}
+								return `https://wwwsc.ekeystone.com/Search/Detail?pid=${encodeURIComponent(formattedCode)}`;
+							}
+							return 'https://wwwsc.ekeystone.com/';
+						}
+						case 'meyer': {
+							const vendorSku = getVendorSku('meyer');
+							return vendorSku
+								? `https://online.meyerdistributing.com/parts/details/${encodeURIComponent(vendorSku)}`
+								: 'https://online.meyerdistributing.com/';
+						}
+						case 'quadratec': {
+							const normalizedProductSku = productSku?.trim();
+							const quadCode = /^PS-/i.test(normalizedProductSku || '')
+								? normalizedProductSku.replace(/^PS-/i, '').replace(/-/g, '')
+								: normalizedProductSku?.includes('-')
+									? normalizedProductSku.split('-').slice(1).join('-')
+									: normalizedProductSku || sku;
+							return quadCode
+								? `https://www.quadratecwholesale.com/catalogsearch/result/?q=${encodeURIComponent(quadCode)}`
+								: 'https://www.quadratecwholesale.com/';
+						}
+						case 'ctp': {
+							const vendorSku = getVendorSku('ctp distributors') || getVendorSku('ctp');
+							return vendorSku
+								? `https://www.ctpdistributors.com/search-parts?find=${encodeURIComponent(vendorSku)}`
+								: 'https://www.ctpdistributors.com/';
+						}
+						case 'grandwest':
+							return 'https://www.grandwestauto.com/';
+						case 't14': {
+							const vendorSku = getVendorSku('t14') || getVendorSku('turn14');
+							return vendorSku
+								? `https://turn14.com/search/index.php?vmmPart=${encodeURIComponent(vendorSku)}`
+								: 'https://turn14.com/';
+						}
+						case 'apg': {
+							const vendorSku = getVendorSku('apg');
+							return vendorSku
+								? `https://apgwholesale.com/pages/search-results-page?q=${encodeURIComponent(vendorSku)}`
+								: 'https://apgwholesale.com/';
+						}
+						default:
+							return null;
+					}
+				};
+
+				const allVendors = [
+					{ key: 'keystone', label: 'Keystone' },
+					{ key: 'meyer', label: 'Meyer' },
+					{ key: 'quadratec', label: 'Quadratec' },
+					{ key: 'ctp', label: 'CTP' },
+					{ key: 'grandwest', label: 'Grandwest' },
+					{ key: 't14', label: 'T14' },
+					{ key: 'apg', label: 'APG' },
+				];
+
+				const vendorHasCost = (vendorKey) => {
+					const vendorNames = {
+						keystone: ['keystone'],
+						meyer: ['meyer'],
+						quadratec: ['quadratec'],
+						ctp: ['ctp', 'ctp distributors'],
+						grandwest: ['grandwest'],
+						t14: ['t14', 'turn14'],
+						apg: ['apg'],
+					};
+
+					const names = vendorNames[vendorKey] || [vendorKey];
+					return vendorProducts.some((vp) => {
+						const name = vp?.vendor?.name?.toLowerCase();
+						const cost = Number(vp?.vendor_cost);
+						return names.includes(name) && Number.isFinite(cost);
+					});
+				};
+
+				return (
+					<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+						{allVendors.map((vendor) => {
+							if (vendorHasCost(vendor.key)) return null;
+							const link = buildLink(vendor.key);
+							return (
+								<a
+									key={vendor.key}
+									href={link}
+									target="_blank"
+									rel="noopener noreferrer"
+									style={{
+										backgroundColor: '#eef5ff',
+										padding: '3px 8px',
+										borderRadius: '4px',
+										fontSize: '13px',
+										fontWeight: 500,
+										color: '#1a4b8c',
+										whiteSpace: 'nowrap',
+										textDecoration: 'underline',
+									}}
+								>
+									{vendor.label}
+								</a>
+							);
+						})}
+					</div>
+				);
+			},
+		},
+
 // {
 //   title: 'Vendor Name',
 //   dataIndex: null,
