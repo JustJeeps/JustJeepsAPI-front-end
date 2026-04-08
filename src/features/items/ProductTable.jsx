@@ -390,6 +390,13 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 								? `https://apgwholesale.com/pages/search-results-page?q=${encodeURIComponent(vendorSku)}`
 								: 'https://apgwholesale.com/';
 						}
+						case 'amazon': {
+							const vendorSku = getVendorSku('amazon');
+							const searchTerm = vendorSku || searchableSku || sku || '';
+							return searchTerm
+								? `https://www.amazon.ca/s?k=${encodeURIComponent(searchTerm)}`
+								: 'https://www.amazon.ca/';
+						}
 						default:
 							return null;
 					}
@@ -403,6 +410,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 					{ key: 'grandwest', label: 'Grandwest' },
 					{ key: 't14', label: 'T14' },
 					{ key: 'apg', label: 'APG' },
+					{ key: 'amazon', label: 'Amazon.ca' },
 				];
 
 				const vendorHasCost = (vendorKey) => {
@@ -414,6 +422,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 						grandwest: ['grandwest'],
 						t14: ['t14', 'turn14'],
 						apg: ['apg'],
+						amazon: ['amazon'],
 					};
 
 					const names = vendorNames[vendorKey] || [vendorKey];
