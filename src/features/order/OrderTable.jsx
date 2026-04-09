@@ -6,6 +6,7 @@ import {
   ShoppingCartOutlined,
   SendOutlined,
   ShopOutlined,
+  StarFilled,
 } from "@ant-design/icons";
 import { useEffect, useState, useRef, useCallback } from "react";
 import axios from "axios";
@@ -189,6 +190,77 @@ const getUnitCost = (item) => {
 
   const fromProduct = parseMoney(item?.product?.cost);
   return fromProduct;
+};
+
+const isAvailableInventory = (vendorProduct) => {
+  if (!vendorProduct) return false;
+  const vendorName = vendorProduct.vendor?.name?.toLowerCase?.() || "";
+  if (vendorName.includes("metalcloak") || vendorName.includes("aev") || vendorName.includes("key parts") || vendorName.includes("keyparts")) {
+    return true;
+  }
+  if (vendorProduct.vendor_inventory > 0) return true;
+  const inventoryString = vendorProduct.vendor_inventory_string?.toLowerCase?.() || "";
+  if (!inventoryString) return false;
+  if (inventoryString.includes("out")) return false;
+  if (inventoryString.includes("cad stock: 0 / us stock: 0")) return false;
+  return true;
+};
+
+const getBestAvailableVendor = (item, currency) => {
+  const vendorList = Array.isArray(item?.vendorProducts)
+    ? item.vendorProducts
+    : item?.vendorProduct
+      ? [item.vendorProduct]
+      : Array.isArray(item?.product?.vendorProducts)
+        ? item.product.vendorProducts
+        : [];
+  const available = vendorList.filter(isAvailableInventory);
+  if (!available.length) return null;
+
+  const sellPrice = parseMoney(item?.price ?? item?.base_price);
+  if (!Number.isFinite(sellPrice) || sellPrice <= 0) return null;
+
+  let best = null;
+  let bestMargin = -Infinity;
+
+  available.forEach((vp) => {
+    const rawCost = parseMoney(vp?.vendor_cost);
+    if (!Number.isFinite(rawCost) || rawCost <= 0) return;
+    const adjustedCost = currency === "USD" ? rawCost / 1.5 : rawCost;
+    const margin = ((sellPrice - adjustedCost) / adjustedCost) * 100;
+    if (margin > bestMargin) {
+      bestMargin = margin;
+      best = { vendorProduct: vp, margin };
+    }
+  });
+
+  return best;
+};
+
+const getSelectedSupplierMargin = (item, currency) => {
+  const selectedCost = parseMoney(item?.selected_supplier_cost);
+  if (!Number.isFinite(selectedCost) || selectedCost <= 0) return null;
+
+  const sellPrice = parseMoney(item?.price ?? item?.base_price);
+  if (!Number.isFinite(sellPrice) || sellPrice <= 0) return null;
+
+  const adjustedCost = currency === "USD" ? selectedCost / 1.5 : selectedCost;
+  return ((sellPrice - adjustedCost) / adjustedCost) * 100;
+};
+
+const isWinningItem = (item, currency, minMargin = 18) => {
+  const best = getBestAvailableVendor(item, currency);
+  if (best && best.margin >= minMargin) return true;
+
+  const selectedMargin = getSelectedSupplierMargin(item, currency);
+  return Number.isFinite(selectedMargin) && selectedMargin >= minMargin;
+};
+
+const isWinningOrder = (order, minMargin = 18) => {
+  const items = Array.isArray(order?.items) ? order.items : [];
+  if (!items.length) return false;
+  const currency = order?.order_currency_code || "CAD";
+  return items.every((item) => isWinningItem(item, currency, minMargin));
 };
 
 
@@ -1186,16 +1258,28 @@ Thank you!
       sorter: (a, b) => a.custom_po_number?.localeCompare(b.custom_po_number),
       sortOrder: sortedInfo.columnKey === "custom_po_number" && sortedInfo.order,
       ...getColumnSearchProps("custom_po_number"),
-      render: (text) => {
-        const isMissing = !text || text.trim() === "" || text.trim().toLowerCase() === "not set";
+      render: (text, record) => {
+        const normalized = (text || "").trim().toLowerCase();
+        const isMissing = !normalized || normalized === "not set";
+        const hasNotSet = normalized.includes("not set");
+        const showWinner = hasNotSet && isWinningOrder(record, 18);
         return (
-          <span style={{
-            color: isMissing ? '#ff4d4f' : '#1a1a1a',
-            fontWeight: isMissing ? 700 : 500,
-            fontSize: '15px'
-          }}>
-            {isMissing ? 'NOT SET' : text}
-          </span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <span style={{
+              color: isMissing ? '#ff4d4f' : '#1a1a1a',
+              fontWeight: isMissing ? 700 : 500,
+              fontSize: '15px'
+            }}>
+              {isMissing ? 'NOT SET' : text}
+            </span>
+            {showWinner && (
+              <Tooltip title="All products with margin and stock">
+                <span style={{ display: "flex", alignItems: "center" }}>
+                  <StarFilled style={{ color: "#faad14", fontSize: 14 }} />
+                </span>
+              </Tooltip>
+            )}
+          </div>
         );
       },
     },
