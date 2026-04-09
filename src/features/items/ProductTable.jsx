@@ -377,7 +377,9 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 								: 'https://www.ctpdistributors.com/';
 						}
 						case 'grandwest':
-							return 'https://www.grandwestauto.com/';
+							return searchableSku || sku
+								? `https://www.grandwestauto.com/search?keywords=${encodeURIComponent(searchableSku || sku)}`
+								: 'https://www.grandwestauto.com/';
 						case 't14': {
 							const vendorSku = getVendorSku('t14') || getVendorSku('turn14');
 							return vendorSku
