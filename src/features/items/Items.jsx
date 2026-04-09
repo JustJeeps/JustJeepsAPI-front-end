@@ -982,6 +982,14 @@ const handleTableChange = (newPage, newPageSize) => {
       const vendorSKU = vendorProduct.vendor_sku?.trim();
       const productSKU = vendorProduct.product_sku?.trim();
       const vendorNameLower = vendorName.toLowerCase();
+      const searchableSku = record.searchable_sku?.trim();
+      const sku = record.sku?.trim();
+      const displayVendorName =
+        vendorNameLower === 'premier performance' ||
+        vendorNameLower === 'apg' ||
+        vendorNameLower === 'agp wholesale'
+          ? 'AGP Wholesale'
+          : vendorName;
 
       // Generate vendor link
       let link = null;
@@ -1044,6 +1052,11 @@ const handleTableChange = (newPage, newPageSize) => {
         link = vendorSKU
           ? `https://turn14.com/search/index.php?vmmPart=${encodeURIComponent(vendorSKU)}`
           : null;
+      } else if (vendorNameLower === 'apg' || vendorNameLower === 'premier performance' || vendorNameLower === 'agp wholesale') {
+        const vendorSku = vendorSKU || searchableSku || sku;
+        link = vendorSku
+          ? `https://apgwholesale.com/pages/search-results-page?q=${encodeURIComponent(vendorSku)}`
+          : 'https://apgwholesale.com/';
       } else if (vendorNameLower === 'metalcloak') {
         const metalCloakCode = vendorSKU?.replace(/^MTK-/, '');
         link = metalCloakCode
@@ -1117,10 +1130,10 @@ const handleTableChange = (newPage, newPageSize) => {
                 rel="noopener noreferrer"
                 style={{ color: '#1890ff', textDecoration: 'none' }}
               >
-                {vendorName}
+                {displayVendorName}
               </a>
             ) : (
-              <span>{vendorName}</span>
+              <span>{displayVendorName}</span>
             )}
           </div>
 

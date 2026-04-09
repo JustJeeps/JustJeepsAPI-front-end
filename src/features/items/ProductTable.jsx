@@ -411,7 +411,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 					{ key: 'ctp', label: 'CTP' },
 					{ key: 'grandwest', label: 'Grandwest' },
 					{ key: 't14', label: 'T14' },
-					{ key: 'apg', label: 'APG (Premier Performance)' },
+					{ key: 'apg', label: 'AGP Wholesale' },
 					{ key: 'amazon', label: 'Amazon.ca' },
 				];
 
@@ -423,7 +423,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 						ctp: ['ctp', 'ctp distributors'],
 						grandwest: ['grandwest'],
 						t14: ['t14', 'turn14'],
-						apg: ['apg', 'premier performance'],
+						apg: ['apg', 'premier performance', 'agp wholesale'],
 						amazon: ['amazon'],
 					};
 
@@ -553,10 +553,12 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
       const vendorNameLower = vendorName.toLowerCase();
 				const searchableSku = record.searchable_sku?.trim();
 				const sku = record.sku?.trim();
-				const displayVendorName =
-					vendorNameLower === 'premier performance' || vendorNameLower === 'apg'
-						? 'APG (Premier Performance)'
-						: vendorName;
+					const displayVendorName =
+						vendorNameLower === 'premier performance' ||
+						vendorNameLower === 'apg' ||
+						vendorNameLower === 'agp wholesale'
+							? 'AGP Wholesale'
+							: vendorName;
 
       // Check if this vendor is the best (highest margin with inventory)
       const isBestVendor = bestVendor &&
