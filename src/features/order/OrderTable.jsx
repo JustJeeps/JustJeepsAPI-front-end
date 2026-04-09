@@ -1264,7 +1264,7 @@ Thank you!
         const hasNotSet = normalized.includes("not set");
         const showWinner = hasNotSet && isWinningOrder(record, 18);
         return (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, position: "relative", width: "100%" }}>
             <span style={{
               color: isMissing ? '#ff4d4f' : '#1a1a1a',
               fontWeight: isMissing ? 700 : 500,
@@ -1274,7 +1274,7 @@ Thank you!
             </span>
             {showWinner && (
               <Tooltip title="All products with margin and stock">
-                <span style={{ display: "flex", alignItems: "center" }}>
+                <span style={{ display: "flex", alignItems: "center", position: "absolute", right: 0 }}>
                   <StarFilled style={{ color: "#faad14", fontSize: 14 }} />
                 </span>
               </Tooltip>
