@@ -597,8 +597,11 @@ Thank you!
   }, []);
 
   //load all data with pagination and filters
-  const loadData = useCallback(async (page = 1, pageSize = 25, currentFilters = filters) => {
-    setLoading(true);
+  const loadData = useCallback(async (page = 1, pageSize = 25, currentFilters = filters, options = {}) => {
+    const { silent = false } = options;
+    if (!silent) {
+      setLoading(true);
+    }
     try {
       const params = {
         page,
@@ -637,7 +640,9 @@ Thank you!
     } catch (error) {
       console.error("Failed to fetch orders:", error);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, [filters]);
   
@@ -1816,7 +1821,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
     console.log("record on close", record);
     setCurrentSku(null);
     setOpen(false);
-    loadData(pagination.current, pagination.pageSize, filters);
+    loadData(pagination.current, pagination.pageSize, filters, { silent: true });
   };
 
   const handleExpand = (expanded, record) => {
@@ -2728,6 +2733,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
       <Table
         columns={nestedColumns}
         dataSource={items}
+        rowKey={(item) => item?.id || item?.item_id || item?.sku}
         pagination={false}
         size="large"
         footer={() => (
