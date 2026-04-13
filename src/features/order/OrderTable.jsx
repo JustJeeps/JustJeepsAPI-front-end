@@ -263,6 +263,26 @@ const isWinningOrder = (order, minMargin = 18) => {
   return items.every((item) => isWinningItem(item, currency, minMargin));
 };
 
+const hasFraudWarning = (order) => {
+  const score = parseFloat(order?.weltpixel_fraud_score);
+  const grandTotal = parseFloat(order?.grand_total);
+  const paymentSource = order?.payment_method || order?.method_title || "";
+  const isPayPal = /paypal/i.test(paymentSource);
+  const isHighFraud = !isPayPal && !isNaN(score) && score > 10;
+  const isQuebecHighValue = order?.region?.toLowerCase?.() === "quebec" && !isNaN(grandTotal) && grandTotal > 300;
+  return !isPayPal && (isHighFraud || isQuebecHighValue);
+};
+
+const hasRegionWarning = (order) => {
+  const flaggedRegions = [
+    "New Brunswick", "Nova Scotia", "Prince Edward Island",
+    "Newfoundland & Labrador", "Newfoundland", "Labrador",
+    "Yukon", "Northwest Territories", "Nunavut",
+    "Newfoundland and Labrador", "Yukon Territory"
+  ];
+  return flaggedRegions.includes(order?.region);
+};
+
 
  // map vendor "labels" you use on orders → their email (edit as needed)
 const vendorEmailMap = {
@@ -626,6 +646,13 @@ Thank you!
           const po = (order?.custom_po_number || '').trim().toLowerCase();
           const hasNotSet = po.includes('not set');
           return hasNotSet && isWinningOrder(order, 18);
+        });
+      } else if (currentFilters.starStatus === 'starred_ready') {
+        ordersData = ordersData.filter((order) => {
+          const po = (order?.custom_po_number || '').trim().toLowerCase();
+          const isNotSet = po === 'not set';
+          const hasStar = po.includes('not set') && isWinningOrder(order, 18);
+          return isNotSet && hasStar && !hasFraudWarning(order) && !hasRegionWarning(order);
         });
       }
 
@@ -2979,6 +3006,9 @@ console.log("IS ARRAY?", Array.isArray(orders));
                   <Select.Option value="starred">
                     <Tag color="gold">STARRED PO</Tag>
                   </Select.Option>
+                  <Select.Option value="starred_ready">
+                    <Tag color="lime">STARRED READY</Tag>
+                  </Select.Option>
                 </Select>
               </Col>
 
@@ -3122,7 +3152,8 @@ console.log("IS ARRAY?", Array.isArray(orders));
                   <span style={{ color: '#666' }}>
                     Showing {orders.length} of {pagination.total} orders
                     {filters.filterMode === 'items' && <Tag color="cyan" style={{ marginLeft: 8 }}>ITEMS MODE</Tag>}
-                    {filters.starStatus && <Tag color="gold" style={{ marginLeft: 4 }}>STARRED PO</Tag>}
+                    {filters.starStatus === 'starred' && <Tag color="gold" style={{ marginLeft: 4 }}>STARRED PO</Tag>}
+                    {filters.starStatus === 'starred_ready' && <Tag color="lime" style={{ marginLeft: 4 }}>STARRED READY</Tag>}
                     {filters.poStatus && <Tag color="orange" style={{ marginLeft: 4 }}>{filters.poStatus.replace(/_/g, ' ').toUpperCase()}</Tag>}
                     {filters.region && <Tag color="purple" style={{ marginLeft: 4 }}>{filters.region}</Tag>}
                     {filters.vendor && <Tag color="green" style={{ marginLeft: 4 }}>{filters.vendor}</Tag>}
