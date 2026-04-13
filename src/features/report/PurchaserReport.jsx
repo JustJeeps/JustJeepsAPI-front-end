@@ -162,71 +162,98 @@ function buildWaitingOverdueEmail(orders) {
   };
 }
 
-function buildDateTokens(input) {
-  if (!input) return { all: [], month: [], day: [] };
+function parseReportDateInput(input) {
+  if (!input) return null;
   const monthMap = {
-    jan: 'january',
-    feb: 'february',
-    mar: 'march',
-    apr: 'april',
-    may: 'may',
-    jun: 'june',
-    jul: 'july',
-    aug: 'august',
-    sep: 'september',
-    sept: 'september',
-    oct: 'october',
-    nov: 'november',
-    dec: 'december',
+    jan: 1,
+    january: 1,
+    feb: 2,
+    february: 2,
+    mar: 3,
+    march: 3,
+    apr: 4,
+    april: 4,
+    may: 5,
+    jun: 6,
+    june: 6,
+    jul: 7,
+    july: 7,
+    aug: 8,
+    august: 8,
+    sep: 9,
+    sept: 9,
+    september: 9,
+    oct: 10,
+    october: 10,
+    nov: 11,
+    november: 11,
+    dec: 12,
+    december: 12,
   };
-  const raw = input.toString().toLowerCase().trim();
-  if (!raw) return { all: [], month: [], day: [] };
-  const parts = raw.split(/\s+/).filter(Boolean);
-  const tokens = new Set(parts);
-  const monthTokens = new Set();
-  const dayTokens = new Set();
-  const monthPart = parts.find((part) => /[a-z]/.test(part));
-  const dayPart = parts.find((part) => /\d/.test(part));
-  if (monthPart) {
-    const cleanedMonth = monthPart.replace(/[^a-z]/g, '');
-    if (cleanedMonth) {
-      tokens.add(cleanedMonth);
-      monthTokens.add(cleanedMonth);
-      if (monthMap[cleanedMonth]) {
-        tokens.add(monthMap[cleanedMonth]);
-        monthTokens.add(monthMap[cleanedMonth]);
-      } else {
-        const normalizedKey = cleanedMonth.slice(0, 3);
-        if (monthMap[normalizedKey]) {
-          tokens.add(normalizedKey);
-          tokens.add(monthMap[normalizedKey]);
-          monthTokens.add(normalizedKey);
-          monthTokens.add(monthMap[normalizedKey]);
-        }
-      }
+
+  const raw = String(input).trim().toLowerCase();
+  if (!raw) return null;
+
+  const monthDay = raw.match(/\b([a-z]{3,9})\.?\s*(\d{1,2})(?:st|nd|rd|th)?\b/i);
+  if (monthDay) {
+    const month = monthMap[(monthDay[1] || '').toLowerCase()];
+    const day = Number(monthDay[2]);
+    if (month && Number.isInteger(day) && day >= 1 && day <= 31) {
+      return { month, day };
     }
   }
-  if (dayPart) {
-    const digits = dayPart.replace(/\D/g, '');
-    if (digits) {
-      const dayNumber = String(Number(digits));
-      const dayZero = digits.padStart(2, '0');
-      tokens.add(dayNumber);
-      tokens.add(dayZero);
-      dayTokens.add(dayNumber);
-      dayTokens.add(dayZero);
+
+  const dayMonth = raw.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s*([a-z]{3,9})\b/i);
+  if (dayMonth) {
+    const day = Number(dayMonth[1]);
+    const month = monthMap[(dayMonth[2] || '').toLowerCase()];
+    if (month && Number.isInteger(day) && day >= 1 && day <= 31) {
+      return { month, day };
     }
   }
-  return {
-    all: Array.from(tokens).filter(Boolean),
-    month: Array.from(monthTokens).filter(Boolean),
-    day: Array.from(dayTokens).filter(Boolean),
-  };
+
+  const parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime())) {
+    return {
+      month: parsed.getMonth() + 1,
+      day: parsed.getDate(),
+    };
+  }
+
+  return null;
 }
 
-function matchesDateTokenSet(poNorm, tokens) {
-  if (!tokens.length) return true;
-  return tokens.some((token) => new RegExp(`\\b${token}\\b`, 'i').test(poNorm));
+function hasReportDate(text, parsedDate) {
+  if (!text || !parsedDate) return false;
+  const monthAliases = {
+    1: ['jan', 'january'],
+    2: ['feb', 'february'],
+    3: ['mar', 'march'],
+    4: ['apr', 'april'],
+    5: ['may'],
+    6: ['jun', 'june'],
+    7: ['jul', 'july'],
+    8: ['aug', 'august'],
+    9: ['sep', 'sept', 'september'],
+    10: ['oct', 'october'],
+    11: ['nov', 'november'],
+    12: ['dec', 'december'],
+  };
+
+  const month = parsedDate.month;
+  const day = parsedDate.day;
+  const monthWords = monthAliases[month] || [];
+  if (!monthWords.length) return false;
+
+  const textNorm = String(text).toLowerCase();
+  const dayPattern = day < 10 ? `(?:0?${day})` : `${day}`;
+  const monthPattern = `(?:${monthWords.join('|')})`;
+
+  const monthThenDay = new RegExp(`\\b${monthPattern}\\.?\\s*[\\/,\\-]?\\s*${dayPattern}(?:st|nd|rd|th)?\\b`, 'i');
+  const dayThenMonth = new RegExp(`\\b${dayPattern}(?:st|nd|rd|th)?\\s*[\\/,\\-]?\\s*${monthPattern}\\b`, 'i');
+  const numericMonthDay = new RegExp(`\\b0?${month}[\\/\\-]0?${day}\\b`);
+
+  return monthThenDay.test(textNorm) || dayThenMonth.test(textNorm) || numericMonthDay.test(textNorm);
 }
 
 function exportToExcel(report, dateStr) {
@@ -382,6 +409,7 @@ export default function PurchaserReport() {
       const orders = allOrders;
       // Client-side classify into closed/followedUp/waiting using same logic as before
       const dateStr = date;
+      const parsedReportDate = parseReportDateInput(dateStr);
       const normalizePo = (value) =>
         (value || '')
           .toString()
@@ -399,15 +427,10 @@ export default function PurchaserReport() {
         const hasInitials = initials.some((init) =>
           new RegExp(`\\b${escapeRegex(init)}\\b`, 'i').test(poNorm)
         );
-        const dateTokens = buildDateTokens(dateStr);
-        const hasDate =
-          dateTokens.all.length > 0 &&
-          matchesDateTokenSet(poNorm, dateTokens.month) &&
-          matchesDateTokenSet(poNorm, dateTokens.day);
+        const hasDate = hasReportDate(poNorm, parsedReportDate);
         const noteNorm = normalizePo(o.custom_order_note);
         const isAssigned = /\bassigned\s+to\b/i.test(noteNorm) &&
-          matchesDateTokenSet(noteNorm, dateTokens.month) &&
-          matchesDateTokenSet(noteNorm, dateTokens.day);
+          hasReportDate(noteNorm, parsedReportDate);
         if (!notSet && hasInitials && hasDate && hasTicket) tickets.push(o);
         else if (isAssigned) assigned.push(o);
         else if (!notSet && hasInitials && hasDate && !hasTicket) closed.push(o);
