@@ -644,8 +644,8 @@ Thank you!
       if (currentFilters.starStatus === 'starred') {
         ordersData = ordersData.filter((order) => {
           const po = (order?.custom_po_number || '').trim().toLowerCase();
-          const hasNotSet = po.includes('not set');
-          return hasNotSet && isWinningOrder(order, 18);
+          const isNotSet = po === 'not set';
+          return isNotSet && isWinningOrder(order, 18);
         });
       } else if (currentFilters.starStatus === 'starred_ready') {
         ordersData = ordersData.filter((order) => {
