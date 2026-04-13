@@ -1417,18 +1417,6 @@ Thank you!
       align: "left",
       width: 260,
       render: (_, record) => {
-        // Status tag color mapping
-        const statusConfig = {
-          processing: { bg: '#fff7e6', color: '#d46b08', border: '#ffd591', label: 'Processing' },
-          pending: { bg: '#e6f7ff', color: '#096dd9', border: '#91d5ff', label: 'Pending' },
-          pending_payment: { bg: '#fff1f0', color: '#cf1322', border: '#ffa39e', label: 'Pending Payment' },
-          canceled: { bg: '#fff1f0', color: '#cf1322', border: '#ffa39e', label: 'Canceled' },
-          complete: { bg: '#f6ffed', color: '#389e0d', border: '#b7eb8f', label: 'Complete' },
-          closed: { bg: '#f5f5f5', color: '#595959', border: '#d9d9d9', label: 'Closed' },
-          holded: { bg: '#fff2e8', color: '#d4380d', border: '#ffbb96', label: 'On Hold' },
-        };
-        const statusStyle = statusConfig[record.status] || { bg: '#f5f5f5', color: '#595959', border: '#d9d9d9', label: record.status };
-
         // Due warning
         const isDue = record.base_total_due > 0;
 
@@ -1448,22 +1436,8 @@ Thank you!
             gap: '8px',
             padding: '6px 0',
           }}>
-            {/* Top Row: Status Badge + Customer Name */}
+            {/* Top Row: Customer Name */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{
-                backgroundColor: statusStyle.bg,
-                color: statusStyle.color,
-                border: `1px solid ${statusStyle.border}`,
-                padding: '3px 10px',
-                borderRadius: '4px',
-                fontSize: '12px',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.3px',
-                whiteSpace: 'nowrap',
-              }}>
-                {statusStyle.label}
-              </span>
               <span style={{
                 fontSize: '15px',
                 fontWeight: 600,
