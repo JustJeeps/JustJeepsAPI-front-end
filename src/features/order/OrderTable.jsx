@@ -80,7 +80,7 @@ const OrderTable = () => {
   // Filter states
   const [filters, setFilters] = useState({
     filterMode: 'order', // 'order' or 'items'
-    status: '', // No default filter - show all statuses
+    starStatus: '',
     search: '',
     poStatus: '',
     region: '',
@@ -607,7 +607,6 @@ Thank you!
         page,
         limit: pageSize,
         ...(currentFilters.filterMode && { filterMode: currentFilters.filterMode }),
-        ...(currentFilters.status && { status: currentFilters.status }),
         ...(currentFilters.poStatus && { poStatus: currentFilters.poStatus }),
         ...(currentFilters.region && { region: currentFilters.region }),
         ...(currentFilters.vendor && { vendor: currentFilters.vendor }),
@@ -622,6 +621,14 @@ Thank you!
       let ordersData = response.data.data || response.data;
       const paginationData = response.data.pagination;
 
+      if (currentFilters.starStatus === 'starred') {
+        ordersData = ordersData.filter((order) => {
+          const po = (order?.custom_po_number || '').trim().toLowerCase();
+          const hasNotSet = po.includes('not set');
+          return hasNotSet && isWinningOrder(order, 18);
+        });
+      }
+
       setOriginalOrders(ordersData);
       setOrders(ordersData);
       if (ordersData && ordersData.length) {
@@ -634,7 +641,7 @@ Thank you!
         setPagination({
           current: paginationData.page,
           pageSize: paginationData.limit,
-          total: paginationData.total,
+          total: currentFilters.starStatus === 'starred' ? ordersData.length : paginationData.total,
         });
       }
     } catch (error) {
@@ -664,12 +671,13 @@ Thank you!
   const handleClearFilters = () => {
     setFilters({
       filterMode: 'order',
-      status: '',
+      starStatus: '',
       search: '',
       poStatus: '',
       region: '',
       vendor: '',
       dateFilter: '',
+      exclude: '',
     });
   };
 
@@ -2988,23 +2996,14 @@ console.log("IS ARRAY?", Array.isArray(orders));
 
               <Col xs={12} sm={6} md={4} lg={3}>
                 <Select
-                  placeholder="Status"
+                  placeholder="Star"
                   allowClear
-                  value={filters.status || undefined}
-                  onChange={(value) => handleFilterChange('status', value || '')}
+                  value={filters.starStatus || undefined}
+                  onChange={(value) => handleFilterChange('starStatus', value || '')}
                   style={{ width: '100%' }}
                 >
-                  <Select.Option value="pending">
-                    <Tag color="blue">PENDING</Tag>
-                  </Select.Option>
-                  <Select.Option value="processing">
-                    <Tag color="orange">PROCESSING</Tag>
-                  </Select.Option>
-                  <Select.Option value="complete">
-                    <Tag color="green">COMPLETE</Tag>
-                  </Select.Option>
-                  <Select.Option value="canceled">
-                    <Tag color="volcano">CANCELED</Tag>
+                  <Select.Option value="starred">
+                    <Tag color="gold">STARRED PO</Tag>
                   </Select.Option>
                 </Select>
               </Col>
@@ -3149,7 +3148,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
                   <span style={{ color: '#666' }}>
                     Showing {orders.length} of {pagination.total} orders
                     {filters.filterMode === 'items' && <Tag color="cyan" style={{ marginLeft: 8 }}>ITEMS MODE</Tag>}
-                    {filters.status && <Tag color="blue" style={{ marginLeft: 4 }}>{filters.status.toUpperCase()}</Tag>}
+                    {filters.starStatus && <Tag color="gold" style={{ marginLeft: 4 }}>STARRED PO</Tag>}
                     {filters.poStatus && <Tag color="orange" style={{ marginLeft: 4 }}>{filters.poStatus.replace(/_/g, ' ').toUpperCase()}</Tag>}
                     {filters.region && <Tag color="purple" style={{ marginLeft: 4 }}>{filters.region}</Tag>}
                     {filters.vendor && <Tag color="green" style={{ marginLeft: 4 }}>{filters.vendor}</Tag>}
