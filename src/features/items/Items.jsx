@@ -2612,5 +2612,6 @@ const brands = [
   {"brand_name": "Ten Factory"},
   {"brand_name": "Thret Offroad"},
   {"brand_name": "Trigger"},
-  {"brand_name": "Valeo"}
+  {"brand_name": "Valeo"},
+  {"brand_name": "Wix Filters"},
 ];
