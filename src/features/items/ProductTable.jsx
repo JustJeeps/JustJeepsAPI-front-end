@@ -525,6 +525,16 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
   width: "18%",
   align: 'center',
   render: (_, record) => {
+		const omixPriorityBrands = new Set([
+			'alloy usa',
+			'havoc offroad',
+			'omix-ada',
+			'rugged ridge',
+		]);
+		const recordBrand = (record.brand_name || '').toString().trim().toLowerCase();
+		const shouldDeprioritizeOmix = omixPriorityBrands.has(recordBrand);
+		const isOmixVendor = (vendorName = '') => vendorName.toString().toLowerCase().includes('omix');
+
     // Find the best vendor (highest margin with inventory available)
     // Only consider vendors that have inventory > 0 (exclude null/undefined/0)
     const availableVendors = record.vendorProducts.filter(
@@ -534,9 +544,14 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
                !vp.vendor_inventory_string.toLowerCase().includes('cad stock: 0 / us stock: 0'))
     );
 
+		const preferredVendors = shouldDeprioritizeOmix
+			? availableVendors.filter((vp) => !isOmixVendor(vp?.vendor?.name))
+			: availableVendors;
+		const candidateVendors = preferredVendors.length ? preferredVendors : availableVendors;
+
     let highestMargin = -Infinity;
     let bestVendorIndex = -1;
-    availableVendors.forEach((vp, idx) => {
+		candidateVendors.forEach((vp, idx) => {
       const adjustedCost = props.currency === 'USD' ? vp.vendor_cost / 1.5 : vp.vendor_cost;
       const margin = ((props.orderProductPrice - adjustedCost) / adjustedCost) * 100;
       if (margin > highestMargin) {
@@ -544,7 +559,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
         bestVendorIndex = idx;
       }
     });
-    const bestVendor = bestVendorIndex >= 0 ? availableVendors[bestVendorIndex] : null;
+		const bestVendor = bestVendorIndex >= 0 ? candidateVendors[bestVendorIndex] : null;
 
     return record.vendorProducts.map((vendorProduct) => {
       const vendorName = vendorProduct.vendor.name;
