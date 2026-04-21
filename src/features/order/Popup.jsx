@@ -25,9 +25,10 @@ const Popup = ({ placement, onClose, sku, orderProductId, orderProductPrice, cur
 	const getProductBySku = useCallback(searchTermSku => {
 		try {
 			if (searchTermSku) {
+				const encodedSku = encodeURIComponent(String(searchTermSku).trim());
 				// Add null check
 				return axios
-					.get(`${API_URL}/api/products/${searchTermSku}`)
+					.get(`${API_URL}/api/products/${encodedSku}`)
 					.then(res => {
 						const responseData = res.data;
 						// Process the response data from backend if needed
@@ -37,7 +38,7 @@ const Popup = ({ placement, onClose, sku, orderProductId, orderProductPrice, cur
 		} catch (error) {
 			console.error('Failed to fetch data from backend:', error);
 		}
-	}, []);
+	}, [API_URL]);
 
 	useEffect(() => {
 		setSearchTermSku(sku);
@@ -57,7 +58,7 @@ const Popup = ({ placement, onClose, sku, orderProductId, orderProductPrice, cur
 				<Space>
 					<Input
 						placeholder='Enter your item'
-						onChange={setSearchTermSku}
+						onChange={(e) => setSearchTermSku(e.target.value)}
 						type='text'
 						// allowClear
 						value={searchTermSku}
