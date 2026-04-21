@@ -2254,6 +2254,7 @@ const brands = [
   {"brand_name": "Be Cool"},
   {"brand_name": "Baja Designs"},
   {"brand_name": "Baer"},
+  {"brand_name": "Bak Industries"},
   {"brand_name": "Banks Power"},
   {"brand_name": "Baxter Performance"},
   {"brand_name": "BBK Performance"},
