@@ -2233,6 +2233,7 @@ const brands = [
   {"brand_name": "American Outlaw"},
   {"brand_name": "American Racing"},
   {"brand_name": "American Trail Products"},
+  {"brand_name": "American Modified"},
   {"brand_name": "AMI Styling"},
   {"brand_name": "AMP Research"},
   {"brand_name": "AMP Tires"},
