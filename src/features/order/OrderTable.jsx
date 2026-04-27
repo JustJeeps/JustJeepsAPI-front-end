@@ -654,6 +654,12 @@ Thank you!
           const hasStar = po.includes('not set') && isWinningOrder(order, 18);
           return isNotSet && hasStar && !hasFraudWarning(order) && !hasRegionWarning(order);
         });
+      } else if (currentFilters.starStatus === 'not_set_no_star') {
+        ordersData = ordersData.filter((order) => {
+          const po = (order?.custom_po_number || '').trim().toLowerCase();
+          const isNotSet = po === 'not set';
+          return isNotSet && !isWinningOrder(order, 18);
+        });
       }
 
       setOriginalOrders(ordersData);
@@ -668,7 +674,12 @@ Thank you!
         setPagination({
           current: paginationData.page,
           pageSize: paginationData.limit,
-          total: currentFilters.starStatus === 'starred' ? ordersData.length : paginationData.total,
+          total:
+            currentFilters.starStatus === 'starred' ||
+            currentFilters.starStatus === 'starred_ready' ||
+            currentFilters.starStatus === 'not_set_no_star'
+              ? ordersData.length
+              : paginationData.total,
         });
       }
     } catch (error) {
@@ -3009,6 +3020,9 @@ console.log("IS ARRAY?", Array.isArray(orders));
                   <Select.Option value="starred_ready">
                     <Tag color="lime">STARRED READY</Tag>
                   </Select.Option>
+                  <Select.Option value="not_set_no_star">
+                    <Tag color="red">NOT SET NO STAR</Tag>
+                  </Select.Option>
                 </Select>
               </Col>
 
@@ -3154,6 +3168,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
                     {filters.filterMode === 'items' && <Tag color="cyan" style={{ marginLeft: 8 }}>ITEMS MODE</Tag>}
                     {filters.starStatus === 'starred' && <Tag color="gold" style={{ marginLeft: 4 }}>STARRED PO</Tag>}
                     {filters.starStatus === 'starred_ready' && <Tag color="lime" style={{ marginLeft: 4 }}>STARRED READY</Tag>}
+                    {filters.starStatus === 'not_set_no_star' && <Tag color="red" style={{ marginLeft: 4 }}>NOT SET NO STAR</Tag>}
                     {filters.poStatus && <Tag color="orange" style={{ marginLeft: 4 }}>{filters.poStatus.replace(/_/g, ' ').toUpperCase()}</Tag>}
                     {filters.region && <Tag color="purple" style={{ marginLeft: 4 }}>{filters.region}</Tag>}
                     {filters.vendor && <Tag color="green" style={{ marginLeft: 4 }}>{filters.vendor}</Tag>}
