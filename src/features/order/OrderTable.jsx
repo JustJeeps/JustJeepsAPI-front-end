@@ -263,6 +263,55 @@ const isWinningOrder = (order, minMargin = 18) => {
   return items.every((item) => isWinningItem(item, currency, minMargin));
 };
 
+const normalizeBrandName = (brand) =>
+  String(brand || "")
+    .toLowerCase()
+    .replace(/\(.*?\)/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const isAllowedPoBrand = (brand) => {
+  const normalized = normalizeBrandName(brand);
+  if (!normalized) return false;
+
+  const aliases = {
+    "rough country": "rough country",
+    "american expedition vehicles": "american expedition vehicles",
+    aev: "american expedition vehicles",
+    keyparts: "keyparts",
+    "key parts": "keyparts",
+    "omix ada": "omix ada",
+    "omix ada inc": "omix ada",
+    "omix-ada": "omix ada",
+    metalcloak: "metalcloak",
+    "metal cloak": "metalcloak",
+  };
+
+  const canonical = aliases[normalized] || normalized;
+  const allowed = new Set([
+    "rough country",
+    "american expedition vehicles",
+    "keyparts",
+    "metalcloak",
+  ]);
+
+  return allowed.has(canonical);
+};
+
+const isPoOrder = (order) => {
+  const items = Array.isArray(order?.items) ? order.items : [];
+  if (!items.length) return false;
+
+  return items.every((item) => {
+    const brand =
+      item?.product?.brand_name ||
+      item?.product?.brand ||
+      item?.brand_name ||
+      "";
+    return isAllowedPoBrand(brand);
+  });
+};
+
 const hasFraudWarning = (order) => {
   const score = parseFloat(order?.weltpixel_fraud_score);
   const grandTotal = parseFloat(order?.grand_total);
@@ -660,6 +709,12 @@ Thank you!
           const isNotSet = po === 'not set';
           return isNotSet && !isWinningOrder(order, 18);
         });
+      } else if (currentFilters.starStatus === 'po_orders') {
+        ordersData = ordersData.filter((order) => {
+          const po = (order?.custom_po_number || '').trim().toLowerCase();
+          const isNotSet = po === 'not set';
+          return isNotSet && isPoOrder(order);
+        });
       }
 
       setOriginalOrders(ordersData);
@@ -677,7 +732,8 @@ Thank you!
           total:
             currentFilters.starStatus === 'starred' ||
             currentFilters.starStatus === 'starred_ready' ||
-            currentFilters.starStatus === 'not_set_no_star'
+            currentFilters.starStatus === 'not_set_no_star' ||
+            currentFilters.starStatus === 'po_orders'
               ? ordersData.length
               : paginationData.total,
         });
@@ -3023,6 +3079,9 @@ console.log("IS ARRAY?", Array.isArray(orders));
                   <Select.Option value="not_set_no_star">
                     <Tag color="red">NOT SET NO STAR</Tag>
                   </Select.Option>
+                  <Select.Option value="po_orders">
+                    <Tag color="blue">PO ORDERS</Tag>
+                  </Select.Option>
                 </Select>
               </Col>
 
@@ -3169,6 +3228,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
                     {filters.starStatus === 'starred' && <Tag color="gold" style={{ marginLeft: 4 }}>STARRED PO</Tag>}
                     {filters.starStatus === 'starred_ready' && <Tag color="lime" style={{ marginLeft: 4 }}>STARRED READY</Tag>}
                     {filters.starStatus === 'not_set_no_star' && <Tag color="red" style={{ marginLeft: 4 }}>NOT SET NO STAR</Tag>}
+                    {filters.starStatus === 'po_orders' && <Tag color="blue" style={{ marginLeft: 4 }}>PO ORDERS</Tag>}
                     {filters.poStatus && <Tag color="orange" style={{ marginLeft: 4 }}>{filters.poStatus.replace(/_/g, ' ').toUpperCase()}</Tag>}
                     {filters.region && <Tag color="purple" style={{ marginLeft: 4 }}>{filters.region}</Tag>}
                     {filters.vendor && <Tag color="green" style={{ marginLeft: 4 }}>{filters.vendor}</Tag>}
