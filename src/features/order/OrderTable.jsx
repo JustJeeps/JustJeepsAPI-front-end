@@ -175,6 +175,38 @@ const getOrderSubtotalValue = (order) => {
   return itemsSubtotal > 0 ? itemsSubtotal : null;
 };
 
+const dedupeOrderItems = (order) => {
+  const items = Array.isArray(order?.items) ? order.items : [];
+  if (!items.length) return order;
+
+  const seen = new Set();
+  const dedupedItems = [];
+
+  items.forEach((item) => {
+    const stableKey =
+      item?.id ??
+      `${item?.order_id || ""}|${item?.sku || ""}|${item?.name || ""}|${item?.qty_ordered || ""}|${item?.base_price || ""}`;
+
+    if (seen.has(stableKey)) {
+      return;
+    }
+
+    seen.add(stableKey);
+    dedupedItems.push(item);
+  });
+
+  if (dedupedItems.length === items.length) return order;
+
+  console.warn(
+    `Deduped ${items.length - dedupedItems.length} duplicate item(s) for order ${order?.increment_id || order?.entity_id || "unknown"}`
+  );
+
+  return {
+    ...order,
+    items: dedupedItems,
+  };
+};
+
 const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
 
 const getUnitCost = (item) => {
@@ -688,6 +720,9 @@ Thank you!
 
       // All filtering is now server-side
       let ordersData = response.data.data || response.data;
+      ordersData = Array.isArray(ordersData)
+        ? ordersData.map((order) => dedupeOrderItems(order))
+        : [];
       const paginationData = response.data.pagination;
 
       if (currentFilters.starStatus === 'starred') {
@@ -3265,7 +3300,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
                     // Multi-expand: add/remove rowKey from expandedRowKeys
                     setExpandedRowKeys(prev => {
                       if (expanded) {
-                        return [...prev, rowKey];
+                          return prev.includes(rowKey) ? prev : [...prev, rowKey];
                       } else {
                         return prev.filter(key => key !== rowKey);
                       }
