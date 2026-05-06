@@ -1111,67 +1111,76 @@ const handleTableChange = (newPage, newPageSize) => {
           key={vendorProduct.id} 
           style={{
             display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
+            flexDirection: 'column',
+            alignItems: 'stretch',
+            gap: '10px',
             padding: '8px',
             marginBottom: '4px',
             border: '1px solid #f0f0f0',
             borderRadius: '4px',
             backgroundColor: 'transparent',
-            flexWrap: 'wrap'
+            minWidth: 0,
           }}
         >
-          {/* Vendor Name */}
-          <div style={{ minWidth: '80px', fontWeight: '600' }}>
-            {link ? (
-              <a
-                href={link}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: '#1890ff', textDecoration: 'none' }}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ fontWeight: '600', minWidth: 0 }}>
+              {link ? (
+                <a
+                  href={link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: '#1890ff', textDecoration: 'none' }}
+                >
+                  {displayVendorName}
+                </a>
+              ) : (
+                <span>{displayVendorName}</span>
+              )}
+            </div>
+
+            <div style={{ color: '#595959', whiteSpace: 'nowrap', textAlign: 'right' }}>
+              CAD ${cad.toFixed(2)} (USD ${usd.toFixed(2)})
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div>
+              <span 
+                style={{
+                  backgroundColor: margin > 19 ? '#52c41a' : '#ff4d4f',
+                  color: 'white',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  fontSize: '16px',
+                  fontWeight: '600'
+                }}
               >
-                {displayVendorName}
-              </a>
-            ) : (
-              <span>{displayVendorName}</span>
-            )}
-          </div>
+                {margin.toFixed(1)}%
+              </span>
+            </div>
 
-          {/* Cost */}
-          <div style={{ minWidth: '140px', color: '#595959' }}>
-            CAD ${cad.toFixed(2)} (USD ${usd.toFixed(2)})
-          </div>
-
-          {/* Margin */}
-          <div style={{ minWidth: '60px' }}>
-            <span 
-              style={{
-                backgroundColor: margin > 19 ? '#52c41a' : '#ff4d4f',
-                color: 'white',
-                padding: '4px 8px',
-                borderRadius: '4px',
-                fontSize: '16px',
-                fontWeight: '600'
-              }}
-            >
-              {margin.toFixed(1)}%
-            </span>
-          </div>
-
-          {/* Inventory */}
-          <div style={{ minWidth: '60px' }}>
-            <span 
-              style={{
-                backgroundColor: inventoryColor,
-                color: 'white',
-                padding: '4px 8px',
-                borderRadius: '4px',
-                fontSize: '16px',
-                fontWeight: '600'
-              }}
-            >
-              {inventoryDisplay}
-            </span>
+            <div>
+              <span 
+                style={{
+                  backgroundColor: inventoryColor,
+                  color: 'white',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  fontSize: '16px',
+                  fontWeight: '600'
+                }}
+              >
+                {inventoryDisplay}
+              </span>
+            </div>
           </div>
         </div>
       );
