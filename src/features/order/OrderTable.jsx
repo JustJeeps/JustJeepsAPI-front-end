@@ -269,23 +269,9 @@ const getBestAvailableVendor = (item, currency) => {
   return best;
 };
 
-const getSelectedSupplierMargin = (item, currency) => {
-  const selectedCost = parseMoney(item?.selected_supplier_cost);
-  if (!Number.isFinite(selectedCost) || selectedCost <= 0) return null;
-
-  const sellPrice = parseMoney(item?.price ?? item?.base_price);
-  if (!Number.isFinite(sellPrice) || sellPrice <= 0) return null;
-
-  const adjustedCost = currency === "USD" ? selectedCost / 1.5 : selectedCost;
-  return ((sellPrice - adjustedCost) / adjustedCost) * 100;
-};
-
 const isWinningItem = (item, currency, minMargin = 18) => {
   const best = getBestAvailableVendor(item, currency);
-  if (best && best.margin >= minMargin) return true;
-
-  const selectedMargin = getSelectedSupplierMargin(item, currency);
-  return Number.isFinite(selectedMargin) && selectedMargin >= minMargin;
+  return Boolean(best && best.margin >= minMargin);
 };
 
 const isWinningOrder = (order, minMargin = 18) => {
@@ -1919,11 +1905,11 @@ console.log("IS ARRAY?", Array.isArray(orders));
   const handlePopupVendorCostSelect = useCallback((orderProductId, selectedCost, selectedSupplier) => {
     if (!orderProductId) return;
     const normalizedCost = parseMoney(selectedCost);
-    updateItemUnitCostInState(orderProductId, normalizedCost, selectedSupplier, true);
     setUnitCostEdits((prev) => {
-      const copy = { ...prev };
-      delete copy[orderProductId];
-      return copy;
+      return {
+        ...prev,
+        [orderProductId]: normalizedCost,
+      };
     });
   }, []);
 

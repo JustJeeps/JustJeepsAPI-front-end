@@ -6,6 +6,9 @@ const CopyText = props => {
 		<div
 			onClick={() => {
 				navigator.clipboard.writeText(props.text);
+				if (typeof props.onCopy === 'function') {
+					props.onCopy();
+				}
 				setCopied('copied');
 			}}
 		>

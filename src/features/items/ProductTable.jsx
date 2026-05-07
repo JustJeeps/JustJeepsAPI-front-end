@@ -1,8 +1,7 @@
-import { Table, Button, Checkbox, Tag, Tooltip } from 'antd';
+import { Table, Tag, Tooltip } from 'antd';
 import CopyText from '../copyText/CopyText';
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { CheckSquareOutlined, TrophyFilled } from '@ant-design/icons';
+import React, { useEffect } from 'react';
+import { TrophyFilled } from '@ant-design/icons';
 import { sizeHeight, width } from '@mui/system';
 
 
@@ -11,9 +10,6 @@ const ProductTable = props => {
 	console.log('props', props);
 	console.log("props.currency:", props.currency);
 console.log("props.orderProductPrice:", props.orderProductPrice);			 
-	const [selectedVendorCost, setSelectedVendorCost] = useState(null);
-
-  const API_URL = import.meta.env.VITE_API_URL;
 	// const BACKEND_URL = "https://jj-api-backend.herokuapp.com";
   const BACKEND_URL = "http://localhost:8080";
 
@@ -37,34 +33,17 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 		return Number(rawCadCost.toFixed(2));
 	};
 
-	// Function to update an order product
-	const handleVendorCostClick = vendorProduct => {
-		console.log('vendorProduct', vendorProduct);
+	const handleVendorCostCopy = vendorProduct => {
 		const selectedCost = getSelectedCostByOrder(vendorProduct);
 		if (!Number.isFinite(selectedCost)) return;
 
-		setSelectedVendorCost(selectedCost);
-		axios
-			.post(
-				`${API_URL}/order_products/${props.orderProductId}/edit/selected_supplier`,
-				{
-					selected_supplier_cost: selectedCost.toFixed(2),
-					selected_supplier: vendorProduct.vendor.name,
-				}
-			)
-			.then(res => {
-				console.log(res.data);
-				if (typeof props.onVendorCostSelect === 'function') {
-					props.onVendorCostSelect(
-						props.orderProductId,
-						selectedCost,
-						vendorProduct?.vendor?.name || null
-					);
-				}
-			})
-			.catch(error => {
-				console.error(error);
-			});
+		if (typeof props.onVendorCostSelect === 'function') {
+			props.onVendorCostSelect(
+				props.orderProductId,
+				selectedCost,
+				vendorProduct?.vendor?.name || null
+			);
+		}
 	};
 
 	useEffect(() => {
@@ -649,7 +628,6 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
       return (
         <div
           key={vendorProduct.id}
-					onClick={() => handleVendorCostClick(vendorProduct)}
           style={{
             marginBottom: '6px',
             display: 'flex',
@@ -660,7 +638,6 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
             backgroundColor: isBestVendor ? '#f6ffed' : 'transparent',
             borderRadius: '4px',
             border: isBestVendor ? '1px solid #b7eb8f' : '1px solid #f0f0f0',
-					cursor: 'pointer',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -675,11 +652,14 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 						<span style={{ fontSize: '14px', fontWeight: 500 }}>{displayVendorName}</span>
             )}
           </div>
-          <CopyText text={`CAD$ ${vendorProduct.vendor_cost.toFixed(2)} / USD$ ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}`}>
-            <span style={{ whiteSpace: 'nowrap', fontSize: '14px', fontWeight: 700, color: '#1890ff' }}>
-              ${vendorProduct.vendor_cost.toFixed(2)} / ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}
-            </span>
-          </CopyText>
+					<CopyText
+						text={`CAD$ ${vendorProduct.vendor_cost.toFixed(2)} / USD$ ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}`}
+						onCopy={() => handleVendorCostCopy(vendorProduct)}
+					>
+						<span style={{ whiteSpace: 'nowrap', fontSize: '14px', fontWeight: 700, color: '#1890ff' }}>
+							${vendorProduct.vendor_cost.toFixed(2)} / ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}
+						</span>
+					</CopyText>
         </div>
       );
     });
