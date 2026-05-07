@@ -11,14 +11,16 @@ import { Spin } from 'antd';
  * @param {ReactNode} fallback - Componente alternativo (opcional)
  * @param {boolean} requireAuth - Se true, força autenticação mesmo quando authEnabled=false (default: true)
  * @param {boolean} redirectToLogin - Se true, redireciona para /login em vez de mostrar modal (default: true)
+ * @param {string[]} allowedUsers - Lista opcional de usernames permitidos
  */
 const ProtectedRoute = ({
   children,
   fallback = null,
   requireAuth = true,
-  redirectToLogin = true
+  redirectToLogin = true,
+  allowedUsers = null,
 }) => {
-  const { authEnabled, isAuthenticated, loading } = useAuth();
+  const { authEnabled, isAuthenticated, loading, user } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -27,6 +29,10 @@ const ProtectedRoute = ({
   // Se authEnabled=false no backend, não exige autenticação
   // Se authEnabled=true no backend, usa o valor de requireAuth (default: true)
   const shouldRequireAuth = authEnabled && requireAuth;
+  const normalizedUsername = (user?.username || user?.name || '').toLowerCase();
+  const isAllowedUser = !Array.isArray(allowedUsers) || allowedUsers.length === 0
+    ? true
+    : allowedUsers.map((value) => String(value).toLowerCase()).includes(normalizedUsername);
 
   useEffect(() => {
     // Se não está autenticado e deve redirecionar, vai para login
@@ -60,6 +66,20 @@ const ProtectedRoute = ({
 
   // If authenticated, render children
   if (isAuthenticated) {
+    if (!isAllowedUser) {
+      return fallback || (
+        <div style={{
+          textAlign: 'center',
+          padding: '50px',
+          backgroundColor: '#f5f5f5',
+          borderRadius: '8px',
+          margin: '20px'
+        }}>
+          <h3>Acesso Restrito</h3>
+          <p>Você não tem permissão para acessar esta página.</p>
+        </div>
+      );
+    }
     return children;
   }
 

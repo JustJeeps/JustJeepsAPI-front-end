@@ -7,6 +7,7 @@ import PurchaserReport from './features/report/PurchaserReport.jsx';
 import { SupplierTable } from './features/supplier/SupplierTable.jsx';
 import { DashBoard } from './features/dashboard/DashBoard.jsx';
 import { DashBoardPO } from './features/dashboard/DashBoardPO.jsx';
+import CronJobsDashboard from './features/cron/CronJobsDashboard.jsx';
 import { PoForm } from './features/po/PoForm.jsx';
 import { Items } from './features/items/Items.jsx';
 import { AuthProvider } from "./context/AuthContext";
@@ -74,6 +75,11 @@ function App() {
 				<Route path='/purchaser-report' element={
 					<ProtectedRoute>
 						<PurchaserReport orders={orders} />
+					</ProtectedRoute>
+				} />
+				<Route path='/cron-jobs' element={
+					<ProtectedRoute allowedUsers={['tess']}>
+						<CronJobsDashboard />
 					</ProtectedRoute>
 				} />
 			</Routes>
