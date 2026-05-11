@@ -175,6 +175,26 @@ const getOrderSubtotalValue = (order) => {
   return itemsSubtotal > 0 ? itemsSubtotal : null;
 };
 
+const getItemSemanticKey = (item) => {
+  if (!item) return "";
+
+  // Prefer upstream commerce identifiers when present.
+  if (item?.item_id) return `item:${item.item_id}`;
+  if (item?.quote_item_id) return `quote:${item.quote_item_id}`;
+
+  // Fallback: semantic fingerprint that ignores local DB id.
+  return [
+    item?.order_id || "",
+    item?.product_id || "",
+    item?.sku || "",
+    item?.name || "",
+    parseMoney(item?.qty_ordered).toFixed(4),
+    parseMoney(item?.base_price).toFixed(4),
+    parseMoney(item?.price).toFixed(4),
+    parseMoney(item?.price_incl_tax).toFixed(4),
+  ].join("|");
+};
+
 const dedupeOrderItems = (order) => {
   const items = Array.isArray(order?.items) ? order.items : [];
   if (!items.length) return order;
@@ -183,9 +203,7 @@ const dedupeOrderItems = (order) => {
   const dedupedItems = [];
 
   items.forEach((item) => {
-    const stableKey =
-      item?.id ??
-      `${item?.order_id || ""}|${item?.sku || ""}|${item?.name || ""}|${item?.qty_ordered || ""}|${item?.base_price || ""}`;
+    const stableKey = getItemSemanticKey(item);
 
     if (seen.has(stableKey)) {
       return;
@@ -1940,7 +1958,8 @@ console.log("IS ARRAY?", Array.isArray(orders));
   };
 
   const expandedRowRender = (record) => {
-    const items = Array.isArray(record?.items) ? record.items : [];
+    const dedupedRecord = dedupeOrderItems(record);
+    const items = Array.isArray(dedupedRecord?.items) ? dedupedRecord.items : [];
 
     //render sub table here
     const nestedColumns = [
