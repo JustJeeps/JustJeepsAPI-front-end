@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
@@ -56,6 +56,77 @@ export const Items = () => {
 
   const normalizeSkuValue = (value) =>
     (value ?? "").toString().trim().toLowerCase();
+
+  const dedupeVendorProducts = (vendorProducts) => {
+    if (!Array.isArray(vendorProducts) || !vendorProducts.length) return [];
+
+    const canonicalVendorName = (raw) => {
+      const v = (raw || "").toString().trim().toLowerCase();
+      if (v === "premier performance" || v === "apg" || v === "agp wholesale") return "agp wholesale";
+      if (v === "wheel pros") return "wheelpros";
+      if (v === "roughcountry") return "rough country";
+      if (v === "ctp distributors") return "ctp";
+      if (v === "turn14") return "t14";
+      return v;
+    };
+
+    const inventorySignal = (vp) => {
+      const inv = Number(vp?.vendor_inventory);
+      if (Number.isFinite(inv) && inv > 0) return 2;
+      const invStr = (vp?.vendor_inventory_string || "").toString().toLowerCase();
+      if (invStr && !invStr.includes("out") && !invStr.includes("cad stock: 0 / us stock: 0")) return 1;
+      return 0;
+    };
+
+    const pickBetterVendorRow = (current, challenger) => {
+      const currentScore = inventorySignal(current);
+      const challengerScore = inventorySignal(challenger);
+      if (challengerScore > currentScore) return challenger;
+      if (challengerScore < currentScore) return current;
+
+      const currentCost = Number(current?.vendor_cost);
+      const challengerCost = Number(challenger?.vendor_cost);
+      const currentHasCost = Number.isFinite(currentCost) && currentCost > 0;
+      const challengerHasCost = Number.isFinite(challengerCost) && challengerCost > 0;
+
+      if (challengerHasCost && !currentHasCost) return challenger;
+      if (!challengerHasCost && currentHasCost) return current;
+      if (challengerHasCost && currentHasCost && challengerCost < currentCost) return challenger;
+
+      return current;
+    };
+
+    const byVendor = new Map();
+    vendorProducts.forEach((vp) => {
+      const key = canonicalVendorName(vp?.vendor?.name);
+      if (!key) return;
+      if (!byVendor.has(key)) {
+        byVendor.set(key, vp);
+        return;
+      }
+      byVendor.set(key, pickBetterVendorRow(byVendor.get(key), vp));
+    });
+
+    return Array.from(byVendor.values());
+  };
+
+  const normalizeProductsForUi = (products) => {
+    if (!Array.isArray(products)) return [];
+    return products.map((product) => ({
+      ...product,
+      vendorProducts: dedupeVendorProducts(product?.vendorProducts),
+    }));
+  };
+
+  const normalizedDataForTable = useMemo(
+    () => normalizeProductsForUi(data),
+    [data]
+  );
+
+  const normalizedBrandDataForTable = useMemo(
+    () => normalizeProductsForUi(brandData),
+    [brandData]
+  );
 
   const selectedSkuValue = searchTermSku?.sku
     ? normalizeSkuValue(searchTermSku.sku)
@@ -1728,7 +1799,7 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
                 <div className="explore-content">
                   {searchBy === "sku" ? (
                     <Table
-                        dataSource={Array.isArray(data) ? data : []}
+                        dataSource={normalizedDataForTable}
                         columns={typedSku?.trim() ? columns_no_img : columns_by_sku}
                         rowKey="sku"
                         loading={loading}
@@ -1752,8 +1823,8 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
                       title={() => (
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            {Array.isArray(data) && data.length > 0 && data[0]?.vendors ? (
-                              <h5 style={{ margin: 0 }}>Vendors for this Brand: {data[0].vendors}</h5>
+                            {normalizedDataForTable.length > 0 && normalizedDataForTable[0]?.vendors ? (
+                              <h5 style={{ margin: 0 }}>Vendors for this Brand: {normalizedDataForTable[0].vendors}</h5>
                             ) : <span />}
                           </div>
                           <span style={{ fontWeight: 'bold' }}>
@@ -1912,7 +1983,7 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
 
             <Table
               {...tableProps}
-              dataSource={brandData}
+              dataSource={normalizedBrandDataForTable}
               columns={columns_by_sku}
               rowKey="sku"
               size="large"

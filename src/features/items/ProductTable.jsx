@@ -1,12 +1,73 @@
 import { Table, Tag, Tooltip } from 'antd';
 import CopyText from '../copyText/CopyText';
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { TrophyFilled } from '@ant-design/icons';
 import { sizeHeight, width } from '@mui/system';
 
 
 
 const ProductTable = props => {
+	const dedupeVendorProducts = (vendorProducts) => {
+		if (!Array.isArray(vendorProducts) || !vendorProducts.length) return [];
+
+		const canonicalVendorName = (raw) => {
+			const v = (raw || '').toString().trim().toLowerCase();
+			if (v === 'premier performance' || v === 'apg' || v === 'agp wholesale') return 'agp wholesale';
+			if (v === 'wheel pros') return 'wheelpros';
+			if (v === 'roughcountry') return 'rough country';
+			if (v === 'ctp distributors') return 'ctp';
+			if (v === 'turn14') return 't14';
+			return v;
+		};
+
+		const inventorySignal = (vp) => {
+			const inv = Number(vp?.vendor_inventory);
+			if (Number.isFinite(inv) && inv > 0) return 2;
+			const invStr = (vp?.vendor_inventory_string || '').toString().toLowerCase();
+			if (invStr && !invStr.includes('out') && !invStr.includes('cad stock: 0 / us stock: 0')) return 1;
+			return 0;
+		};
+
+		const pickBetterVendorRow = (current, challenger) => {
+			const currentScore = inventorySignal(current);
+			const challengerScore = inventorySignal(challenger);
+			if (challengerScore > currentScore) return challenger;
+			if (challengerScore < currentScore) return current;
+
+			const currentCost = Number(current?.vendor_cost);
+			const challengerCost = Number(challenger?.vendor_cost);
+			const currentHasCost = Number.isFinite(currentCost) && currentCost > 0;
+			const challengerHasCost = Number.isFinite(challengerCost) && challengerCost > 0;
+
+			if (challengerHasCost && !currentHasCost) return challenger;
+			if (!challengerHasCost && currentHasCost) return current;
+			if (challengerHasCost && currentHasCost && challengerCost < currentCost) return challenger;
+
+			return current;
+		};
+
+		const byVendor = new Map();
+		vendorProducts.forEach((vp) => {
+			const key = canonicalVendorName(vp?.vendor?.name);
+			if (!key) return;
+			if (!byVendor.has(key)) {
+				byVendor.set(key, vp);
+				return;
+			}
+			byVendor.set(key, pickBetterVendorRow(byVendor.get(key), vp));
+		});
+
+		return Array.from(byVendor.values());
+	};
+
+	const normalizedData = useMemo(() => {
+		if (!Array.isArray(props.data)) return [];
+		return props.data.map((product) => ({
+			...product,
+			vendorProducts: dedupeVendorProducts(product?.vendorProducts),
+		}));
+	}, [props.data]);
+
 	console.log('props', props);
 	console.log("props.currency:", props.currency);
 console.log("props.orderProductPrice:", props.orderProductPrice);			 
@@ -513,10 +574,13 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 		const recordBrand = (record.brand_name || '').toString().trim().toLowerCase();
 		const shouldDeprioritizeOmix = omixPriorityBrands.has(recordBrand);
 		const isOmixVendor = (vendorName = '') => vendorName.toString().toLowerCase().includes('omix');
+		const vendorProducts = Array.isArray(record?.vendorProducts)
+			? record.vendorProducts
+			: [];
 
     // Find the best vendor (highest margin with inventory available)
     // Only consider vendors that have inventory > 0 (exclude null/undefined/0)
-    const availableVendors = record.vendorProducts.filter(
+    const availableVendors = vendorProducts.filter(
       (vp) => vp.vendor_inventory > 0 ||
               (vp.vendor_inventory_string &&
                !vp.vendor_inventory_string.toLowerCase().includes('out') &&
@@ -540,7 +604,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
     });
 		const bestVendor = bestVendorIndex >= 0 ? candidateVendors[bestVendorIndex] : null;
 
-    return record.vendorProducts.map((vendorProduct) => {
+		return vendorProducts.map((vendorProduct) => {
       const vendorName = vendorProduct.vendor.name;
       const vendorSKU = vendorProduct.vendor_sku?.trim();
       const productSKU = vendorProduct.product_sku?.trim();
@@ -938,7 +1002,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 	return (
 <div style={{ width: '100%', maxWidth: '100%', overflow: 'auto' }}>
   <Table
-    dataSource={props.data}
+		dataSource={normalizedData}
     columns={columns_by_sku}
     rowKey="sku"
     pagination={false}
