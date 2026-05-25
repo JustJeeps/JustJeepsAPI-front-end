@@ -65,6 +65,18 @@
     font-size: 0.85rem;
   }
 
+  &__table-signal {
+    margin-top: 6px;
+
+    .ant-tag {
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-inline-end: 0;
+      border-radius: 999px;
+      padding: 2px 8px;
+    }
+  }
+
   &__details {
     display: flex;
     flex-direction: column;

@@ -140,6 +140,11 @@ export default function QuickBooksCustomerLookup() {
         <div>
           <div className='qb-lookup__cell-title'>{record.customerName || record.customerCode}</div>
           <div className='qb-lookup__muted'>Code: {record.customerCode}</div>
+          {record.fraudIndicators?.firstTimeCustomer ? (
+            <div className='qb-lookup__table-signal'>
+              <Tag color={FRAUD_LABELS.firstTimeCustomer.color}>{FRAUD_LABELS.firstTimeCustomer.text}</Tag>
+            </div>
+          ) : null}
         </div>
       ),
     },
