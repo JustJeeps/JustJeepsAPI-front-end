@@ -1,0 +1,130 @@
+.qb-lookup {
+  /* Fixed navbar is tall in this app, so reserve explicit top clearance. */
+  padding: 190px 28px 28px;
+  background:
+    radial-gradient(circle at top right, rgba(20, 93, 160, 0.1), transparent 35%),
+    linear-gradient(180deg, #f6f3ea 0%, #edf3f8 100%);
+  min-height: calc(100vh - 80px);
+
+  &__hero {
+    margin-bottom: 18px;
+
+    h2 {
+      margin: 0;
+      color: #102a43;
+      letter-spacing: -0.02em;
+    }
+  }
+
+  &__eyebrow {
+    margin: 0 0 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 700;
+    font-size: 0.74rem;
+    color: #145da0;
+  }
+
+  &__subtitle {
+    color: #52606d;
+  }
+
+  &__search-card,
+  &__summary-card,
+  &__transactions-card,
+  &__empty {
+    border-radius: 18px;
+    border: 1px solid rgba(20, 93, 160, 0.12);
+    box-shadow: 0 16px 38px rgba(16, 42, 67, 0.08);
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  &__search-card {
+    margin-bottom: 16px;
+  }
+
+  &__row--selected td {
+    background: rgba(20, 93, 160, 0.1) !important;
+  }
+
+  &__row--attention td {
+    background: rgba(199, 0, 0, 0.07);
+  }
+
+  &__row--attention.qb-lookup__row--selected td {
+    background: rgba(199, 0, 0, 0.14) !important;
+  }
+
+  &__cell-title {
+    font-weight: 700;
+    color: #102a43;
+  }
+
+  &__muted {
+    color: #7b8794;
+    font-size: 0.85rem;
+  }
+
+  &__details {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  &__loading {
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__meta-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    color: #334e68;
+    margin-top: 10px;
+  }
+
+  &__stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  &__fraud-tags {
+    margin-top: 16px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+
+    .ant-tag {
+      font-size: 0.95rem;
+      line-height: 1.4;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-weight: 700;
+      margin-inline-end: 0;
+    }
+  }
+
+  &__fraud-tags--near-name {
+    margin-top: 4px;
+    margin-bottom: 10px;
+  }
+
+  &__summary-card--attention {
+    border-color: rgba(199, 0, 0, 0.45);
+    box-shadow: 0 0 0 2px rgba(199, 0, 0, 0.14), 0 16px 38px rgba(16, 42, 67, 0.08);
+  }
+}
+
+@media (max-width: 900px) {
+  .qb-lookup {
+    padding: 122px 18px 18px;
+
+    &__stats-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}
