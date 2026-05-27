@@ -84,7 +84,7 @@ function App() {
 					</ProtectedRoute>
 				} />
 				<Route path='/quickbooks-customer-lookup' element={
-					<ProtectedRoute allowedUsers={['tess', 'paula', 'karoline', 'david']}>
+					<ProtectedRoute>
 						<QuickBooksCustomerLookup />
 					</ProtectedRoute>
 				} />

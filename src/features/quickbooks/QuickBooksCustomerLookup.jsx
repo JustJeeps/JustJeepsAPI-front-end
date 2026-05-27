@@ -202,14 +202,17 @@ export default function QuickBooksCustomerLookup() {
   const handleShowAllCustomers = useCallback(() => {
     const nextShowAll = !showAllCustomers;
     setShowAllCustomers(nextShowAll);
+    setFocusSelectedOnly(false);
 
     if (!nextShowAll) {
       setQuery('');
+      setSortState({ field: 'customerName', order: 'ascend' });
       resetSearchState(pagination.pageSize);
       return;
     }
 
     setQuery('');
+    setSortState({ field: 'lastPurchaseDate', order: 'descend' });
   }, [pagination.pageSize, resetSearchState, showAllCustomers]);
 
   const handleViewCustomer = useCallback((customerCode) => {
