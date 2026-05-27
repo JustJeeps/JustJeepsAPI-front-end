@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import LoginModal from '../../components/auth/LoginModal';
 
 const ALLOWED_USERS = ['tess', 'paula', 'karoline'];
+const QUICKBOOKS_ALLOWED_USERS = ['tess', 'paula', 'karoline', 'david'];
 const CRON_JOBS_ALLOWED_USERS = ['tess'];
 const Navbar = () => {
 	const { authEnabled, isAuthenticated, user, logout } = useAuth();
@@ -88,7 +89,7 @@ const Navbar = () => {
 								Search by SKU or Brand
 							</Link>
 						</li>
-						{user && ALLOWED_USERS.includes(normalizedUsername) && (
+						{user && QUICKBOOKS_ALLOWED_USERS.includes(normalizedUsername) && (
 							<li className='nav-item'>
 								<Link
 									className='aria-current nav-link active fs-5 mx-4'
