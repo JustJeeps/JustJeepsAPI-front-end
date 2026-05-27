@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { Alert, Button, Card, Col, Input, Row, Select, Space, Spin, Statistic, Table, Tag, Typography } from 'antd';
-import { EyeOutlined, SearchOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Col, Input, Row, Select, Space, Spin, Statistic, Table, Tag, Tooltip, Typography } from 'antd';
+import { EyeOutlined, InfoCircleOutlined, SearchOutlined } from '@ant-design/icons';
 import './quickbooksCustomerLookup.scss';
 
 const { Title, Text } = Typography;
@@ -292,6 +292,15 @@ export default function QuickBooksCustomerLookup() {
       sortOrder: sortState.field === 'totalPayments' ? sortState.order : null,
     },
     {
+      title: 'Last Purchase',
+      dataIndex: 'lastPurchaseDate',
+      key: 'lastPurchaseDate',
+      width: 150,
+      render: (value) => formatDate(value),
+      sorter: true,
+      sortOrder: sortState.field === 'lastPurchaseDate' ? sortState.order : null,
+    },
+    {
       title: 'Lifetime Value',
       dataIndex: 'lifetimeValue',
       key: 'lifetimeValue',
@@ -357,6 +366,22 @@ export default function QuickBooksCustomerLookup() {
   const analysis = selectedCustomer?.analysis || {};
   const fraudTags = buildFraudTags(analysis.fraudIndicators);
   const isHighAttention = Boolean(analysis.fraudIndicators?.noPurchaseHistory);
+  const totalAmountPurchasedTitle = (
+    <span className='qb-lookup__stat-title-with-info'>
+      Total Amount Purchased
+      <Tooltip title='Total Amount Purchased = sum of payments'>
+        <InfoCircleOutlined className='qb-lookup__stat-title-info-icon' />
+      </Tooltip>
+    </span>
+  );
+  const lifetimeValueTitle = (
+    <span className='qb-lookup__stat-title-with-info'>
+      Lifetime Value
+      <Tooltip title='Lifetime Value = payments minus credits/refunds'>
+        <InfoCircleOutlined className='qb-lookup__stat-title-info-icon' />
+      </Tooltip>
+    </span>
+  );
 
   return (
     <div className='qb-lookup'>
@@ -479,13 +504,27 @@ export default function QuickBooksCustomerLookup() {
 
                 <Col xs={24} md={10}>
                   <div className='qb-lookup__stats-grid'>
-                    <Statistic title='Has Purchased Before' value={analysis.hasPurchasedBefore ? 'Yes' : 'No'} />
-                    <Statistic title='Total Invoices' value={analysis.totalInvoices || 0} />
-                    <Statistic title='Total Payments' value={analysis.totalPayments || 0} />
-                    <Statistic title='Total Amount Purchased' value={formatCurrency(analysis.totalAmountPurchased)} />
-                    <Statistic title='Lifetime Value' value={formatCurrency(analysis.lifetimeValue)} />
-                    <Statistic title='First Purchase' value={formatDate(analysis.firstPurchaseDate)} />
-                    <Statistic title='Last Purchase' value={formatDate(analysis.lastPurchaseDate)} />
+                    <div className='qb-lookup__stat-card'>
+                      <Statistic title='Has Purchased Before' value={analysis.hasPurchasedBefore ? 'Yes' : 'No'} />
+                    </div>
+                    <div className='qb-lookup__stat-card'>
+                      <Statistic title='Total Invoices' value={analysis.totalInvoices || 0} />
+                    </div>
+                    <div className='qb-lookup__stat-card'>
+                      <Statistic title='Total Payments' value={analysis.totalPayments || 0} />
+                    </div>
+                    <div className='qb-lookup__stat-card'>
+                      <Statistic title={totalAmountPurchasedTitle} value={formatCurrency(analysis.totalAmountPurchased)} />
+                    </div>
+                    <div className='qb-lookup__stat-card'>
+                      <Statistic title={lifetimeValueTitle} value={formatCurrency(analysis.lifetimeValue)} />
+                    </div>
+                    <div className='qb-lookup__stat-card'>
+                      <Statistic title='First Purchase' value={formatDate(analysis.firstPurchaseDate)} />
+                    </div>
+                    <div className='qb-lookup__stat-card'>
+                      <Statistic title='Last Purchase' value={formatDate(analysis.lastPurchaseDate)} />
+                    </div>
                   </div>
                 </Col>
               </Row>

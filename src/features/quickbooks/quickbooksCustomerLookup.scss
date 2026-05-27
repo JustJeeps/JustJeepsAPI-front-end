@@ -104,6 +104,34 @@
     gap: 12px;
   }
 
+  &__stat-card {
+    background: rgba(20, 93, 160, 0.06);
+    border: 1px solid rgba(20, 93, 160, 0.14);
+    border-radius: 12px;
+    padding: 10px 12px;
+
+    .ant-statistic-title {
+      color: #334e68;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .ant-statistic-content {
+      color: #102a43;
+    }
+  }
+
+  &__stat-title-with-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__stat-title-info-icon {
+    color: #486581;
+    cursor: help;
+  }
+
   &__fraud-tags {
     margin-top: 16px;
     display: flex;
