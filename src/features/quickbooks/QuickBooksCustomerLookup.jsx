@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { Alert, Card, Col, Input, Row, Select, Space, Spin, Statistic, Table, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Col, Input, Row, Select, Space, Spin, Statistic, Table, Tag, Typography } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import './quickbooksCustomerLookup.scss';
 
@@ -21,6 +21,8 @@ const FRAUD_LABELS = {
   firstTimeCustomer: { text: 'Single recorded purchase', color: 'warning' },
   significantPurchaseHistory: { text: 'Significant purchase history', color: 'success' },
 };
+
+const DEFAULT_PROFILE_TAG = { key: 'returningProfile', text: 'Returning customer profile available', color: 'blue' };
 
 function formatCurrency(value) {
   const number = Number(value);
@@ -48,6 +50,8 @@ function buildFraudTags(indicators = {}) {
 export default function QuickBooksCustomerLookup() {
   const [query, setQuery] = useState('');
   const [searchField, setSearchField] = useState('all');
+  const [showAllCustomers, setShowAllCustomers] = useState(false);
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 40, total: 0 });
   const [searchLoading, setSearchLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
@@ -56,13 +60,19 @@ export default function QuickBooksCustomerLookup() {
   const [selectedCustomerCode, setSelectedCustomerCode] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
 
-  const runSearch = useCallback(async (nextQuery, nextField) => {
+  const resetSearchState = useCallback((pageSize = pagination.pageSize) => {
+    setResults([]);
+    setSelectedCustomerCode('');
+    setSelectedCustomer(null);
+    setSearchError('');
+    setPagination({ current: 1, pageSize, total: 0 });
+  }, [pagination.pageSize]);
+
+  const runSearch = useCallback(async (nextQuery, nextField, nextPage = 1, nextPageSize = pagination.pageSize) => {
     const trimmed = String(nextQuery || '').trim();
-    if (trimmed.length < 2) {
-      setResults([]);
-      setSelectedCustomerCode('');
-      setSelectedCustomer(null);
-      setSearchError('');
+
+    if (!trimmed && !showAllCustomers) {
+      resetSearchState(nextPageSize);
       return;
     }
 
@@ -74,12 +84,18 @@ export default function QuickBooksCustomerLookup() {
         params: {
           q: trimmed,
           field: nextField,
-          limit: 40,
+          page: nextPage,
+          limit: nextPageSize,
         },
       });
 
       const nextResults = response.data?.results || [];
       setResults(nextResults);
+      setPagination({
+        current: Number(response.data?.page || nextPage),
+        pageSize: Number(response.data?.limit || nextPageSize),
+        total: Number(response.data?.total || nextResults.length),
+      });
 
       if (!nextResults.length) {
         setSelectedCustomerCode('');
@@ -89,6 +105,7 @@ export default function QuickBooksCustomerLookup() {
       setResults([]);
       setSelectedCustomerCode('');
       setSelectedCustomer(null);
+      setPagination((prev) => ({ ...prev, total: 0 }));
       const backendMessage = error.response?.data?.error;
       const isGenericBackendFailure = /failed to search quickbooks customers/i.test(String(backendMessage || ''));
       setSearchError(
@@ -99,15 +116,32 @@ export default function QuickBooksCustomerLookup() {
     } finally {
       setSearchLoading(false);
     }
-  }, []);
+  }, [pagination.pageSize, resetSearchState, showAllCustomers]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
-      runSearch(query, searchField);
+      runSearch(query, searchField, 1, pagination.pageSize);
     }, 250);
 
     return () => window.clearTimeout(handle);
+  }, [query, searchField, runSearch, pagination.pageSize, showAllCustomers]);
+
+  const handleTableChange = useCallback((nextPagination) => {
+    runSearch(query, searchField, nextPagination.current, nextPagination.pageSize);
   }, [query, searchField, runSearch]);
+
+  const handleShowAllCustomers = useCallback(() => {
+    const nextShowAll = !showAllCustomers;
+    setShowAllCustomers(nextShowAll);
+
+    if (!nextShowAll) {
+      setQuery('');
+      resetSearchState(pagination.pageSize);
+      return;
+    }
+
+    setQuery('');
+  }, [pagination.pageSize, resetSearchState, showAllCustomers]);
 
   useEffect(() => {
     const customerCode = selectedCustomerCode || '';
@@ -142,41 +176,51 @@ export default function QuickBooksCustomerLookup() {
       title: 'Customer',
       dataIndex: 'customerName',
       key: 'customerName',
-      render: (_, record) => (
-        <div>
-          <div className='qb-lookup__cell-title'>{record.customerName || record.customerCode}</div>
-          <div className='qb-lookup__muted'>Code: {record.customerCode}</div>
-          {record.fraudIndicators?.firstTimeCustomer ? (
+      render: (_, record) => {
+        const rowTags = buildFraudTags(record.fraudIndicators);
+        const displayTags = rowTags.length ? rowTags : [DEFAULT_PROFILE_TAG];
+
+        return (
+          <div>
+            <div className='qb-lookup__cell-title'>{record.customerName || record.customerCode}</div>
+            <div className='qb-lookup__muted'>Code: {record.customerCode}</div>
             <div className='qb-lookup__table-signal'>
-              <Tag color={FRAUD_LABELS.firstTimeCustomer.color}>{FRAUD_LABELS.firstTimeCustomer.text}</Tag>
+              {displayTags.map((tag) => (
+                <Tag key={`${record.customerCode}-${tag.key}`} color={tag.color}>{tag.text}</Tag>
+              ))}
             </div>
-          ) : null}
-        </div>
-      ),
+          </div>
+        );
+      },
+      sorter: (left, right) => String(left.customerName || left.customerCode).localeCompare(String(right.customerName || right.customerCode)),
     },
     {
       title: 'Email',
       dataIndex: 'email',
       key: 'email',
       render: (value) => value || '-',
+      sorter: (left, right) => String(left.email || '').localeCompare(String(right.email || '')),
     },
     {
       title: 'Phone',
       dataIndex: 'phone',
       key: 'phone',
       render: (value) => value || '-',
+      sorter: (left, right) => String(left.phone || '').localeCompare(String(right.phone || '')),
     },
     {
       title: 'Invoices',
       dataIndex: 'totalInvoices',
       key: 'totalInvoices',
       width: 110,
+      sorter: (left, right) => Number(left.totalInvoices || 0) - Number(right.totalInvoices || 0),
     },
     {
       title: 'Payments',
       dataIndex: 'totalPayments',
       key: 'totalPayments',
       width: 110,
+      sorter: (left, right) => Number(left.totalPayments || 0) - Number(right.totalPayments || 0),
     },
     {
       title: 'Lifetime Value',
@@ -184,12 +228,14 @@ export default function QuickBooksCustomerLookup() {
       key: 'lifetimeValue',
       width: 160,
       render: (value) => formatCurrency(value),
+      sorter: (left, right) => Number(left.lifetimeValue || 0) - Number(right.lifetimeValue || 0),
     },
     {
       title: 'Address',
       dataIndex: 'address',
       key: 'address',
       render: (value) => value || '-',
+      sorter: (left, right) => String(left.address || '').localeCompare(String(right.address || '')),
     },
   ]), []);
 
@@ -256,6 +302,14 @@ export default function QuickBooksCustomerLookup() {
       <Card className='qb-lookup__search-card'>
         <Space direction='vertical' size={14} style={{ width: '100%' }}>
           <Row gutter={[12, 12]}>
+            <Col xs={24} md={4}>
+              <Button
+                onClick={handleShowAllCustomers}
+                style={{ width: '100%' }}
+              >
+                {showAllCustomers ? 'Hide All Customers' : 'Show All Customers'}
+              </Button>
+            </Col>
             <Col xs={24} md={8}>
               <Select
                 value={searchField}
@@ -264,10 +318,16 @@ export default function QuickBooksCustomerLookup() {
                 style={{ width: '100%' }}
               />
             </Col>
-            <Col xs={24} md={16}>
+            <Col xs={24} md={12}>
               <Input
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  if (nextValue.trim()) {
+                    setShowAllCustomers(false);
+                  }
+                  setQuery(nextValue);
+                }}
                 prefix={<SearchOutlined />}
                 placeholder='Type at least 2 characters to search...'
                 allowClear
@@ -282,7 +342,14 @@ export default function QuickBooksCustomerLookup() {
             loading={searchLoading}
             columns={searchColumns}
             dataSource={results}
-            pagination={{ pageSize: 8 }}
+            pagination={{
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: pagination.total,
+              showSizeChanger: true,
+              pageSizeOptions: ['20', '40', '80', '120'],
+            }}
+            onChange={handleTableChange}
             onRow={(record) => ({
               onClick: () => setSelectedCustomerCode(record.customerCode),
             })}
@@ -297,8 +364,8 @@ export default function QuickBooksCustomerLookup() {
               return classNames.join(' ');
             }}
             locale={{
-              emptyText: query.trim().length < 2
-                ? 'Enter 2+ characters to search customers'
+              emptyText: query.trim().length < 1 && !showAllCustomers
+                ? 'Use search or click Show All Customers'
                 : 'No matching customers found in QuickBooks Desktop data',
             }}
           />
