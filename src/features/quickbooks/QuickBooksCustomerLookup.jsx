@@ -16,13 +16,13 @@ const SEARCH_FIELDS = [
   { label: 'Phone number', value: 'phone' },
 ];
 
-const FRAUD_LABELS = {
-  noPurchaseHistory: { text: 'No purchase history', color: 'error' },
-  firstTimeCustomer: { text: 'Single recorded purchase', color: 'warning' },
-  significantPurchaseHistory: { text: 'Significant purchase history', color: 'success' },
+const HISTORY_BADGES = {
+  noHistory: { text: 'No purchase history', color: 'error' },
+  onePurchase: { text: 'Only 1 purchase', color: 'warning' },
+  significantHistory: { text: 'Significant purchase history', color: 'success' },
+  recentWithin3Years: { text: 'Purchase within last 3 years', color: 'blue' },
+  inactiveOver3Years: { text: 'No purchase in 3+ years', color: 'orange' },
 };
-
-const DEFAULT_PROFILE_TAG = { key: 'returningProfile', text: 'Returning customer profile available', color: 'blue' };
 
 function formatCurrency(value) {
   const number = Number(value);
@@ -32,7 +32,18 @@ function formatCurrency(value) {
 
 function formatDate(value) {
   if (!value) return '-';
-  const date = new Date(value);
+  const raw = String(value).trim();
+  let date;
+
+  // Parse YYYY-MM-DD as a local calendar date to avoid timezone day shifts.
+  const dateOnlyMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    date = new Date(Number(year), Number(month) - 1, Number(day));
+  } else {
+    date = new Date(raw);
+  }
+
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString('en-CA', {
     year: 'numeric',
@@ -41,15 +52,46 @@ function formatDate(value) {
   });
 }
 
-function buildFraudTags(indicators = {}, options = {}) {
-  const { includePositive = true } = options;
-  const keys = includePositive
-    ? Object.keys(FRAUD_LABELS)
-    : ['noPurchaseHistory', 'firstTimeCustomer'];
+function getYearsSince(dateValue) {
+  if (!dateValue) return null;
+  const parsed = new Date(String(dateValue));
+  if (Number.isNaN(parsed.getTime())) return null;
 
-  return keys
-    .filter((key) => indicators[key])
-    .map((key) => ({ key, ...FRAUD_LABELS[key] }));
+  const diffMs = Date.now() - parsed.getTime();
+  if (!Number.isFinite(diffMs) || diffMs < 0) return null;
+  return diffMs / (365.25 * 24 * 60 * 60 * 1000);
+}
+
+function buildHistoryBadges(record = {}) {
+  const hasPurchasedBefore = Boolean(record.hasPurchasedBefore);
+  const totalInvoices = Number(record.totalInvoices || 0);
+  const totalPayments = Number(record.totalPayments || 0);
+  const yearsSinceLastPurchase = getYearsSince(record.lastPurchaseDate);
+
+  const badges = [];
+
+  if (!hasPurchasedBefore || totalPayments === 0) {
+    badges.push({ key: 'noHistory', ...HISTORY_BADGES.noHistory });
+    return badges;
+  }
+
+  if (totalInvoices === 1) {
+    badges.push({ key: 'onePurchase', ...HISTORY_BADGES.onePurchase });
+  }
+
+  if (totalPayments >= 5) {
+    badges.push({ key: 'significantHistory', ...HISTORY_BADGES.significantHistory });
+  }
+
+  if (yearsSinceLastPurchase !== null && yearsSinceLastPurchase >= 3) {
+    badges.push({ key: 'inactiveOver3Years', ...HISTORY_BADGES.inactiveOver3Years });
+  }
+
+  if (yearsSinceLastPurchase !== null && yearsSinceLastPurchase < 3) {
+    badges.push({ key: 'recentWithin3Years', ...HISTORY_BADGES.recentWithin3Years });
+  }
+
+  return badges;
 }
 
 export default function QuickBooksCustomerLookup() {
@@ -241,18 +283,19 @@ export default function QuickBooksCustomerLookup() {
       dataIndex: 'customerName',
       key: 'customerName',
       render: (_, record) => {
-        const rowTags = buildFraudTags(record.fraudIndicators, { includePositive: false });
-        const displayTags = rowTags.length ? rowTags : [DEFAULT_PROFILE_TAG];
+        const historyBadges = buildHistoryBadges(record);
 
         return (
           <div>
             <div className='qb-lookup__cell-title'>{record.customerName || record.customerCode}</div>
             <div className='qb-lookup__muted'>Code: {record.customerCode}</div>
-            <div className='qb-lookup__table-signal'>
-              {displayTags.map((tag) => (
-                <Tag key={`${record.customerCode}-${tag.key}`} color={tag.color}>{tag.text}</Tag>
-              ))}
-            </div>
+            {historyBadges.length ? (
+              <div className='qb-lookup__table-signal'>
+                {historyBadges.map((badge) => (
+                  <Tag key={`${record.customerCode}-${badge.key}`} color={badge.color}>{badge.text}</Tag>
+                ))}
+              </div>
+            ) : null}
           </div>
         );
       },
@@ -364,8 +407,13 @@ export default function QuickBooksCustomerLookup() {
   ]), []);
 
   const analysis = selectedCustomer?.analysis || {};
-  const fraudTags = buildFraudTags(analysis.fraudIndicators);
-  const isHighAttention = Boolean(analysis.fraudIndicators?.noPurchaseHistory);
+  const selectedCustomerBadges = buildHistoryBadges({
+    hasPurchasedBefore: analysis.hasPurchasedBefore,
+    totalInvoices: analysis.totalInvoices,
+    totalPayments: analysis.totalPayments,
+    totalAmountPurchased: analysis.totalAmountPurchased,
+    lastPurchaseDate: analysis.lastPurchaseDate,
+  });
   const totalAmountPurchasedTitle = (
     <span className='qb-lookup__stat-title-with-info'>
       Total Amount Purchased
@@ -387,7 +435,7 @@ export default function QuickBooksCustomerLookup() {
     <div className='qb-lookup'>
       <div className='qb-lookup__hero'>
         <div>
-          <p className='qb-lookup__eyebrow'>Fraud Review</p>
+          <p className='qb-lookup__eyebrow'>Customer History Review</p>
           <Title level={2}>QuickBooks Customer Lookup</Title>
           <Text className='qb-lookup__subtitle'>
             Search by code, customer name, address, email, or phone to verify purchase history fast.
@@ -457,9 +505,6 @@ export default function QuickBooksCustomerLookup() {
             })}
             rowClassName={(record) => {
               const classNames = [];
-              if (record.fraudIndicators?.noPurchaseHistory) {
-                classNames.push('qb-lookup__row--attention');
-              }
               if (record.customerCode === selectedCustomerCode) {
                 classNames.push('qb-lookup__row--selected');
               }
@@ -483,15 +528,17 @@ export default function QuickBooksCustomerLookup() {
           </div>
         ) : selectedCustomer ? (
           <>
-            <Card className={`qb-lookup__summary-card${isHighAttention ? ' qb-lookup__summary-card--attention' : ''}`}>
+            <Card className='qb-lookup__summary-card'>
               <Row gutter={[16, 16]} align='middle'>
                 <Col xs={24} md={14}>
                   <Title level={4} style={{ marginBottom: 6 }}>{selectedCustomer.customerName || selectedCustomer.customerCode}</Title>
-                  <div className='qb-lookup__fraud-tags qb-lookup__fraud-tags--near-name'>
-                    {fraudTags.length ? fraudTags.map((tag) => (
-                      <Tag key={tag.key} color={tag.color}>{tag.text}</Tag>
-                    )) : <Tag color='blue'>Returning customer profile available</Tag>}
-                  </div>
+                  {selectedCustomerBadges.length ? (
+                    <div className='qb-lookup__fraud-tags qb-lookup__fraud-tags--near-name'>
+                      {selectedCustomerBadges.map((badge) => (
+                        <Tag key={badge.key} color={badge.color}>{badge.text}</Tag>
+                      ))}
+                    </div>
+                  ) : null}
                   <div className='qb-lookup__meta-grid'>
                     <div><strong>Code:</strong> {selectedCustomer.customerCode || '-'}</div>
                     <div><strong>Email:</strong> {selectedCustomer.email || '-'}</div>
