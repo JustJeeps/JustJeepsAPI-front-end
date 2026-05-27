@@ -89,7 +89,13 @@ export default function QuickBooksCustomerLookup() {
       setResults([]);
       setSelectedCustomerCode('');
       setSelectedCustomer(null);
-      setSearchError(error.response?.data?.error || 'Failed to search QuickBooks customers');
+      const backendMessage = error.response?.data?.error;
+      const isGenericBackendFailure = /failed to search quickbooks customers/i.test(String(backendMessage || ''));
+      setSearchError(
+        !backendMessage || isGenericBackendFailure
+          ? 'Search is temporarily unavailable. Please try again.'
+          : backendMessage
+      );
     } finally {
       setSearchLoading(false);
     }
@@ -293,7 +299,7 @@ export default function QuickBooksCustomerLookup() {
             locale={{
               emptyText: query.trim().length < 2
                 ? 'Enter 2+ characters to search customers'
-                : 'No matching customers found',
+                : 'No matching customers found in QuickBooks Desktop data',
             }}
           />
         </Space>
