@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import LoginModal from '../../components/auth/LoginModal';
 
 const ALLOWED_USERS = ['tess', 'paula', 'karoline'];
+const QUICKBOOKS_ALLOWED_USERS = ['tess', 'paula', 'karoline', 'david'];
 const CRON_JOBS_ALLOWED_USERS = ['tess'];
 const Navbar = () => {
 	const { authEnabled, isAuthenticated, user, logout } = useAuth();
@@ -70,7 +71,7 @@ const Navbar = () => {
 							</Link>
 						</li>
 						{/* Only show Purchaser Report for allowed users */}
-						{/* {user && ALLOWED_USERS.includes((user.username || user.name || '').toLowerCase()) && (
+						{user && ALLOWED_USERS.includes((user.username || user.name || '').toLowerCase()) && (
 						  <li className='nav-item'>
 						    <Link
 						      className='nav-link active fs-5 mx-4'
@@ -79,7 +80,7 @@ const Navbar = () => {
 						      Purchaser Report
 						    </Link>
 						  </li>
-						)} */}
+						)}
 						<li className='nav-item'>
 							<Link
 								className='aria-current nav-link active fs-5 mx-4'
@@ -88,14 +89,16 @@ const Navbar = () => {
 								Search by SKU or Brand
 							</Link>
 						</li>
-						<li className='nav-item'>
-							<Link
-								className='aria-current nav-link active fs-5 mx-4'
-								to='/quickbooks-customer-lookup'
-							>
-								QuickBooks Customer Lookup
-							</Link>
-						</li>
+						{user && QUICKBOOKS_ALLOWED_USERS.includes(normalizedUsername) && (
+							<li className='nav-item'>
+								<Link
+									className='aria-current nav-link active fs-5 mx-4'
+									to='/quickbooks-customer-lookup'
+								>
+									QuickBooks Customer Lookup
+								</Link>
+							</li>
+						)}
 						{user && CRON_JOBS_ALLOWED_USERS.includes(normalizedUsername) && (
 							<li className='nav-item'>
 								<Link
