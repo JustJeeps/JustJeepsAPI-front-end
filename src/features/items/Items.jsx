@@ -40,7 +40,7 @@ export const Items = () => {
 
   const API_URL = import.meta.env.VITE_API_URL;
   const SKU_STATUS_ALLOWED_USERS = useMemo(
-    () => new Set(["admin", "jerry", "tess", "jacob"]),
+    () => new Set(["admin", "jerry", "tess", "jacob", "david"]),
     []
   );
   const normalizedUsername = (user?.username || user?.name || "").toLowerCase();

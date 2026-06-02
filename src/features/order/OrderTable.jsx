@@ -121,7 +121,7 @@ const OrderTable = () => {
 
 
   const API_URL = import.meta.env.VITE_API_URL;
-  const SKU_STATUS_ALLOWED_USERS = new Set(["admin", "jerry", "tess", "jacob"]);
+  const SKU_STATUS_ALLOWED_USERS = new Set(["admin", "jerry", "tess", "jacob", "david"]);
   const normalizedUsername = (user?.username || user?.name || "").toLowerCase();
   const canEditSkuStatus = authEnabled && SKU_STATUS_ALLOWED_USERS.has(normalizedUsername);
 
