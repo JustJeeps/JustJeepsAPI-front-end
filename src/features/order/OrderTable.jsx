@@ -40,9 +40,11 @@ import {
   CheckCircleOutlined,
   StopOutlined
 } from "@ant-design/icons";
+import { useAuth } from "../../context/AuthContext";
 
 
 const OrderTable = () => {
+  const { user, authEnabled } = useAuth();
   const [orders, setOrders] = useState([]);
   const [originalOrders, setOriginalOrders] = useState([]);
   const [sortedInfo, setSortedInfo] = useState({});
@@ -108,6 +110,7 @@ const OrderTable = () => {
   const [orderShippingCosts, setOrderShippingCosts] = useState({});
   const [unitCostEdits, setUnitCostEdits] = useState({});
   const [savingUnitCost, setSavingUnitCost] = useState({});
+  const [updatingSkuStatusBySku, setUpdatingSkuStatusBySku] = useState({});
   const [textFromDrawer, setTextFromDrawer] = useState("");
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
   const seedPollRef = useRef(null);
@@ -118,6 +121,9 @@ const OrderTable = () => {
 
 
   const API_URL = import.meta.env.VITE_API_URL;
+  const SKU_STATUS_ALLOWED_USERS = new Set(["admin", "jerry", "tess", "jacob"]);
+  const normalizedUsername = (user?.username || user?.name || "").toLowerCase();
+  const canEditSkuStatus = authEnabled && SKU_STATUS_ALLOWED_USERS.has(normalizedUsername);
 
   const getOrderRowKey = (record) => record.entity_id || record.id || record.key;
 
@@ -1961,6 +1967,87 @@ console.log("IS ARRAY?", Array.isArray(orders));
     const dedupedRecord = dedupeOrderItems(record);
     const items = Array.isArray(dedupedRecord?.items) ? dedupedRecord.items : [];
 
+    const handleSetSkuStatusAcrossStoreViews = async (item, targetStatus) => {
+      const skuValue = (item?.sku || "").trim();
+      if (!skuValue || ![1, 2].includes(Number(targetStatus))) {
+        return;
+      }
+
+      const actionLabel = Number(targetStatus) === 2 ? "Disable" : "Enable";
+      const confirmed = window.confirm(
+        `${actionLabel} SKU ${skuValue} on all store views? This sets status=${targetStatus}.`
+      );
+      if (!confirmed) {
+        return;
+      }
+
+      setUpdatingSkuStatusBySku((prev) => ({ ...prev, [skuValue]: true }));
+      try {
+        const response = await axios.post(
+          `${API_URL}/api/products/${encodeURIComponent(skuValue)}/status-all-store-views`,
+          { status: Number(targetStatus) }
+        );
+
+        const applyStatusUpdate = (prevOrders) => {
+          if (!Array.isArray(prevOrders)) return prevOrders;
+          return prevOrders.map((orderRow) => ({
+            ...orderRow,
+            items: Array.isArray(orderRow?.items)
+              ? orderRow.items.map((orderItem) =>
+                  String(orderItem?.sku || "").trim().toLowerCase() === skuValue.toLowerCase()
+                    ? {
+                        ...orderItem,
+                        product: {
+                          ...(orderItem?.product || {}),
+                          status: Number(targetStatus),
+                        },
+                      }
+                    : orderItem
+                )
+              : orderRow?.items,
+          }));
+        };
+
+        setOrders((prev) => applyStatusUpdate(prev));
+        setOriginalOrders((prev) => applyStatusUpdate(prev));
+
+        const updatedStoreViews = response?.data?.updatedStoreViews || [];
+        const failedStoreViews = response?.data?.failedStoreViews || [];
+        const storefrontCodes = new Set(["default", "us_sv"]);
+        const updatedStorefrontCodes = updatedStoreViews.filter((code) =>
+          storefrontCodes.has((code || "").toString().toLowerCase())
+        );
+        const failedStorefrontCodes = failedStoreViews
+          .map((entry) => entry?.storeViewCode)
+          .filter((code) => storefrontCodes.has((code || "").toString().toLowerCase()));
+        const updatedCodesLabel = updatedStorefrontCodes.length
+          ? updatedStorefrontCodes.join(", ")
+          : "none";
+
+        Modal.success({
+          title: `SKU ${skuValue} ${Number(targetStatus) === 2 ? "disabled" : "enabled"}`,
+          content:
+            failedStorefrontCodes.length > 0
+              ? `Updated store views: ${updatedCodesLabel}. Failed store views: ${failedStorefrontCodes.join(", ")}.`
+              : `Updated store views: ${updatedCodesLabel}.`,
+        });
+      } catch (error) {
+        const message =
+          error?.response?.data?.error ||
+          `Failed to ${Number(targetStatus) === 2 ? "disable" : "enable"} SKU`;
+        Modal.error({
+          title: `Failed to ${Number(targetStatus) === 2 ? "disable" : "enable"} ${skuValue}`,
+          content: message,
+        });
+      } finally {
+        setUpdatingSkuStatusBySku((prev) => {
+          const next = { ...prev };
+          delete next[skuValue];
+          return next;
+        });
+      }
+    };
+
     //render sub table here
     const nestedColumns = [
       // {
@@ -2133,6 +2220,36 @@ console.log("IS ARRAY?", Array.isArray(orders));
           }
         },
       },
+      ...(canEditSkuStatus
+        ? [
+            {
+              title: "SKU Status",
+              key: "sku_status_action",
+              align: "center",
+              width: 130,
+              render: (_, item) => {
+                const skuValue = (item?.sku || "").trim();
+                const productStatus = Number(item?.product?.status);
+                const isDisabled = productStatus === 2;
+                const targetStatus = isDisabled ? 1 : 2;
+                const isSubmitting = Boolean(updatingSkuStatusBySku[skuValue]);
+
+                return (
+                  <Button
+                    size="small"
+                    type={isDisabled ? "primary" : "default"}
+                    danger={!isDisabled}
+                    loading={isSubmitting}
+                    disabled={isSubmitting}
+                    onClick={() => handleSetSkuStatusAcrossStoreViews(item, targetStatus)}
+                  >
+                    {isDisabled ? "Enable" : "Disable"}
+                  </Button>
+                );
+              },
+            },
+          ]
+        : []),
       {
         title: "Qty",
         dataIndex: "qty_ordered",

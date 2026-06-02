@@ -15,11 +15,14 @@ import PrecisionManufacturingOutlinedIcon from "@mui/icons-material/PrecisionMan
 import MonetizationOnOutlinedIcon from "@mui/icons-material/MonetizationOnOutlined";
 import { Resizable } from "react-resizable";
 import { Checkbox } from 'antd';
+import { useAuth } from "../../context/AuthContext";
 
 
 
 export const Items = () => {
+  const { user, authEnabled } = useAuth();
   const [data, setData] = useState([]);
+  const [updatingSkus, setUpdatingSkus] = useState({});
   const [searchBy, setSearchBy] = useState("sku"); // default search by SKU
   const [searchTermSku, setSearchTermSku] = useState("");
   const [sku, setSku] = useState([]);
@@ -36,6 +39,12 @@ export const Items = () => {
   });
 
   const API_URL = import.meta.env.VITE_API_URL;
+  const SKU_STATUS_ALLOWED_USERS = useMemo(
+    () => new Set(["admin", "jerry", "tess", "jacob"]),
+    []
+  );
+  const normalizedUsername = (user?.username || user?.name || "").toLowerCase();
+  const canEditSkuStatus = authEnabled && SKU_STATUS_ALLOWED_USERS.has(normalizedUsername);
 
   // Pagination state
   const [pagination, setPagination] = useState({
@@ -841,6 +850,99 @@ const handleTableChange = (newPage, newPageSize) => {
   fetchProducts(newPage, search, newPageSize);
 };
 
+const handleSetSkuStatusAcrossStoreViews = async (record, targetStatus) => {
+  const skuValue = (record?.sku || "").trim();
+  if (!skuValue) {
+    return;
+  }
+
+  if (![1, 2].includes(Number(targetStatus))) {
+    return;
+  }
+
+  const actionLabel = Number(targetStatus) === 2 ? "Disable" : "Enable";
+
+  const confirmed = window.confirm(
+    `${actionLabel} SKU ${skuValue} on all store views? This sets status=${targetStatus}.`
+  );
+  if (!confirmed) {
+    return;
+  }
+
+  setUpdatingSkus((prev) => ({ ...prev, [skuValue]: true }));
+  try {
+    const response = await axios.post(
+      `${API_URL}/api/products/${encodeURIComponent(skuValue)}/status-all-store-views`,
+      { status: Number(targetStatus) }
+    );
+
+    setData((prev) =>
+      Array.isArray(prev)
+        ? prev.map((product) =>
+            normalizeSkuValue(product?.sku) === normalizeSkuValue(skuValue)
+              ? { ...product, status: Number(targetStatus) }
+              : product
+          )
+        : prev
+    );
+
+    setBrandData((prev) =>
+      Array.isArray(prev)
+        ? prev.map((product) =>
+            normalizeSkuValue(product?.sku) === normalizeSkuValue(skuValue)
+              ? { ...product, status: Number(targetStatus) }
+              : product
+          )
+        : prev
+    );
+
+    setAllProducts((prev) =>
+      Array.isArray(prev)
+        ? prev.map((product) =>
+            normalizeSkuValue(product?.sku) === normalizeSkuValue(skuValue)
+              ? { ...product, status: Number(targetStatus) }
+              : product
+          )
+        : prev
+    );
+
+    const updatedStoreViews = response?.data?.updatedStoreViews || [];
+    const failedStoreViews = response?.data?.failedStoreViews || [];
+    const storefrontCodes = new Set(["default", "us_sv"]);
+    const updatedStorefrontCodes = updatedStoreViews.filter((code) =>
+      storefrontCodes.has((code || "").toString().toLowerCase())
+    );
+    const failedStorefrontCodes = failedStoreViews
+      .map((entry) => entry?.storeViewCode)
+      .filter((code) => storefrontCodes.has((code || "").toString().toLowerCase()));
+    const updatedCodesLabel = updatedStorefrontCodes.length
+      ? updatedStorefrontCodes.join(", ")
+      : "none";
+
+    Modal.success({
+      title: `SKU ${skuValue} ${Number(targetStatus) === 2 ? "disabled" : "enabled"}`,
+      content:
+        failedStorefrontCodes.length > 0
+          ? `Updated store views: ${updatedCodesLabel}. Failed store views: ${failedStorefrontCodes.join(", ")}.`
+          : `Updated store views: ${updatedCodesLabel}.`,
+    });
+  } catch (error) {
+    const message =
+      error?.response?.data?.error ||
+      `Failed to ${Number(targetStatus) === 2 ? "disable" : "enable"} SKU`;
+    Modal.error({
+      title: `Failed to ${Number(targetStatus) === 2 ? "disable" : "enable"} ${skuValue}`,
+      content: message,
+    });
+  } finally {
+    setUpdatingSkus((prev) => {
+      const next = { ...prev };
+      delete next[skuValue];
+      return next;
+    });
+  }
+};
+
 
 
 
@@ -860,6 +962,32 @@ const handleTableChange = (newPage, newPageSize) => {
   const brands_for_autocomplete = {
     options: brands, // sample brand data
     getOptionLabel: (option) => option.brand_name,
+  };
+
+  const actionsColumn = {
+    title: "Actions",
+    key: "actions",
+    align: "center",
+    width: "10%",
+    render: (_, record) => {
+      const skuValue = record?.sku;
+      const currentStatus = Number(record?.status);
+      const isDisabled = currentStatus === 2;
+      const targetStatus = isDisabled ? 1 : 2;
+      const isSubmitting = Boolean(updatingSkus[skuValue]);
+
+      return (
+        <Button
+          type={isDisabled ? "primary" : "default"}
+          danger={!isDisabled}
+          loading={isSubmitting}
+          disabled={isSubmitting}
+          onClick={() => handleSetSkuStatusAcrossStoreViews(record, targetStatus)}
+        >
+          {isDisabled ? "Enable SKU" : "Disable SKU"}
+        </Button>
+      );
+    },
   };
 
   const columns_by_sku = [
@@ -903,6 +1031,7 @@ const handleTableChange = (newPage, newPageSize) => {
         </div>
       ),
     },
+    ...(canEditSkuStatus ? [actionsColumn] : []),
     // {
     //   title: "Status",
     //   dataIndex: "status",
