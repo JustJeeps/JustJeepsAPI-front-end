@@ -1365,12 +1365,14 @@ Thank you!
           const manualActions = Array.isArray(payload.manualActionsStillRequired)
             ? payload.manualActionsStillRequired
             : [];
+          const localStatusUpdated = payload?.localStatusUpdated === true;
+          const resolvedOrderId = Number(payload?.orderId || orderId);
 
-          if (!dryRun && completedActions.some((action) => String(action).toLowerCase().includes("order cancelled"))) {
+          if (!dryRun && (localStatusUpdated || completedActions.some((action) => String(action).toLowerCase().includes("order cancelled")))) {
             const markCancelled = (prevOrders) =>
               Array.isArray(prevOrders)
                 ? prevOrders.map((orderRow) =>
-                    Number(orderRow?.entity_id) === Number(orderId)
+                    Number(orderRow?.entity_id) === resolvedOrderId
                       ? { ...orderRow, status: "canceled" }
                       : orderRow
                   )
