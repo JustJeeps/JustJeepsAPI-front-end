@@ -1345,8 +1345,8 @@ Thank you!
       title: `${dryRun ? "Dry Run" : "Cancel Order"} #${incrementId}?`,
       icon: <ExclamationCircleOutlined />,
       content: dryRun
-        ? "This will simulate supported automation steps and show a summary without changing Magento."
-        : "This will attempt supported automation steps: void invoice (if exists) and cancel order.",
+        ? "This will simulate supported automation steps (void invoice if exists, cancel order, create and send cancellation ticket) and show a summary without changing Magento."
+        : "This will attempt supported automation steps: void invoice (if exists), cancel order, and create/send cancellation ticket.",
       okText: dryRun ? "Run Dry Run" : "Run Cancel Workflow",
       okButtonProps: dryRun ? {} : { danger: true },
       cancelText: "Back",
