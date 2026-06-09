@@ -111,6 +111,7 @@ const OrderTable = () => {
   const [unitCostEdits, setUnitCostEdits] = useState({});
   const [savingUnitCost, setSavingUnitCost] = useState({});
   const [updatingSkuStatusBySku, setUpdatingSkuStatusBySku] = useState({});
+  const [cancellingOrders, setCancellingOrders] = useState({});
   const [textFromDrawer, setTextFromDrawer] = useState("");
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
   const seedPollRef = useRef(null);
@@ -122,8 +123,10 @@ const OrderTable = () => {
 
   const API_URL = import.meta.env.VITE_API_URL;
   const SKU_STATUS_ALLOWED_USERS = new Set(["admin", "jerry", "tess", "jacob", "david"]);
+  const ORDER_CANCEL_ALLOWED_USERS = new Set(["tess"]);
   const normalizedUsername = (user?.username || user?.name || "").toLowerCase();
   const canEditSkuStatus = authEnabled && SKU_STATUS_ALLOWED_USERS.has(normalizedUsername);
+  const canRunOrderCancelWorkflow = authEnabled && ORDER_CANCEL_ALLOWED_USERS.has(normalizedUsername);
 
   const getOrderRowKey = (record) => record.entity_id || record.id || record.key;
 
@@ -1330,6 +1333,123 @@ Thank you!
     window.location.reload(false);
   };
 
+  const handleCancelOrderWorkflow = (record, { dryRun = false } = {}) => {
+    if (!record?.entity_id) {
+      return;
+    }
+
+    const orderId = record.entity_id;
+    const incrementId = record.increment_id || orderId;
+
+    Modal.confirm({
+      title: `${dryRun ? "Dry Run" : "Cancel Order"} #${incrementId}?`,
+      icon: <ExclamationCircleOutlined />,
+      content: dryRun
+        ? "This will simulate supported automation steps and show a summary without changing Magento."
+        : "This will attempt supported automation steps: void invoice (if exists) and cancel order.",
+      okText: dryRun ? "Run Dry Run" : "Run Cancel Workflow",
+      okButtonProps: dryRun ? {} : { danger: true },
+      cancelText: "Back",
+      onOk: async () => {
+        setCancellingOrders((prev) => ({ ...prev, [orderId]: true }));
+
+        try {
+          const response = await axios.post(`${API_URL}/api/orders/${orderId}/cancel-workflow`, {
+            dryRun,
+          });
+          const payload = response?.data || {};
+
+          const completedActions = Array.isArray(payload.completedActions) ? payload.completedActions : [];
+          const failedActions = Array.isArray(payload.failedActions) ? payload.failedActions : [];
+          const informationalActions = Array.isArray(payload.informationalActions) ? payload.informationalActions : [];
+          const manualActions = Array.isArray(payload.manualActionsStillRequired)
+            ? payload.manualActionsStillRequired
+            : [];
+
+          if (!dryRun && completedActions.some((action) => String(action).toLowerCase().includes("order cancelled"))) {
+            const markCancelled = (prevOrders) =>
+              Array.isArray(prevOrders)
+                ? prevOrders.map((orderRow) =>
+                    Number(orderRow?.entity_id) === Number(orderId)
+                      ? { ...orderRow, status: "canceled" }
+                      : orderRow
+                  )
+                : prevOrders;
+
+            setOrders((prev) => markCancelled(prev));
+            setOriginalOrders((prev) => markCancelled(prev));
+          }
+
+          Modal.info({
+            title: `${dryRun ? "Dry Run Summary" : "Cancellation Summary"} - Order #${payload.incrementId || incrementId}`,
+            width: 680,
+            content: (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ marginBottom: 8, fontWeight: 600 }}>Completed actions</div>
+                {completedActions.length > 0 ? (
+                  <ul style={{ marginTop: 0 }}>
+                    {completedActions.map((action, index) => (
+                      <li key={`completed-${index}`}>✓ {action}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div style={{ marginBottom: 10 }}>No automated actions completed.</div>
+                )}
+
+                {informationalActions.length > 0 ? (
+                  <>
+                    <div style={{ marginBottom: 8, fontWeight: 600 }}>Notes</div>
+                    <ul style={{ marginTop: 0 }}>
+                      {informationalActions.map((message, index) => (
+                        <li key={`info-${index}`}>{message}</li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null}
+
+                {failedActions.length > 0 ? (
+                  <>
+                    <div style={{ marginBottom: 8, fontWeight: 600 }}>Automated actions that failed</div>
+                    <ul style={{ marginTop: 0 }}>
+                      {failedActions.map((entry, index) => (
+                        <li key={`failed-${index}`}>
+                          {entry?.action || "Action"}: {entry?.message || "Unknown error"}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null}
+
+                <div style={{ marginBottom: 8, fontWeight: 600 }}>Manual actions still required</div>
+                <ul style={{ marginTop: 0, marginBottom: 0 }}>
+                  {manualActions.map((action, index) => (
+                    <li key={`manual-${index}`}>- {action}</li>
+                  ))}
+                </ul>
+              </div>
+            ),
+          });
+        } catch (error) {
+          const message =
+            error?.response?.data?.error ||
+            error?.response?.data?.message ||
+            "Failed to run cancellation workflow";
+
+          Modal.error({
+            title: `Cancel Workflow Failed - Order #${incrementId}`,
+            content: message,
+          });
+        } finally {
+          setCancellingOrders((prev) => {
+            const next = { ...prev };
+            delete next[orderId];
+            return next;
+          });
+        }
+      },
+    });
+  };
+
 
 
   //set up main column
@@ -1804,6 +1924,48 @@ Thank you!
         );
       },
     },
+    ...(canRunOrderCancelWorkflow
+      ? [
+          ...(canRunOrderCancelWorkflow
+            ? [
+                {
+                  title: "Cancel Order",
+                  key: "cancel_order",
+                  align: "center",
+                  width: 210,
+                  render: (_, record) => {
+                    const orderId = record?.entity_id;
+                    const cancelling = Boolean(cancellingOrders[orderId]);
+                    const isAlreadyCancelled = String(record?.status || "").toLowerCase().includes("cancel");
+
+                    return (
+                      <Space size={6}>
+                        <Button
+                          size="small"
+                          loading={cancelling}
+                          disabled={cancelling}
+                          onClick={() => handleCancelOrderWorkflow(record, { dryRun: true })}
+                        >
+                          Dry Run
+                        </Button>
+                        <Button
+                          danger
+                          size="small"
+                          type="primary"
+                          loading={cancelling}
+                          disabled={cancelling || isAlreadyCancelled}
+                          onClick={() => handleCancelOrderWorkflow(record)}
+                        >
+                          {isAlreadyCancelled ? "Cancelled" : "Cancel Order"}
+                        </Button>
+                      </Space>
+                    );
+                  },
+                },
+              ]
+            : []),
+        ]
+      : []),
     // {
     //   title: "Actions",
     //   dataIndex: "operation",
