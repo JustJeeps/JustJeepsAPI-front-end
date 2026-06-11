@@ -1827,7 +1827,7 @@ Thank you!
         const subject = buildEmailSubject(record);
         const bodyAllDS = buildBodyAll_DS(record);
         const bodyAllSto = buildBodyAll_Store(record);
-        const binTo = "jkemper@justjeeps.com";
+        const binTo = "aaron@justjeeps.com";
         const binSubject = `Order ${record?.increment_id || ""} - BIN check`;
         const binBody = buildBinCheckBody(record);
         const shippingTo = "asmith@justjeeps.com,jkemper@justjeeps.com";
