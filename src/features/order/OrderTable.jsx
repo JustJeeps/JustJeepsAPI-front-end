@@ -605,7 +605,7 @@ const buildBinCheckBody = (order) => {
   const products = buildBinCheckProductLines(order);
 
   return (
-`Hi Jacob,
+`Hi Aaron,
 
 Could you please confirm whether you'd like me to run a BIN check on this order, or should I go ahead and proceed?
 
