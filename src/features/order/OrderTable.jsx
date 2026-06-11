@@ -1872,6 +1872,7 @@ Thank you!
         const bodyAllDS = buildBodyAll_DS(record);
         const bodyAllSto = buildBodyAll_Store(record);
         const binTo = "aaron@justjeeps.com";
+        const binCc = "jkemper@justjeeps.com";
         const binSubject = `Order ${record?.increment_id || ""} - BIN check`;
         const binBody = buildBinCheckBody(record);
         const shippingTo = "asmith@justjeeps.com,jkemper@justjeeps.com";
@@ -1880,7 +1881,7 @@ Thank you!
 
         const mailtoDS = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyAllDS)}`;
         const mailtoSto = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyAllSto)}`;
-        const mailtoBin = `mailto:${binTo}?subject=${encodeURIComponent(binSubject)}&body=${encodeURIComponent(binBody)}`;
+        const mailtoBin = `mailto:${binTo}?cc=${encodeURIComponent(binCc)}&subject=${encodeURIComponent(binSubject)}&body=${encodeURIComponent(binBody)}`;
         const mailtoShipping = `mailto:${shippingTo}?subject=${encodeURIComponent(shippingSubject)}&body=${encodeURIComponent(shippingBody)}`;
 
         return (
