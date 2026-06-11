@@ -315,6 +315,50 @@ const normalizeBrandName = (brand) =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 
+const KEYPARTS_ANTHONY_SEARCHABLE_SKUS = new Set([
+  "0482-710",
+  "0485-138",
+  "0485-136",
+  "0485-219",
+  "0485-220",
+  "0485-222",
+  "0485-221",
+  "0485-319",
+  "0485-320",
+  "0487-221",
+  "0487-222",
+]);
+
+const normalizeSearchableSku = (value) =>
+  String(value || "")
+    .trim()
+    .toUpperCase();
+
+const extractSearchableFromSku = (sku) => {
+  const raw = String(sku || "").trim();
+  if (!raw) return "";
+  const matched = raw.match(/(\d{4}-\d{3})$/);
+  return matched ? matched[1] : "";
+};
+
+const shouldTagKeypartsAnthonyCheck = (item) => {
+  const normalizedBrand = normalizeBrandName(
+    item?.product?.brand_name || item?.brand_name || ""
+  );
+  const isKeyparts = normalizedBrand === "keyparts" || normalizedBrand === "key parts";
+  if (!isKeyparts) return false;
+
+  const candidates = [
+    item?.product?.searchable_sku,
+    item?.searchable_sku,
+    extractSearchableFromSku(item?.sku),
+  ];
+
+  return candidates.some((value) =>
+    KEYPARTS_ANTHONY_SEARCHABLE_SKUS.has(normalizeSearchableSku(value))
+  );
+};
+
 const isAllowedPoBrand = (brand) => {
   const normalized = normalizeBrandName(brand);
   if (!normalized) return false;
@@ -2380,7 +2424,16 @@ console.log("IS ARRAY?", Array.isArray(orders));
               </Form.Item>
             );
           } else {
-            return <p>{text}</p>;
+            const showAnthonyTag = shouldTagKeypartsAnthonyCheck(record);
+
+            return (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                <p style={{ margin: 0 }}>{text}</p>
+                {showAnthonyTag ? (
+                  <Tag color="gold">Check stock with Anthony</Tag>
+                ) : null}
+              </div>
+            );
           }
         },
       },
