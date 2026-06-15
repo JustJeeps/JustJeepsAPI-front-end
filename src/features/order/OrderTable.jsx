@@ -123,10 +123,12 @@ const OrderTable = () => {
 
   const API_URL = import.meta.env.VITE_API_URL;
   const SKU_STATUS_ALLOWED_USERS = new Set(["admin", "jerry", "tess", "jacob", "david"]);
-  const ORDER_CANCEL_ALLOWED_USERS = new Set(["tess"]);
+  const ORDER_CANCEL_EXECUTE_ALLOWED_USERS = new Set(["tess", "jerry", "jacob"]);
+  const ORDER_CANCEL_DRY_RUN_ALLOWED_USERS = new Set(["tess"]);
   const normalizedUsername = (user?.username || user?.name || "").toLowerCase();
   const canEditSkuStatus = authEnabled && SKU_STATUS_ALLOWED_USERS.has(normalizedUsername);
-  const canRunOrderCancelWorkflow = authEnabled && ORDER_CANCEL_ALLOWED_USERS.has(normalizedUsername);
+  const canRunOrderCancelWorkflow = authEnabled && ORDER_CANCEL_EXECUTE_ALLOWED_USERS.has(normalizedUsername);
+  const canRunOrderCancelDryRun = authEnabled && ORDER_CANCEL_DRY_RUN_ALLOWED_USERS.has(normalizedUsername);
 
   const getOrderRowKey = (record) => record.entity_id || record.id || record.key;
 
@@ -1389,8 +1391,8 @@ Thank you!
       title: `${dryRun ? "Dry Run" : "Cancel Order"} #${incrementId}?`,
       icon: <ExclamationCircleOutlined />,
       content: dryRun
-        ? "This will simulate supported automation steps (void invoice if exists, cancel order, create and send cancellation ticket) and show a summary without changing Magento."
-        : "This will attempt supported automation steps: void invoice (if exists), cancel order, and create/send cancellation ticket.",
+        ? "This will simulate supported automation steps (void/delete invoice by order id, cancel order, create and send cancellation ticket) and show a summary without changing Magento."
+        : "This will attempt supported automation steps: void/delete invoice by order id, cancel order, and create/send cancellation ticket.",
       okText: dryRun ? "Run Dry Run" : "Run Cancel Workflow",
       okButtonProps: dryRun ? {} : { danger: true },
       cancelText: "Back",
@@ -1987,14 +1989,16 @@ Thank you!
 
                     return (
                       <Space size={6}>
-                        <Button
-                          size="small"
-                          loading={cancelling}
-                          disabled={cancelling}
-                          onClick={() => handleCancelOrderWorkflow(record, { dryRun: true })}
-                        >
-                          Dry Run
-                        </Button>
+                        {canRunOrderCancelDryRun ? (
+                          <Button
+                            size="small"
+                            loading={cancelling}
+                            disabled={cancelling}
+                            onClick={() => handleCancelOrderWorkflow(record, { dryRun: true })}
+                          >
+                            Dry Run
+                          </Button>
+                        ) : null}
                         <Button
                           danger
                           size="small"
