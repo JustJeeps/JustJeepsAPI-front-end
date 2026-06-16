@@ -412,10 +412,15 @@ const dataForExcel = transformData(brandData);
   async function exportToExcelAllProducts() {
     try {
       // Show progress modal
-      setExportProgress({ visible: true, percent: 10, message: 'Fetching all products...' });
+      setExportProgress({ visible: true, percent: 10, message: 'Fetching all products and live prices...' });
 
       // Fetch ALL products using the export endpoint (no pagination)
-      const response = await axios.get(`${API_URL}/api/products/export`);
+      const response = await axios.get(`${API_URL}/api/products/export`, {
+        params: {
+          livePrice: 1,
+          livePriceStoreId: 1,
+        },
+      });
       const productsToExport = response.data.products || [];
 
       setExportProgress({ visible: true, percent: 50, message: `Creating Excel file with ${productsToExport.length} products...` });
