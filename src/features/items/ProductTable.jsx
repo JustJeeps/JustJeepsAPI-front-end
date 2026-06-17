@@ -620,6 +620,15 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
       const vendorSKU = vendorProduct.vendor_sku?.trim();
       const productSKU = vendorProduct.product_sku?.trim();
       const vendorNameLower = vendorName.toLowerCase();
+				const baseCostUsd = Number(vendorProduct.vendor_cost_usd);
+				const shippingSurchargeUsd = Number(vendorProduct.quadratec_shipping_surcharge_usd);
+				const hasQuadratecCostBreakdown =
+					vendorNameLower === 'quadratec' &&
+					Number.isFinite(baseCostUsd) &&
+					Number.isFinite(shippingSurchargeUsd);
+				const totalCostUsd = hasQuadratecCostBreakdown
+					? baseCostUsd + shippingSurchargeUsd
+					: null;
 				const searchableSku = record.searchable_sku?.trim();
 				const sku = record.sku?.trim();
 					const displayVendorName =
@@ -731,9 +740,18 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 						text={`CAD$ ${vendorProduct.vendor_cost.toFixed(2)} / USD$ ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}`}
 						onCopy={() => handleVendorCostCopy(vendorProduct)}
 					>
-						<span style={{ whiteSpace: 'nowrap', fontSize: '14px', fontWeight: 700, color: '#1890ff' }}>
-							${vendorProduct.vendor_cost.toFixed(2)} / ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}
-						</span>
+								<div style={{ textAlign: 'right' }}>
+									<span style={{ whiteSpace: 'nowrap', fontSize: '14px', fontWeight: 700, color: '#1890ff' }}>
+										${vendorProduct.vendor_cost.toFixed(2)} / ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}
+									</span>
+									{hasQuadratecCostBreakdown && (
+										<div style={{ marginTop: '2px', color: '#595959', fontSize: '11px', lineHeight: 1.35 }}>
+											<div>Orig: ${baseCostUsd.toFixed(2)} USD</div>
+											<div>Surcharge: ${shippingSurchargeUsd.toFixed(2)} USD</div>
+											<div>Total: ${totalCostUsd.toFixed(2)} USD</div>
+										</div>
+									)}
+								</div>
 					</CopyText>
         </div>
       );
