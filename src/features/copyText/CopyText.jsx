@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 const CopyText = props => {
 	const [copied, setCopied] = useState(props.text);
+	const hasChildren = props.children !== undefined && props.children !== null;
 	return (
 		<div
 			onClick={() => {
@@ -9,10 +10,12 @@ const CopyText = props => {
 				if (typeof props.onCopy === 'function') {
 					props.onCopy();
 				}
-				setCopied('copied');
+				if (!hasChildren) {
+					setCopied('copied');
+				}
 			}}
 		>
-			{copied}
+			{hasChildren ? props.children : copied}
 		</div>
 	);
 };
