@@ -374,9 +374,33 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 				const productSku = record.product_sku?.trim();
 				const keystoneCode = record.keystone_code_site?.trim();
 
+				const normalizeVendorName = (name = '') =>
+					name
+						.toString()
+						.trim()
+						.toLowerCase();
+
+				const vendorNames = {
+					keystone: ['keystone'],
+					meyer: ['meyer', 'meyers', 'meyer distributing', 'meyer distributing corporation'],
+					quadratec: ['quadratec'],
+					ctp: ['ctp', 'ctp distributors'],
+					grandwest: ['grandwest'],
+					t14: ['t14', 'turn14', 'turn 14'],
+					apg: ['apg', 'premier performance', 'agp wholesale'],
+					amazon: ['amazon'],
+				};
+
+				const vendorMatches = (vendorKey, actualVendorName) => {
+					const normalizedActual = normalizeVendorName(actualVendorName);
+					if (!normalizedActual) return false;
+					const aliases = vendorNames[vendorKey] || [vendorKey];
+					return aliases.some((alias) => normalizedActual === alias);
+				};
+
 				const getVendorSku = (vendorNameLower) => {
 					const match = vendorProducts.find(
-						(vp) => vp?.vendor?.name?.toLowerCase() === vendorNameLower
+						(vp) => vendorMatches(vendorNameLower, vp?.vendor?.name)
 					);
 					return match?.vendor_sku?.trim() || searchableSku || sku || '';
 				};
@@ -456,22 +480,9 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 				];
 
 				const vendorHasCost = (vendorKey) => {
-					const vendorNames = {
-						keystone: ['keystone'],
-						meyer: ['meyer'],
-						quadratec: ['quadratec'],
-						ctp: ['ctp', 'ctp distributors'],
-						grandwest: ['grandwest'],
-						t14: ['t14', 'turn14'],
-						apg: ['apg', 'premier performance', 'agp wholesale'],
-						amazon: ['amazon'],
-					};
-
-					const names = vendorNames[vendorKey] || [vendorKey];
 					return vendorProducts.some((vp) => {
-						const name = vp?.vendor?.name?.toLowerCase();
 						const cost = Number(vp?.vendor_cost);
-						return names.includes(name) && Number.isFinite(cost);
+						return vendorMatches(vendorKey, vp?.vendor?.name) && Number.isFinite(cost);
 					});
 				};
 
