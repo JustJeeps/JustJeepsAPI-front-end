@@ -1272,6 +1272,15 @@ const handleSetSkuStatusAcrossStoreViews = async (record, targetStatus) => {
       // Calculate cost and margin
       const cad = Number(vendorProduct.vendor_cost) || 0;
       const usd = cad / 1.5;
+      const baseCostUsd = Number(vendorProduct.vendor_cost_usd);
+      const shippingSurchargeUsd = Number(vendorProduct.quadratec_shipping_surcharge_usd);
+      const hasQuadratecCostBreakdown =
+        vendorNameLower === 'quadratec' &&
+        Number.isFinite(baseCostUsd) &&
+        Number.isFinite(shippingSurchargeUsd);
+      const totalCostUsd = hasQuadratecCostBreakdown
+        ? baseCostUsd + shippingSurchargeUsd
+        : null;
       
       // Get the actual selling price (may be discounted for black friday)
       let sellingPrice = record.price || 0;
@@ -1353,6 +1362,13 @@ const handleSetSkuStatusAcrossStoreViews = async (record, targetStatus) => {
 
             <div style={{ color: '#595959', whiteSpace: 'nowrap', textAlign: 'right' }}>
               CAD ${cad.toFixed(2)} (USD ${usd.toFixed(2)})
+              {hasQuadratecCostBreakdown && (
+                <div style={{ marginTop: '2px', color: '#595959', fontSize: '11px', lineHeight: 1.35 }}>
+                  <div>Orig: ${baseCostUsd.toFixed(2)} USD</div>
+                  <div>Surcharge: ${shippingSurchargeUsd.toFixed(2)} USD</div>
+                  <div>Total: ${totalCostUsd.toFixed(2)} USD</div>
+                </div>
+              )}
             </div>
           </div>
 
