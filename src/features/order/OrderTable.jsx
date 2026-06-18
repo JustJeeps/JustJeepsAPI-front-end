@@ -112,6 +112,7 @@ const OrderTable = () => {
   const [savingUnitCost, setSavingUnitCost] = useState({});
   const [updatingSkuStatusBySku, setUpdatingSkuStatusBySku] = useState({});
   const [cancellingOrders, setCancellingOrders] = useState({});
+  const [initializingPoOrders, setInitializingPoOrders] = useState({});
   const [textFromDrawer, setTextFromDrawer] = useState("");
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
   const seedPollRef = useRef(null);
@@ -123,12 +124,14 @@ const OrderTable = () => {
 
   const API_URL = import.meta.env.VITE_API_URL;
   const SKU_STATUS_ALLOWED_USERS = new Set(["admin", "jerry", "tess", "jacob", "david"]);
-  const ORDER_CANCEL_EXECUTE_ALLOWED_USERS = new Set(["tess", "jerry", "jacob"]);
+  const ORDER_CANCEL_EXECUTE_ALLOWED_USERS = new Set(["tess", "jerry", "jacob", "paula", "karoline"]);
   const ORDER_CANCEL_DRY_RUN_ALLOWED_USERS = new Set(["tess"]);
+  const ORDER_PO_INIT_ALLOWED_USERS = new Set(["admin", "tess", "jerry", "jacob", "paula", "karoline"]);
   const normalizedUsername = (user?.username || user?.name || "").toLowerCase();
   const canEditSkuStatus = authEnabled && SKU_STATUS_ALLOWED_USERS.has(normalizedUsername);
   const canRunOrderCancelWorkflow = authEnabled && ORDER_CANCEL_EXECUTE_ALLOWED_USERS.has(normalizedUsername);
   const canRunOrderCancelDryRun = authEnabled && ORDER_CANCEL_DRY_RUN_ALLOWED_USERS.has(normalizedUsername);
+  const canInitializePoNumber = authEnabled && ORDER_PO_INIT_ALLOWED_USERS.has(normalizedUsername);
 
   const getOrderRowKey = (record) => record.entity_id || record.id || record.key;
 
@@ -1379,6 +1382,70 @@ Thank you!
     window.location.reload(false);
   };
 
+  const handleInitializePoNumber = async (record) => {
+    if (!record?.entity_id) return;
+
+    const orderId = record.entity_id;
+    const incrementId = record.increment_id || orderId;
+
+    setInitializingPoOrders((prev) => ({ ...prev, [orderId]: true }));
+
+    try {
+      const response = await axios.post(`${API_URL}/api/orders/${orderId}/initialize-po-number`);
+      const customPoNumber = response?.data?.customPoNumber;
+
+      if (customPoNumber) {
+        const shouldHideAfterInit =
+          filters.poStatus === "not_set" ||
+          filters.poStatus === "not_set_4days" ||
+          filters.poStatus === "pm_not_set" ||
+          filters.poStatus === "kd_not_set" ||
+          filters.starStatus === "starred" ||
+          filters.starStatus === "starred_ready" ||
+          filters.starStatus === "not_set_no_star" ||
+          filters.starStatus === "po_orders";
+
+        const applyPoUpdate = (prevOrders) =>
+          Array.isArray(prevOrders)
+            ? prevOrders
+                .map((orderRow) =>
+                  Number(orderRow?.entity_id) === Number(orderId)
+                    ? { ...orderRow, custom_po_number: customPoNumber }
+                    : orderRow
+                )
+                .filter((orderRow) => {
+                  if (!shouldHideAfterInit) return true;
+                  return Number(orderRow?.entity_id) !== Number(orderId);
+                })
+            : prevOrders;
+
+        setOrders((prev) => applyPoUpdate(prev));
+        setOriginalOrders((prev) => applyPoUpdate(prev));
+      }
+
+      Modal.success({
+        title: `PO Initialized - Order #${incrementId}`,
+        content: customPoNumber || "PO number initialized successfully.",
+      });
+    } catch (error) {
+      const message =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        "Failed to initialize PO number";
+
+      Modal.error({
+        title: `PO Initialization Failed - Order #${incrementId}`,
+        content: message,
+      });
+    } finally {
+      setInitializingPoOrders((prev) => {
+        const next = { ...prev };
+        delete next[orderId];
+        return next;
+      });
+    }
+  };
+
   const handleCancelOrderWorkflow = (record, { dryRun = false } = {}) => {
     if (!record?.entity_id) {
       return;
@@ -1391,8 +1458,8 @@ Thank you!
       title: `${dryRun ? "Dry Run" : "Cancel Order"} #${incrementId}?`,
       icon: <ExclamationCircleOutlined />,
       content: dryRun
-        ? "This will simulate supported automation steps (void/delete invoice by order id, cancel order, create and send cancellation ticket) and show a summary without changing Magento."
-        : "This will attempt supported automation steps: void/delete invoice by order id, cancel order, and create/send cancellation ticket.",
+        ? "This will simulate supported automation steps (void/delete invoice by order id, cancel order, create/send cancellation ticket, and update cancellation custom attributes) and show a summary without changing Magento."
+        : "This will attempt supported automation steps: void/delete invoice by order id, cancel order, create/send cancellation ticket, and update cancellation custom attributes.",
       okText: dryRun ? "Run Dry Run" : "Run Cancel Workflow",
       okButtonProps: dryRun ? {} : { danger: true },
       cancelText: "Back",
@@ -1574,17 +1641,22 @@ Thank you!
       dataIndex: "custom_po_number",
       key: "custom_po_number",
       align: "center",
-      width: 120,
+      width: 180,
       sorter: (a, b) => a.custom_po_number?.localeCompare(b.custom_po_number),
       sortOrder: sortedInfo.columnKey === "custom_po_number" && sortedInfo.order,
       ...getColumnSearchProps("custom_po_number"),
       render: (text, record) => {
+        const orderId = record?.entity_id;
+        const initializingPo = Boolean(initializingPoOrders[orderId]);
+        const cancelling = Boolean(cancellingOrders[orderId]);
         const normalized = (text || "").trim().toLowerCase();
+        const isExactlyNotSet = normalized === "not set";
         const isMissing = !normalized || normalized === "not set";
         const hasNotSet = normalized.includes("not set");
         const showWinner = hasNotSet && isWinningOrder(record, 18);
+
         return (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, position: "relative", width: "100%" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%" }}>
             <span style={{
               color: isMissing ? '#ff4d4f' : '#1a1a1a',
               fontWeight: isMissing ? 700 : 500,
@@ -1592,9 +1664,23 @@ Thank you!
             }}>
               {isMissing ? 'NOT SET' : text}
             </span>
+            {canInitializePoNumber && isExactlyNotSet ? (
+              <Tooltip title="Initialize PO#">
+                <Button
+                  size="small"
+                  icon={<EditOutlined />}
+                  loading={initializingPo}
+                  disabled={initializingPo || cancelling}
+                  onClick={() => handleInitializePoNumber(record)}
+                  style={{ paddingInline: 8 }}
+                >
+                  Init
+                </Button>
+              </Tooltip>
+            ) : null}
             {showWinner && (
               <Tooltip title="All products with margin and stock">
-                <span style={{ display: "flex", alignItems: "center", position: "absolute", right: 0 }}>
+                <span style={{ display: "flex", alignItems: "center" }}>
                   <StarFilled style={{ color: "#faad14", fontSize: 14 }} />
                 </span>
               </Tooltip>
@@ -1973,18 +2059,19 @@ Thank you!
         );
       },
     },
-    ...(canRunOrderCancelWorkflow
+    ...(canRunOrderCancelWorkflow || canInitializePoNumber
       ? [
-          ...(canRunOrderCancelWorkflow
+          ...(canRunOrderCancelWorkflow || canInitializePoNumber
             ? [
                 {
-                  title: "Cancel Order",
+                  title: "Order Actions",
                   key: "cancel_order",
                   align: "center",
                   width: 210,
                   render: (_, record) => {
                     const orderId = record?.entity_id;
                     const cancelling = Boolean(cancellingOrders[orderId]);
+                    const initializingPo = Boolean(initializingPoOrders[orderId]);
                     const isAlreadyCancelled = String(record?.status || "").toLowerCase().includes("cancel");
 
                     return (
@@ -1993,7 +2080,7 @@ Thank you!
                           <Button
                             size="small"
                             loading={cancelling}
-                            disabled={cancelling}
+                            disabled={cancelling || initializingPo}
                             onClick={() => handleCancelOrderWorkflow(record, { dryRun: true })}
                           >
                             Dry Run
@@ -2004,7 +2091,7 @@ Thank you!
                           size="small"
                           type="primary"
                           loading={cancelling}
-                          disabled={cancelling || isAlreadyCancelled}
+                          disabled={cancelling || initializingPo || isAlreadyCancelled}
                           onClick={() => handleCancelOrderWorkflow(record)}
                         >
                           {isAlreadyCancelled ? "Cancelled" : "Cancel Order"}
