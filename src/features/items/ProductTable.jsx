@@ -7,6 +7,21 @@ import { sizeHeight, width } from '@mui/system';
 
 
 const ProductTable = props => {
+	const getVendorRowMetrics = (vendorProduct) => {
+		const vendorNameLower = (vendorProduct?.vendor?.name || '').toString().toLowerCase();
+		const baseCostUsd = Number(vendorProduct?.vendor_cost_usd);
+		const shippingSurchargeUsd = Number(vendorProduct?.quadratec_shipping_surcharge_usd);
+		const hasQuadratecCostBreakdown =
+			vendorNameLower === 'quadratec' &&
+			Number.isFinite(baseCostUsd) &&
+			Number.isFinite(shippingSurchargeUsd);
+
+		return {
+			hasQuadratecCostBreakdown,
+			rowMinHeight: hasQuadratecCostBreakdown ? 70 : 36,
+		};
+	};
+
 	const dedupeVendorProducts = (vendorProducts) => {
 		if (!Array.isArray(vendorProducts) || !vendorProducts.length) return [];
 
@@ -622,10 +637,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
       const vendorNameLower = vendorName.toLowerCase();
 				const baseCostUsd = Number(vendorProduct.vendor_cost_usd);
 				const shippingSurchargeUsd = Number(vendorProduct.quadratec_shipping_surcharge_usd);
-				const hasQuadratecCostBreakdown =
-					vendorNameLower === 'quadratec' &&
-					Number.isFinite(baseCostUsd) &&
-					Number.isFinite(shippingSurchargeUsd);
+				const { hasQuadratecCostBreakdown, rowMinHeight } = getVendorRowMetrics(vendorProduct);
 				const totalCostUsd = hasQuadratecCostBreakdown
 					? baseCostUsd + shippingSurchargeUsd
 					: null;
@@ -714,6 +726,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
           key={vendorProduct.id}
           style={{
             marginBottom: '6px',
+						minHeight: `${rowMinHeight}px`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -769,6 +782,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 
     return vendorProducts.map((vendorProduct) => {
       const { vendor_cost, vendor_id } = vendorProduct;
+			const { rowMinHeight } = getVendorRowMetrics(vendorProduct);
 
       const adjustedCost =
         props.currency === 'USD' ? vendor_cost / 1.5 : vendor_cost;
@@ -777,13 +791,22 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
         ((props.orderProductPrice - adjustedCost) / adjustedCost) * 100;
 
       return (
-        <div key={vendor_id}>
+				<div
+					key={vendor_id}
+					style={{
+						minHeight: `${rowMinHeight}px`,
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'center',
+						marginBottom: '6px',
+					}}
+				>
           <Tag
             color={margin > 18 ? "#1f8e24" : "#f63535"}
             style={{
               fontSize: "15px",
               padding: "4px 8px",
-              marginBottom: "5px",
+							marginBottom: 0,
               fontWeight: 600,
             }}
           >
@@ -913,7 +936,17 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 					if (!Array.isArray(vendorProducts)) return <span>-</span>;
 
 					return vendorProducts.map((vendorProduct) => (
-						<div key={vendorProduct.id}>
+						<div
+							key={vendorProduct.id}
+							style={{
+								minHeight: `${getVendorRowMetrics(vendorProduct).rowMinHeight}px`,
+								display: 'flex',
+								alignItems: 'center',
+								justifyContent: 'center',
+								flexDirection: 'column',
+								marginBottom: '6px',
+							}}
+						>
 							{vendorProduct.vendor_inventory !== null &&
 								vendorProduct.vendor_inventory !== undefined && (
 									<Tag
@@ -923,7 +956,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 										style={{
 											fontSize: "15px",
 											padding: "4px 8px",
-											marginBottom: "5px",
+											marginBottom: 0,
 											fontWeight: 600,
 										}}
 									>
@@ -947,7 +980,8 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 										style={{
 											fontSize: "13px",
 											padding: "4px 8px",
-											marginBottom: "5px",
+											marginBottom: 0,
+											marginTop: "4px",
 										}}
 									>
 										{vendorProduct.vendor_inventory_string}
@@ -962,7 +996,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 										style={{
 											fontSize: "13px",
 											padding: "4px 8px",
-											marginBottom: "5px",
+											marginBottom: 0,
 										}}
 									>
 										NO INFO
