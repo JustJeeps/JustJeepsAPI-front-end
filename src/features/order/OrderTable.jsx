@@ -41,6 +41,7 @@ import {
   StopOutlined
 } from "@ant-design/icons";
 import { useAuth } from "../../context/AuthContext";
+import { USD_TO_CAD_RATE } from '../../constants/exchangeRate';
 
 
 const OrderTable = () => {
@@ -290,7 +291,7 @@ const getBestAvailableVendor = (item, currency) => {
   available.forEach((vp) => {
     const rawCost = parseMoney(vp?.vendor_cost);
     if (!Number.isFinite(rawCost) || rawCost <= 0) return;
-    const adjustedCost = currency === "USD" ? rawCost / 1.5 : rawCost;
+    const adjustedCost = currency === "USD" ? rawCost / USD_TO_CAD_RATE : rawCost;
     const margin = ((sellPrice - adjustedCost) / adjustedCost) * 100;
     if (margin > bestMargin) {
       bestMargin = margin;
@@ -362,6 +363,15 @@ const shouldTagKeypartsAnthonyCheck = (item) => {
   return candidates.some((value) =>
     KEYPARTS_ANTHONY_SEARCHABLE_SKUS.has(normalizeSearchableSku(value))
   );
+};
+
+const JACOB_STOCK_CHECK_SKUS = new Set(["BST-5173217", "BST-5492371"]);
+
+const shouldTagJacobStockCheck = (item) => {
+  const sku = String(item?.sku || "")
+    .trim()
+    .toUpperCase();
+  return JACOB_STOCK_CHECK_SKUS.has(sku);
 };
 
 const isAllowedPoBrand = (brand) => {
@@ -2517,12 +2527,16 @@ console.log("IS ARRAY?", Array.isArray(orders));
             );
           } else {
             const showAnthonyTag = shouldTagKeypartsAnthonyCheck(record);
+            const showJacobTag = shouldTagJacobStockCheck(record);
 
             return (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
                 <p style={{ margin: 0 }}>{text}</p>
                 {showAnthonyTag ? (
                   <Tag color="gold">Check stock with Anthony</Tag>
+                ) : null}
+                {showJacobTag ? (
+                  <Tag color="blue">Check stock with Jacob</Tag>
                 ) : null}
               </div>
             );

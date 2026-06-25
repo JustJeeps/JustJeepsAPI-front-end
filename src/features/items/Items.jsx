@@ -16,6 +16,7 @@ import MonetizationOnOutlinedIcon from "@mui/icons-material/MonetizationOnOutlin
 import { Resizable } from "react-resizable";
 import { Checkbox } from 'antd';
 import { useAuth } from "../../context/AuthContext";
+import { USD_TO_CAD_RATE } from '../../constants/exchangeRate';
 
 
 
@@ -65,6 +66,14 @@ export const Items = () => {
 
   const normalizeSkuValue = (value) =>
     (value ?? "").toString().trim().toLowerCase();
+
+  const JACOB_STOCK_CHECK_SKUS = useMemo(
+    () => new Set(["BST-5173217", "BST-5492371"]),
+    []
+  );
+
+  const shouldTagJacobStockCheck = (skuValue) =>
+    JACOB_STOCK_CHECK_SKUS.has((skuValue ?? "").toString().trim().toUpperCase());
 
   const dedupeVendorProducts = (vendorProducts) => {
     if (!Array.isArray(vendorProducts) || !vendorProducts.length) return [];
@@ -1013,6 +1022,11 @@ const handleSetSkuStatusAcrossStoreViews = async (record, targetStatus) => {
       render: (skuValue, record) => (
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
           <span>{skuValue}</span>
+          {shouldTagJacobStockCheck(skuValue) ? (
+            <Tag color="blue" style={{ margin: 0, fontSize: 11 }}>
+              Check stock with Jacob
+            </Tag>
+          ) : null}
           {record?.replace_oe ? (
             (() => {
               const croVariants = buildCroSkuVariants(record.replace_oe);
@@ -1271,7 +1285,7 @@ const handleSetSkuStatusAcrossStoreViews = async (record, targetStatus) => {
 
       // Calculate cost and margin
       const cad = Number(vendorProduct.vendor_cost) || 0;
-      const usd = cad / 1.5;
+      const usd = cad / USD_TO_CAD_RATE;
       const baseCostUsd = Number(vendorProduct.vendor_cost_usd);
       const shippingSurchargeUsd = Number(vendorProduct.quadratec_shipping_surcharge_usd);
       const hasQuadratecCostBreakdown =
@@ -1507,6 +1521,16 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
           align: "center",
           sorter: (a, b) => a.sku.localeCompare(b.sku),
           filter: true,
+          render: (skuValue) => (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              <span>{skuValue}</span>
+              {shouldTagJacobStockCheck(skuValue) ? (
+                <Tag color="blue" style={{ margin: 0, fontSize: 11 }}>
+                  Check stock with Jacob
+                </Tag>
+              ) : null}
+            </div>
+          ),
         },
         {
           title: "Image",

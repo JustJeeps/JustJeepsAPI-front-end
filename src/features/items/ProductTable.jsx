@@ -3,7 +3,7 @@ import CopyText from '../copyText/CopyText';
 import React, { useEffect, useMemo } from 'react';
 import { TrophyFilled } from '@ant-design/icons';
 import { sizeHeight, width } from '@mui/system';
-
+import { USD_TO_CAD_RATE } from '../../constants/exchangeRate';
 
 
 const ProductTable = props => {
@@ -95,7 +95,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 		if (!Number.isFinite(rawCadCost)) return null;
 
 		if (incrementId.startsWith('3000')) {
-			return Number((rawCadCost / 1.5).toFixed(2));
+			return Number((rawCadCost / USD_TO_CAD_RATE).toFixed(2));
 		}
 
 		if (incrementId.startsWith('2000')) {
@@ -103,7 +103,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 		}
 
 		if (props.currency === 'USD') {
-			return Number((rawCadCost / 1.5).toFixed(2));
+			return Number((rawCadCost / USD_TO_CAD_RATE).toFixed(2));
 		}
 
 		return Number(rawCadCost.toFixed(2));
@@ -621,7 +621,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
     let highestMargin = -Infinity;
     let bestVendorIndex = -1;
 		candidateVendors.forEach((vp, idx) => {
-      const adjustedCost = props.currency === 'USD' ? vp.vendor_cost / 1.5 : vp.vendor_cost;
+	const adjustedCost = props.currency === 'USD' ? vp.vendor_cost / USD_TO_CAD_RATE : vp.vendor_cost;
       const margin = ((props.orderProductPrice - adjustedCost) / adjustedCost) * 100;
       if (margin > highestMargin) {
         highestMargin = margin;
@@ -750,12 +750,12 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
             )}
           </div>
 					<CopyText
-						text={`CAD$ ${vendorProduct.vendor_cost.toFixed(2)} / USD$ ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}`}
+						text={`CAD$ ${vendorProduct.vendor_cost.toFixed(2)} / USD$ ${(vendorProduct.vendor_cost / USD_TO_CAD_RATE).toFixed(2)}`}
 						onCopy={() => handleVendorCostCopy(vendorProduct)}
 					>
 								<div style={{ textAlign: 'right' }}>
 									<span style={{ whiteSpace: 'nowrap', fontSize: '14px', fontWeight: 700, color: '#1890ff' }}>
-										${vendorProduct.vendor_cost.toFixed(2)} / ${(vendorProduct.vendor_cost / 1.5).toFixed(2)}
+									${vendorProduct.vendor_cost.toFixed(2)} / ${(vendorProduct.vendor_cost / USD_TO_CAD_RATE).toFixed(2)}
 									</span>
 									{hasQuadratecCostBreakdown && (
 										<div style={{ marginTop: '2px', color: '#595959', fontSize: '11px', lineHeight: 1.35 }}>
@@ -776,7 +776,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
   title: "Margin",
   key: "margin",
   align: "center",
-  width: 65,
+	width: 52,
   render: (record) => {
     const { vendorProducts } = record;
 
@@ -785,7 +785,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 			const { rowMinHeight } = getVendorRowMetrics(vendorProduct);
 
       const adjustedCost =
-        props.currency === 'USD' ? vendor_cost / 1.5 : vendor_cost;
+				props.currency === 'USD' ? vendor_cost / USD_TO_CAD_RATE : vendor_cost;
 
       const margin =
         ((props.orderProductPrice - adjustedCost) / adjustedCost) * 100;
@@ -931,7 +931,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 				dataIndex: "vendorProducts",
 				key: "vendor_inventory",
 				align: "center",
-				width:100,
+				width:58,
 				render: (vendorProducts) => {
 					if (!Array.isArray(vendorProducts)) return <span>-</span>;
 
