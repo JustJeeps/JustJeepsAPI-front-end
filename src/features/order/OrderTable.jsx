@@ -374,6 +374,25 @@ const shouldTagJacobStockCheck = (item) => {
   return JACOB_STOCK_CHECK_SKUS.has(sku);
 };
 
+const shouldTagBedrugHuskyCheck = (item) => {
+  const normalizedBrand = normalizeBrandName(
+    item?.product?.brand_name || item?.brand_name || ""
+  );
+
+  if (
+    normalizedBrand === "bedrug" ||
+    normalizedBrand === "bed rug" ||
+    normalizedBrand === "avs"
+  ) {
+    return true;
+  }
+
+  const sku = String(item?.sku || "")
+    .trim()
+    .toUpperCase();
+  return sku.startsWith("BED-") || sku.startsWith("AVS-");
+};
+
 const isAllowedPoBrand = (brand) => {
   const normalized = normalizeBrandName(brand);
   if (!normalized) return false;
@@ -2528,6 +2547,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
           } else {
             const showAnthonyTag = shouldTagKeypartsAnthonyCheck(record);
             const showJacobTag = shouldTagJacobStockCheck(record);
+            const showBedrugHuskyTag = shouldTagBedrugHuskyCheck(record);
 
             return (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
@@ -2537,6 +2557,9 @@ console.log("IS ARRAY?", Array.isArray(orders));
                 ) : null}
                 {showJacobTag ? (
                   <Tag color="blue">Check stock with Jacob</Tag>
+                ) : null}
+                {showBedrugHuskyTag ? (
+                  <Tag color="volcano">Check Husky SKU pricing (Husky absorbed Bedrug and AVS)</Tag>
                 ) : null}
               </div>
             );

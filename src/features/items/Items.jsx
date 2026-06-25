@@ -75,6 +75,28 @@ export const Items = () => {
   const shouldTagJacobStockCheck = (skuValue) =>
     JACOB_STOCK_CHECK_SKUS.has((skuValue ?? "").toString().trim().toUpperCase());
 
+  const normalizeBrandName = (value) =>
+    (value ?? "")
+      .toString()
+      .toLowerCase()
+      .replace(/\(.*?\)/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+
+  const shouldTagBedrugHuskyCheck = (record) => {
+    const normalizedBrand = normalizeBrandName(record?.brand_name);
+    if (
+      normalizedBrand === "bedrug" ||
+      normalizedBrand === "bed rug" ||
+      normalizedBrand === "avs"
+    ) {
+      return true;
+    }
+
+    const skuValue = (record?.sku ?? "").toString().trim().toUpperCase();
+    return skuValue.startsWith("BED-") || skuValue.startsWith("AVS-");
+  };
+
   const dedupeVendorProducts = (vendorProducts) => {
     if (!Array.isArray(vendorProducts) || !vendorProducts.length) return [];
 
@@ -1022,6 +1044,11 @@ const handleSetSkuStatusAcrossStoreViews = async (record, targetStatus) => {
       render: (skuValue, record) => (
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
           <span>{skuValue}</span>
+          {shouldTagBedrugHuskyCheck(record) ? (
+            <Tag color="volcano" style={{ margin: 0, fontSize: 11 }}>
+              Check Husky SKU pricing (Husky absorbed Bedrug and AVS)
+            </Tag>
+          ) : null}
           {shouldTagJacobStockCheck(skuValue) ? (
             <Tag color="blue" style={{ margin: 0, fontSize: 11 }}>
               Check stock with Jacob
@@ -1521,9 +1548,14 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
           align: "center",
           sorter: (a, b) => a.sku.localeCompare(b.sku),
           filter: true,
-          render: (skuValue) => (
+          render: (skuValue, record) => (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
               <span>{skuValue}</span>
+              {shouldTagBedrugHuskyCheck(record) ? (
+                <Tag color="volcano" style={{ margin: 0, fontSize: 11 }}>
+                  Check Husky SKU pricing (Husky absorbed Bedrug and AVS)
+                </Tag>
+              ) : null}
               {shouldTagJacobStockCheck(skuValue) ? (
                 <Tag color="blue" style={{ margin: 0, fontSize: 11 }}>
                   Check stock with Jacob
