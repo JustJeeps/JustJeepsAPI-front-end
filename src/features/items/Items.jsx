@@ -4,7 +4,7 @@ import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import TextField from "@mui/material/TextField";
 import Autocomplete from "@mui/material/Autocomplete";
-import { Table, Button, Tag, InputNumber, Modal, Progress } from "antd";
+import { Table, Button, Tag, InputNumber, Modal, Progress, Tooltip } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
 import ExcelJS from "exceljs";
@@ -96,6 +96,8 @@ export const Items = () => {
     const skuValue = (record?.sku ?? "").toString().trim().toUpperCase();
     return skuValue.startsWith("BED-") || skuValue.startsWith("AVS-");
   };
+
+  const HUSKY_ABSORPTION_REMINDER = "Husky absorbed Bedrug and AVS; check Husky SKU pricing.";
 
   const dedupeVendorProducts = (vendorProducts) => {
     if (!Array.isArray(vendorProducts) || !vendorProducts.length) return [];
@@ -1045,9 +1047,11 @@ const handleSetSkuStatusAcrossStoreViews = async (record, targetStatus) => {
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
           <span>{skuValue}</span>
           {shouldTagBedrugHuskyCheck(record) ? (
-            <Tag color="volcano" style={{ margin: 0, fontSize: 11 }}>
-              Check Husky SKU pricing (Husky absorbed Bedrug and AVS)
-            </Tag>
+            <Tooltip title={HUSKY_ABSORPTION_REMINDER}>
+              <Tag color="volcano" style={{ margin: 0, fontSize: 11 }}>
+                Husky check
+              </Tag>
+            </Tooltip>
           ) : null}
           {shouldTagJacobStockCheck(skuValue) ? (
             <Tag color="blue" style={{ margin: 0, fontSize: 11 }}>
@@ -1552,9 +1556,11 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
               <span>{skuValue}</span>
               {shouldTagBedrugHuskyCheck(record) ? (
-                <Tag color="volcano" style={{ margin: 0, fontSize: 11 }}>
-                  Check Husky SKU pricing (Husky absorbed Bedrug and AVS)
-                </Tag>
+                <Tooltip title={HUSKY_ABSORPTION_REMINDER}>
+                  <Tag color="volcano" style={{ margin: 0, fontSize: 11 }}>
+                    Husky check
+                  </Tag>
+                </Tooltip>
               ) : null}
               {shouldTagJacobStockCheck(skuValue) ? (
                 <Tag color="blue" style={{ margin: 0, fontSize: 11 }}>

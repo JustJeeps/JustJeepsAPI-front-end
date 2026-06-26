@@ -393,6 +393,8 @@ const shouldTagBedrugHuskyCheck = (item) => {
   return sku.startsWith("BED-") || sku.startsWith("AVS-");
 };
 
+const HUSKY_ABSORPTION_REMINDER = "Husky absorbed Bedrug and AVS; check Husky SKU pricing.";
+
 const isAllowedPoBrand = (brand) => {
   const normalized = normalizeBrandName(brand);
   if (!normalized) return false;
@@ -2559,7 +2561,9 @@ console.log("IS ARRAY?", Array.isArray(orders));
                   <Tag color="blue">Check stock with Jacob</Tag>
                 ) : null}
                 {showBedrugHuskyTag ? (
-                  <Tag color="volcano">Check Husky SKU pricing (Husky absorbed Bedrug and AVS)</Tag>
+                  <Tooltip title={HUSKY_ABSORPTION_REMINDER}>
+                    <Tag color="volcano" style={{ margin: 0 }}>Husky check</Tag>
+                  </Tooltip>
                 ) : null}
               </div>
             );
