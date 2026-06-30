@@ -442,7 +442,7 @@ const hasFraudWarning = (order) => {
   const grandTotal = parseFloat(order?.grand_total);
   const paymentSource = order?.payment_method || order?.method_title || "";
   const isPayPal = /paypal/i.test(paymentSource);
-  const isHighFraud = !isPayPal && !isNaN(score) && score > 10;
+  const isHighFraud = !isPayPal && !isNaN(score) && score > 5;
   const isQuebecHighValue = order?.region?.toLowerCase?.() === "quebec" && !isNaN(grandTotal) && grandTotal > 300;
   return !isPayPal && (isHighFraud || isQuebecHighValue);
 };
@@ -455,6 +455,36 @@ const hasRegionWarning = (order) => {
     "Newfoundland and Labrador", "Yukon Territory"
   ];
   return flaggedRegions.includes(order?.region);
+};
+
+const normalizeAddressValue = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+
+const hasShippingBillingAddressMismatch = (order) => {
+  const billingFirst = normalizeAddressValue(order?.customer_firstname);
+  const billingLast = normalizeAddressValue(order?.customer_lastname);
+  const shippingFirst = normalizeAddressValue(order?.shipping_firstname);
+  const shippingLast = normalizeAddressValue(order?.shipping_lastname);
+
+  const billingCity = normalizeAddressValue(order?.city);
+  const billingRegion = normalizeAddressValue(order?.region);
+  const shippingCity = normalizeAddressValue(order?.shipping_city);
+  const shippingRegion = normalizeAddressValue(order?.shipping_region);
+
+  const nameMismatch =
+    billingFirst && shippingFirst && billingFirst !== shippingFirst
+      ? true
+      : billingLast && shippingLast && billingLast !== shippingLast;
+
+  const locationMismatch =
+    billingCity && shippingCity && billingCity !== shippingCity
+      ? true
+      : billingRegion && shippingRegion && billingRegion !== shippingRegion;
+
+  return Boolean(nameMismatch || locationMismatch);
 };
 
 
@@ -1759,7 +1789,7 @@ Thank you!
         const grandTotal = parseFloat(record.grand_total);
         const paymentSource = record.payment_method || record.method_title || "";
         const isPayPal = /paypal/i.test(paymentSource);
-        const isHighFraud = !isPayPal && !isNaN(score) && score > 10;
+        const isHighFraud = !isPayPal && !isNaN(score) && score > 5;
         const isQuebecHighValue = record.region?.toLowerCase() === "quebec" && !isNaN(grandTotal) && grandTotal > 300;
         const showFraudWarning = !isPayPal && (isHighFraud || isQuebecHighValue);
         const display = text ? text : "—";
@@ -1843,6 +1873,7 @@ Thank you!
       render: (_, record) => {
         // Due warning
         const isDue = record.base_total_due > 0;
+        const hasAddressMismatch = hasShippingBillingAddressMismatch(record);
 
         // Format payment method for display
         const formatPayment = (method) => {
@@ -1872,6 +1903,11 @@ Thank you!
               }}>
                 {record.customer_firstname} {record.customer_lastname?.charAt(0)}.
               </span>
+              {hasAddressMismatch ? (
+                <Tag color="orange" style={{ margin: 0, fontSize: 11 }}>
+                  Ship != Bill
+                </Tag>
+              ) : null}
             </div>
 
             {/* Bottom Row: Metrics Grid */}
