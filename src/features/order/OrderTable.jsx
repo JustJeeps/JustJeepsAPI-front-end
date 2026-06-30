@@ -1710,11 +1710,15 @@ Thank you!
         const orderId = record?.entity_id;
         const initializingPo = Boolean(initializingPoOrders[orderId]);
         const cancelling = Boolean(cancellingOrders[orderId]);
+        const incrementId = String(record?.increment_id || "");
         const normalized = (text || "").trim().toLowerCase();
         const isExactlyNotSet = normalized === "not set";
         const isMissing = !normalized || normalized === "not set";
         const hasNotSet = normalized.includes("not set");
         const showWinner = hasNotSet && isWinningOrder(record, 18);
+        const missingPoLabel = incrementId.startsWith("1000") && isExactlyNotSet
+          ? "NOT SET - Sales Team"
+          : "NOT SET";
 
         return (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%" }}>
@@ -1723,7 +1727,7 @@ Thank you!
               fontWeight: isMissing ? 700 : 500,
               fontSize: '15px'
             }}>
-              {isMissing ? 'NOT SET' : text}
+              {isMissing ? missingPoLabel : text}
             </span>
             {canInitializePoNumber && isExactlyNotSet ? (
               <Tooltip title="Initialize PO#">
