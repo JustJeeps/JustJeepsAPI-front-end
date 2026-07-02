@@ -372,6 +372,7 @@ export default function PurchaserReport() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewHtml, setPreviewHtml] = useState('');
   const [copyStatus, setCopyStatus] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
   const [error, setError] = useState('');
   const [collapsed, setCollapsed] = useState({
     closed: false,
@@ -455,6 +456,24 @@ export default function PurchaserReport() {
     setPreviewHtml(html);
     setCopyStatus('');
     setPreviewOpen(true);
+  };
+
+  const handleSendEmail = async () => {
+    if (!report || !date) return;
+    setEmailSending(true);
+    setCopyStatus('');
+    try {
+      await axios.post(`${API_BASE_URL}/api/reports/purchaser/email`, {
+        report,
+        date,
+        initials,
+      });
+      setCopyStatus('Purchaser report emailed to Jerry and Paula.');
+    } catch (err) {
+      setCopyStatus(err.response?.data?.error || 'Failed to send purchaser report email.');
+    } finally {
+      setEmailSending(false);
+    }
   };
 
   const handleCopyHtml = async () => {
@@ -677,7 +696,14 @@ export default function PurchaserReport() {
           border-top: 1px solid var(--stroke);
           display: flex;
           gap: 12px;
+          align-items: center;
           justify-content: flex-end;
+        }
+
+        .pr-modal-status {
+          margin-right: auto;
+          color: #027a48;
+          font-weight: 600;
         }
 
         .pr-section {
@@ -990,6 +1016,10 @@ export default function PurchaserReport() {
               <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
             </div>
             <div className="pr-modal-footer">
+              {copyStatus && <div className="pr-modal-status">{copyStatus}</div>}
+              <button className="pr-btn primary" onClick={handleSendEmail} disabled={emailSending}>
+                {emailSending ? 'Sending...' : 'Send Email'}
+              </button>
               <button className="pr-btn secondary" onClick={handleCopyHtml}>Copy Table</button>
             </div>
           </div>
