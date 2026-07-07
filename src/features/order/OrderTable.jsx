@@ -124,7 +124,7 @@ const OrderTable = () => {
 
 
   const API_URL = import.meta.env.VITE_API_URL;
-  const SKU_STATUS_ALLOWED_USERS = new Set(["admin", "jerry", "tess", "jacob", "david"]);
+  const SKU_STATUS_ALLOWED_USERS = new Set(["admin", "jerry", "tess", "jacob", "david", "rafael", "ricardo"]);
   const ORDER_CANCEL_EXECUTE_ALLOWED_USERS = new Set(["tess", "jerry", "jacob", "paula", "karoline"]);
   const ORDER_CANCEL_DRY_RUN_ALLOWED_USERS = new Set(["tess"]);
   const ORDER_PO_INIT_ALLOWED_USERS = new Set(["admin", "tess", "jerry", "jacob", "paula", "karoline"]);
