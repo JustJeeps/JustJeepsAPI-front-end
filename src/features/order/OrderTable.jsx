@@ -2356,7 +2356,17 @@ console.log("IS ARRAY?", Array.isArray(orders));
       try {
         const response = await axios.post(
           `${API_URL}/api/products/${encodeURIComponent(skuValue)}/status-all-store-views`,
-          { status: Number(targetStatus) }
+          {
+            status: Number(targetStatus),
+            applyToChildren: skuValue.endsWith("-"),
+          }
+        );
+
+        const targetSkus = Array.isArray(response?.data?.targetSkus) && response.data.targetSkus.length
+          ? response.data.targetSkus
+          : [skuValue];
+        const normalizedTargetSkus = new Set(
+          targetSkus.map((entry) => String(entry || "").trim().toLowerCase())
         );
 
         const applyStatusUpdate = (prevOrders) => {
@@ -2365,7 +2375,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
             ...orderRow,
             items: Array.isArray(orderRow?.items)
               ? orderRow.items.map((orderItem) =>
-                  String(orderItem?.sku || "").trim().toLowerCase() === skuValue.toLowerCase()
+                  normalizedTargetSkus.has(String(orderItem?.sku || "").trim().toLowerCase())
                     ? {
                         ...orderItem,
                         product: {
@@ -2394,20 +2404,21 @@ console.log("IS ARRAY?", Array.isArray(orders));
         const updatedCodesLabel = updatedStorefrontCodes.length
           ? updatedStorefrontCodes.join(", ")
           : "none";
+        const targetSkusLabel = targetSkus.join(", ");
 
         Modal.success({
-          title: `SKU ${skuValue} ${Number(targetStatus) === 2 ? "disabled" : "enabled"}`,
+          title: `${targetSkus.length} SKU${targetSkus.length === 1 ? "" : "s"} ${Number(targetStatus) === 2 ? "disabled" : "enabled"}`,
           content:
             failedStorefrontCodes.length > 0
-              ? `Updated store views: ${updatedCodesLabel}. Failed store views: ${failedStorefrontCodes.join(", ")}.`
-              : `Updated store views: ${updatedCodesLabel}.`,
+              ? `Applied from ${skuValue}. SKUs: ${targetSkusLabel}. Updated store views: ${updatedCodesLabel}. Failed store views: ${failedStorefrontCodes.join(", ")}.`
+              : `Applied from ${skuValue}. SKUs: ${targetSkusLabel}. Updated store views: ${updatedCodesLabel}.`,
         });
       } catch (error) {
         const message =
           error?.response?.data?.error ||
-          `Failed to ${Number(targetStatus) === 2 ? "disable" : "enable"} SKU`;
+          `Failed to ${Number(targetStatus) === 2 ? "disable" : "enable"} SKU(s)`;
         Modal.error({
-          title: `Failed to ${Number(targetStatus) === 2 ? "disable" : "enable"} ${skuValue}`,
+          title: `Failed to ${Number(targetStatus) === 2 ? "disable" : "enable"} from ${skuValue}`,
           content: message,
         });
       } finally {
