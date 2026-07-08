@@ -444,7 +444,19 @@ const hasFraudWarning = (order) => {
   const isPayPal = /paypal/i.test(paymentSource);
   const isHighFraud = !isPayPal && !isNaN(score) && score > 5;
   const isQuebecHighValue = order?.region?.toLowerCase?.() === "quebec" && !isNaN(grandTotal) && grandTotal > 300;
-  return !isPayPal && (isHighFraud || isQuebecHighValue);
+  const isRecentEmail = isEmailFirstSeenLessThanOneYear(order?.email_first_seen);
+  const hasAddressMismatch = hasShippingBillingAddressMismatch(order);
+  return isRecentEmail || hasAddressMismatch || (!isPayPal && (isHighFraud || isQuebecHighValue));
+};
+
+const isEmailFirstSeenLessThanOneYear = (emailFirstSeen) => {
+  if (!emailFirstSeen) return false;
+  const firstSeenDate = new Date(emailFirstSeen);
+  if (Number.isNaN(firstSeenDate.getTime())) return false;
+
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+  return firstSeenDate > oneYearAgo;
 };
 
 const hasRegionWarning = (order) => {
@@ -463,28 +475,34 @@ const normalizeAddressValue = (value) =>
     .toLowerCase()
     .replace(/\s+/g, " ");
 
-const hasShippingBillingAddressMismatch = (order) => {
-  const billingFirst = normalizeAddressValue(order?.customer_firstname);
-  const billingLast = normalizeAddressValue(order?.customer_lastname);
-  const shippingFirst = normalizeAddressValue(order?.shipping_firstname);
-  const shippingLast = normalizeAddressValue(order?.shipping_lastname);
+const normalizePostalCode = (value) =>
+  normalizeAddressValue(value).replace(/\s+/g, "");
 
-  const billingCity = normalizeAddressValue(order?.city);
-  const billingRegion = normalizeAddressValue(order?.region);
+const hasShippingBillingAddressMismatch = (order) => {
+  const billingStreet = normalizeAddressValue(order?.billing_street);
+  const shippingStreet = normalizeAddressValue(
+    [order?.shipping_street1, order?.shipping_street2, order?.shipping_street3]
+      .filter(Boolean)
+      .join(" ")
+  );
+  const billingCity = normalizeAddressValue(order?.billing_city);
+  const billingRegion = normalizeAddressValue(order?.billing_region);
+  const billingPostcode = normalizePostalCode(order?.billing_postcode);
+  const billingCountry = normalizeAddressValue(order?.billing_country_id);
   const shippingCity = normalizeAddressValue(order?.shipping_city);
   const shippingRegion = normalizeAddressValue(order?.shipping_region);
+  const shippingPostcode = normalizePostalCode(order?.shipping_postcode);
+  const shippingCountry = normalizeAddressValue(order?.shipping_country_id);
 
-  const nameMismatch =
-    billingFirst && shippingFirst && billingFirst !== shippingFirst
-      ? true
-      : billingLast && shippingLast && billingLast !== shippingLast;
+  const comparablePairs = [
+    [billingStreet, shippingStreet],
+    [billingCity, shippingCity],
+    [billingRegion, shippingRegion],
+    [billingPostcode, shippingPostcode],
+    [billingCountry, shippingCountry],
+  ].filter(([billingValue, shippingValue]) => billingValue && shippingValue);
 
-  const locationMismatch =
-    billingCity && shippingCity && billingCity !== shippingCity
-      ? true
-      : billingRegion && shippingRegion && billingRegion !== shippingRegion;
-
-  return Boolean(nameMismatch || locationMismatch);
+  return comparablePairs.some(([billingValue, shippingValue]) => billingValue !== shippingValue);
 };
 
 
@@ -1781,7 +1799,7 @@ Thank you!
       dataIndex: "weltpixel_fraud_score",
       key: "weltpixel_fraud_score",
       align: "center",
-      width: 90,
+      width: 135,
       sorter: (a, b) => {
         const aScore = parseFloat(a.weltpixel_fraud_score);
         const bScore = parseFloat(b.weltpixel_fraud_score);
@@ -1795,7 +1813,9 @@ Thank you!
         const isPayPal = /paypal/i.test(paymentSource);
         const isHighFraud = !isPayPal && !isNaN(score) && score > 5;
         const isQuebecHighValue = record.region?.toLowerCase() === "quebec" && !isNaN(grandTotal) && grandTotal > 300;
-        const showFraudWarning = !isPayPal && (isHighFraud || isQuebecHighValue);
+        const isRecentEmail = isEmailFirstSeenLessThanOneYear(record.email_first_seen);
+        const hasAddressMismatch = hasShippingBillingAddressMismatch(record);
+        const showFraudWarning = isRecentEmail || hasAddressMismatch || (!isPayPal && (isHighFraud || isQuebecHighValue));
         const display = text ? text : "—";
 
         return (
@@ -1810,6 +1830,21 @@ Thank you!
             {display}
             {showFraudWarning && (
               <ExclamationCircleOutlined style={{ fontSize: 12, color: '#cf1322' }} />
+            )}
+            {isRecentEmail && (
+              <Tag color="red" style={{ margin: 0, fontSize: 11 }}>
+                EMAIL &lt;1Y
+              </Tag>
+            )}
+            {isQuebecHighValue && !isPayPal && (
+              <Tag color="red" style={{ margin: 0, fontSize: 11 }}>
+                QC &gt;$300
+              </Tag>
+            )}
+            {hasAddressMismatch && (
+              <Tag color="red" style={{ margin: 0, fontSize: 11 }}>
+                SHIP != BILL
+              </Tag>
             )}
           </span>
         );
@@ -1877,7 +1912,6 @@ Thank you!
       render: (_, record) => {
         // Due warning
         const isDue = record.base_total_due > 0;
-        const hasAddressMismatch = hasShippingBillingAddressMismatch(record);
 
         // Format payment method for display
         const formatPayment = (method) => {
@@ -1907,11 +1941,6 @@ Thank you!
               }}>
                 {record.customer_firstname} {record.customer_lastname?.charAt(0)}.
               </span>
-              {hasAddressMismatch ? (
-                <Tag color="orange" style={{ margin: 0, fontSize: 11 }}>
-                  Ship != Bill
-                </Tag>
-              ) : null}
             </div>
 
             {/* Bottom Row: Metrics Grid */}
