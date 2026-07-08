@@ -1039,6 +1039,124 @@ const handleSetSkuStatusAcrossStoreViews = async (record, targetStatus) => {
     },
   };
 
+  const noCostVendorAliases = {
+    keystone: ["keystone"],
+    meyer: ["meyer", "meyers", "meyer distributing", "meyer distributing corporation"],
+    quadratec: ["quadratec"],
+    ctp: ["ctp", "ctp distributors"],
+    grandwest: ["grandwest"],
+    t14: ["t14", "turn14", "turn 14"],
+    apg: ["apg", "premier performance", "agp wholesale"],
+    amazon: ["amazon"],
+  };
+
+  const normalizeVendorName = (name = "") =>
+    name
+      .toString()
+      .trim()
+      .toLowerCase();
+
+  const vendorMatches = (vendorKey, actualVendorName) => {
+    const normalizedActual = normalizeVendorName(actualVendorName);
+    if (!normalizedActual) return false;
+    const aliases = noCostVendorAliases[vendorKey] || [vendorKey];
+    return aliases.some((alias) => normalizedActual === alias);
+  };
+
+  const noCostVendors = [
+    { key: "keystone", label: "Keystone" },
+    { key: "meyer", label: "Meyer" },
+    { key: "quadratec", label: "Quadratec" },
+    { key: "ctp", label: "CTP" },
+    { key: "grandwest", label: "Grandwest" },
+    { key: "t14", label: "T14" },
+    { key: "apg", label: "AGP Wholesale" },
+    { key: "amazon", label: "Amazon.ca" },
+  ];
+
+  const getNoCostVendorSku = (vendorProducts, vendorKey, fallbackSku) => {
+    const match = vendorProducts.find((vendorProduct) =>
+      vendorMatches(vendorKey, vendorProduct?.vendor?.name)
+    );
+    return match?.vendor_sku?.trim() || fallbackSku || "";
+  };
+
+  const buildNoCostVendorLink = (record, vendorKey) => {
+    const vendorProducts = Array.isArray(record?.vendorProducts) ? record.vendorProducts : [];
+    const searchableSku = record?.searchable_sku?.trim();
+    const sku = record?.sku?.trim();
+    const productSku = record?.product_sku?.trim();
+    const fallbackSku = searchableSku || sku || "";
+
+    switch (vendorKey) {
+      case "keystone": {
+        const keystoneCode = record?.keystone_code_site?.trim();
+        if (keystoneCode) {
+          let formattedCode = keystoneCode;
+          if (/^BES\d{7}$/.test(keystoneCode)) {
+            formattedCode = `${keystoneCode.slice(0, -2)}-${keystoneCode.slice(-2)}`;
+          }
+          return `https://wwwsc.ekeystone.com/Search/Detail?pid=${encodeURIComponent(formattedCode)}`;
+        }
+        return "https://wwwsc.ekeystone.com/";
+      }
+      case "meyer": {
+        const vendorSku = getNoCostVendorSku(vendorProducts, "meyer", fallbackSku);
+        return vendorSku
+          ? `https://online.meyerdistributing.com/parts/details/${encodeURIComponent(vendorSku)}`
+          : "https://online.meyerdistributing.com/";
+      }
+      case "quadratec": {
+        const quadCode = /^PS-/i.test(productSku || "")
+          ? productSku.replace(/^PS-/i, "").replace(/-/g, "")
+          : productSku?.includes("-")
+            ? productSku.split("-").slice(1).join("-")
+            : productSku || sku;
+        return quadCode
+          ? `https://www.quadratecwholesale.com/catalogsearch/result/?q=${encodeURIComponent(quadCode)}`
+          : "https://www.quadratecwholesale.com/";
+      }
+      case "ctp": {
+        const vendorSku = getNoCostVendorSku(vendorProducts, "ctp", fallbackSku);
+        return vendorSku
+          ? `https://www.ctpdistributors.com/search-parts?find=${encodeURIComponent(vendorSku)}`
+          : "https://www.ctpdistributors.com/";
+      }
+      case "grandwest":
+        return fallbackSku
+          ? `https://www.grandwestauto.com/search?keywords=${encodeURIComponent(fallbackSku)}`
+          : "https://www.grandwestauto.com/";
+      case "t14": {
+        const vendorSku = getNoCostVendorSku(vendorProducts, "t14", fallbackSku);
+        return vendorSku
+          ? `https://turn14.com/search/index.php?vmmPart=${encodeURIComponent(vendorSku)}`
+          : "https://turn14.com/";
+      }
+      case "apg": {
+        const vendorSku = getNoCostVendorSku(vendorProducts, "apg", fallbackSku);
+        return vendorSku
+          ? `https://apgwholesale.com/pages/search-results-page?q=${encodeURIComponent(vendorSku)}`
+          : "https://apgwholesale.com/";
+      }
+      case "amazon": {
+        const vendorSku = getNoCostVendorSku(vendorProducts, "amazon", fallbackSku);
+        const searchTerm = vendorSku || fallbackSku;
+        return searchTerm
+          ? `https://www.amazon.ca/s?k=${encodeURIComponent(searchTerm)}`
+          : "https://www.amazon.ca/";
+      }
+      default:
+        return null;
+    }
+  };
+
+  const vendorHasCost = (vendorProducts, vendorKey) => {
+    return vendorProducts.some((vendorProduct) => {
+      const cost = Number(vendorProduct?.vendor_cost);
+      return vendorMatches(vendorKey, vendorProduct?.vendor?.name) && Number.isFinite(cost);
+    });
+  };
+
   const columns_by_sku = [
 
     
@@ -1464,6 +1582,50 @@ const handleSetSkuStatusAcrossStoreViews = async (record, targetStatus) => {
       );
     });
   }
+},
+{
+  title: "No Cost Vendors",
+  key: "no_cost_vendors",
+  align: "center",
+  width: "10%",
+  render: (_, record) => {
+    const vendorProducts = Array.isArray(record?.vendorProducts) ? record.vendorProducts : [];
+    const vendorsWithoutCost = noCostVendors.filter(
+      (vendor) => !vendorHasCost(vendorProducts, vendor.key)
+    );
+
+    if (!vendorsWithoutCost.length) {
+      return <span>-</span>;
+    }
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px" }}>
+        {vendorsWithoutCost.map((vendor) => {
+          const link = buildNoCostVendorLink(record, vendor.key);
+          return (
+            <a
+              key={vendor.key}
+              href={link}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                backgroundColor: "#eef5ff",
+                padding: "3px 8px",
+                borderRadius: "4px",
+                fontSize: "13px",
+                fontWeight: 500,
+                color: "#1a4b8c",
+                whiteSpace: "nowrap",
+                textDecoration: "underline",
+              }}
+            >
+              {vendor.label}
+            </a>
+          );
+        })}
+      </div>
+    );
+  },
 },
      
     // {
