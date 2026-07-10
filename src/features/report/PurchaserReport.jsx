@@ -7,6 +7,9 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 const PURCHASER_INITIALS = ['PM', 'KD', 'JD', 'JK'];
+const PURCHASER_INITIALS_BY_USER = {
+  karoline: ['KD'],
+};
 const WAITING_RESPONSE_DAYS = 30;
 const TORONTO_TIMEZONE = 'America/Toronto';
 
@@ -357,16 +360,18 @@ const ALLOWED_USERS = ['tess', 'paula', 'karoline'];
 
 export default function PurchaserReport() {
   const { user, loading } = useAuth();
+  const normalizedUsername = (user?.username || user?.name || '').toLowerCase();
+  const availablePurchaserInitials = PURCHASER_INITIALS_BY_USER[normalizedUsername] || PURCHASER_INITIALS;
   if (loading) {
     return <div style={{ textAlign: 'center', padding: 100 }}>Loading...</div>;
   }
-  const isAllowed = user && ALLOWED_USERS.includes((user.username || user.name || '').toLowerCase());
+  const isAllowed = user && ALLOWED_USERS.includes(normalizedUsername);
   if (!isAllowed) {
     // Hide everything, show only access denied
     return null;
   }
   const [date, setDate] = useState(getTodayLabel());
-  const [initials, setInitials] = useState(PURCHASER_INITIALS);
+  const [initials, setInitials] = useState(availablePurchaserInitials);
   const [report, setReport] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -382,14 +387,15 @@ export default function PurchaserReport() {
   });
 
   const handleGenerate = async () => {
-    if (!date || !initials.length) return;
+    const reportInitials = initials.filter((init) => availablePurchaserInitials.includes(init));
+    if (!date || !reportInitials.length) return;
     setReportLoading(true);
     setError('');
     setCopyStatus('');
     try {
       // Query backend for orders matching initials only (server-side filtering)
       const params = {
-        search: initials.join(' '),
+        search: reportInitials.join(' '),
         searchMode: 'any',
         limit: 200,
       };
@@ -424,7 +430,7 @@ export default function PurchaserReport() {
         const poNorm = normalizePo(po);
         const notSet = /\bnot set\b/i.test(poNorm);
         const hasTicket = /\bticket\b/i.test(poNorm);
-        const hasInitials = initials.some((init) =>
+        const hasInitials = reportInitials.some((init) =>
           new RegExp(`\\b${escapeRegex(init)}\\b`, 'i').test(poNorm)
         );
         const hasDate = hasReportDate(poNorm, parsedReportDate);
@@ -882,9 +888,12 @@ export default function PurchaserReport() {
               className="pr-select"
               multiple
               value={initials}
-              onChange={(e) => setInitials(Array.from(e.target.selectedOptions, (o) => o.value))}
+              onChange={(e) => setInitials(
+                Array.from(e.target.selectedOptions, (o) => o.value)
+                  .filter((init) => availablePurchaserInitials.includes(init))
+              )}
             >
-              {PURCHASER_INITIALS.map((init) => (
+              {availablePurchaserInitials.map((init) => (
                 <option key={init} value={init}>{init}</option>
               ))}
             </select>
