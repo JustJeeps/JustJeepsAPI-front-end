@@ -133,6 +133,7 @@ const OrderTable = () => {
   const canRunOrderCancelWorkflow = authEnabled && ORDER_CANCEL_EXECUTE_ALLOWED_USERS.has(normalizedUsername);
   const canRunOrderCancelDryRun = authEnabled && ORDER_CANCEL_DRY_RUN_ALLOWED_USERS.has(normalizedUsername);
   const canInitializePoNumber = authEnabled && ORDER_PO_INIT_ALLOWED_USERS.has(normalizedUsername);
+  const isPoInitializationTemporarilyDisabled = true;
 
   const getOrderRowKey = (record) => record.entity_id || record.id || record.key;
 
@@ -1462,6 +1463,7 @@ Thank you!
   };
 
   const handleInitializePoNumber = async (record) => {
+    if (isPoInitializationTemporarilyDisabled) return;
     if (!record?.entity_id) return;
 
     const orderId = record.entity_id;
@@ -1747,7 +1749,7 @@ Thank you!
             }}>
               {isMissing ? missingPoLabel : text}
             </span>
-            {canInitializePoNumber && isExactlyNotSet ? (
+            {canInitializePoNumber && !isPoInitializationTemporarilyDisabled && isExactlyNotSet ? (
               <Tooltip title="Initialize PO#">
                 <Button
                   size="small"
