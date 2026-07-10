@@ -178,6 +178,31 @@ const parseMoney = (value) => {
   return Number.isFinite(numericValue) ? numericValue : 0;
 };
 
+const formatOrderDateTime = (value) => {
+  if (!value) return { datePart: "", timePart: "" };
+
+  const rawValue = String(value).trim();
+  const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/.test(rawValue);
+  const normalizedValue = hasTimezone ? rawValue : `${rawValue.replace(" ", "T")}Z`;
+  const date = new Date(normalizedValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return { datePart: rawValue, timePart: "" };
+  }
+
+  const localTime = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Toronto",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+
+  const [datePart, timePart = ""] = localTime.split(", ");
+  return { datePart, timePart };
+};
+
 const getOrderSubtotalValue = (order) => {
   const directSubtotal = parseFloat(order?.subtotal);
   if (Number.isFinite(directSubtotal)) return directSubtotal;
@@ -1661,16 +1686,7 @@ Thank you!
       sortOrder: sortedInfo.columnKey === "created_at" && sortedInfo.order,
       ...getColumnSearchProps("created_at"),
       render: (text, record) => {
-        const date = new Date(text);
-        date.setHours(date.getHours() - 5);
-        const localTime = date.toLocaleString("en-CA", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        const [datePart, timePart] = localTime.split(', ');
+        const { datePart, timePart } = formatOrderDateTime(text);
         return (
           <div style={{ textAlign: 'center', lineHeight: 1.3 }}>
             <div style={{ fontWeight: 600, color: '#1a1a1a', fontSize: '15px' }}>{datePart}</div>
