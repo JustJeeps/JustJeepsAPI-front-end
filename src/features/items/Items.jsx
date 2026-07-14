@@ -914,6 +914,7 @@ const handleSetSkuStatusAcrossStoreViews = async (record, targetStatus) => {
       {
         status: Number(targetStatus),
         applyToChildren: skuValue.endsWith("-"),
+        source: "Items.jsx",
       }
     );
 
