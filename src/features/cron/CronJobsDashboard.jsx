@@ -38,24 +38,37 @@ function formatSchedule(schedule) {
 	}
 
 	const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
-	if (minute === '*' || hour === '*' || dayOfMonth !== '*' || month !== '*' || dayOfWeek !== '*') {
+	if (minute === '*' || dayOfMonth !== '*' || month !== '*' || dayOfWeek !== '*') {
 		return schedule;
 	}
 
-	const hourNumber = Number(hour);
 	const minuteNumber = Number(minute);
-	if (Number.isNaN(hourNumber) || Number.isNaN(minuteNumber)) {
+	if (Number.isNaN(minuteNumber)) {
 		return schedule;
 	}
 
-	const date = new Date();
-	date.setHours(hourNumber, minuteNumber, 0, 0);
-	const timeLabel = date.toLocaleTimeString('en-CA', {
-		hour: 'numeric',
-		minute: '2-digit',
-	});
+	const hourParts = hour.split(',').map((value) => value.trim()).filter(Boolean);
+	if (hourParts.length === 0) {
+		return schedule;
+	}
 
-	return `Daily at ${timeLabel}`;
+	const parsedHours = hourParts.map((value) => Number(value));
+	if (parsedHours.some((value) => Number.isNaN(value))) {
+		return schedule;
+	}
+
+	const timeLabels = parsedHours
+		.map((hourNumber) => {
+			const date = new Date();
+			date.setHours(hourNumber, minuteNumber, 0, 0);
+			return date.toLocaleTimeString('en-CA', {
+				hour: 'numeric',
+				minute: '2-digit',
+			});
+		})
+		.join(', ');
+
+	return `Daily at ${timeLabels}`;
 }
 
 function formatDateTime(value) {
@@ -87,6 +100,13 @@ function formatHistoryDayLabel(value) {
 		month: 'short',
 		day: 'numeric',
 	});
+}
+
+function formatFailedStep(step) {
+	if (!step) return 'Unknown failed step';
+	const codeText = step.code ?? 'unknown';
+	const errorText = step.error ? ` - ${step.error}` : '';
+	return `${step.cmd || 'unknown-step'} (code ${codeText})${errorText}`;
 }
 
 export default function CronJobsDashboard() {
@@ -328,6 +348,20 @@ export default function CronJobsDashboard() {
 								</div>
 							) : null}
 
+							{selectedJob.failedResults?.length ? (
+								<div className='cron-jobs__detail-section'>
+									<h3>Failed Steps</h3>
+									<div className='cron-jobs__history-list'>
+										{selectedJob.failedResults.map((step, index) => (
+											<div className='cron-jobs__history-item' key={`${step.cmd || 'step'}-${index}`}>
+												<div className='cron-jobs__history-error'>{formatFailedStep(step)}</div>
+												{step.logFile ? <div className='cron-jobs__muted'>Log: {step.logFile}</div> : null}
+											</div>
+										))}
+									</div>
+								</div>
+							) : null}
+
 							<div className='cron-jobs__detail-section'>
 								<h3>Recent Log Lines</h3>
 								<pre className='cron-jobs__log-box'>
@@ -368,6 +402,13 @@ export default function CronJobsDashboard() {
 												{entry.summary ? (
 													<div className='cron-jobs__history-summary'>
 														{entry.summary.succeeded} succeeded, {entry.summary.failed} failed out of {entry.summary.total}
+													</div>
+												) : null}
+												{entry.failedResults?.length ? (
+													<div className='cron-jobs__history-summary'>
+														{entry.failedResults.map((step, index) => (
+															<div key={`${entry.id}-failed-${index}`}>{formatFailedStep(step)}</div>
+														))}
 													</div>
 												) : null}
 												{entry.error ? <div className='cron-jobs__history-error'>{entry.error}</div> : null}

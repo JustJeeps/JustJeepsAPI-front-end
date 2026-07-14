@@ -385,9 +385,10 @@ export default function PurchaserReport() {
     assigned: false,
     waiting: false,
   });
+  const selectedInitials = initials.filter((init) => availablePurchaserInitials.includes(init));
 
   const handleGenerate = async () => {
-    const reportInitials = initials.filter((init) => availablePurchaserInitials.includes(init));
+    const reportInitials = selectedInitials;
     if (!date || !reportInitials.length) return;
     setReportLoading(true);
     setError('');
@@ -457,7 +458,7 @@ export default function PurchaserReport() {
 
   const handlePreview = () => {
     if (!report || !date) return;
-    const html = buildEmailHtml(report, date, initials);
+    const html = buildEmailHtml(report, date, selectedInitials);
     setPreviewHtml(html);
     setCopyStatus('');
     setPreviewOpen(true);
@@ -887,7 +888,7 @@ export default function PurchaserReport() {
               id="pr-initials"
               className="pr-select"
               multiple
-              value={initials}
+              value={selectedInitials}
               onChange={(e) => setInitials(
                 Array.from(e.target.selectedOptions, (o) => o.value)
                   .filter((init) => availablePurchaserInitials.includes(init))
