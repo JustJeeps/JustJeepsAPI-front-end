@@ -2216,6 +2216,7 @@ Thank you!
                     const initializingPo = Boolean(initializingPoOrders[orderId]);
                     const isAlreadyCancelled = String(record?.status || "").toLowerCase().includes("cancel");
                     const manualRefundWarning = getManualRefundRoutingWarning(record);
+                    const isManualRefundRestrictedForUser = normalizedUsername === "paula" && Boolean(manualRefundWarning);
 
                     return (
                       <Space size={6}>
@@ -2234,13 +2235,13 @@ Thank you!
                           size="small"
                           type="primary"
                           loading={cancelling}
-                          disabled={cancelling || initializingPo || isAlreadyCancelled}
+                          disabled={cancelling || initializingPo || isAlreadyCancelled || isManualRefundRestrictedForUser}
                           onClick={() => handleCancelOrderWorkflow(record)}
                         >
                           {isAlreadyCancelled ? "Cancelled" : "Cancel Order"}
                         </Button>
                         {manualRefundWarning ? (
-                          <Tooltip title={`${manualRefundWarning.paymentLabel} This refund needs Jacob to manually process it. Send this order to Jacob.`}>
+                          <Tooltip title={`${manualRefundWarning.paymentLabel} refund needs Jacob to manually process it. Paula cannot cancel this order from the Pricing Tool.`}>
                             <ExclamationCircleOutlined style={{ color: "#fa8c16", fontSize: 16 }} />
                           </Tooltip>
                         ) : null}
