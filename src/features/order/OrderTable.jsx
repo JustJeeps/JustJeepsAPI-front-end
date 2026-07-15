@@ -2240,7 +2240,7 @@ Thank you!
                           {isAlreadyCancelled ? "Cancelled" : "Cancel Order"}
                         </Button>
                         {manualRefundWarning ? (
-                          <Tooltip title={`${manualRefundWarning.paymentLabel} refund needs Jacob to manually process it. Send this order to Jacob.`}>
+                          <Tooltip title={`${manualRefundWarning.paymentLabel} This refund needs Jacob to manually process it. Send this order to Jacob.`}>
                             <ExclamationCircleOutlined style={{ color: "#fa8c16", fontSize: 16 }} />
                           </Tooltip>
                         ) : null}
