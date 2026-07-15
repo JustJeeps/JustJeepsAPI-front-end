@@ -475,6 +475,16 @@ const hasFraudWarning = (order) => {
   return isRecentEmail || hasAddressMismatch || (!isPayPal && (isHighFraud || isQuebecHighValue));
 };
 
+const getManualRefundRoutingWarning = (order) => {
+  const paymentSource = order?.payment_method || order?.method_title || "";
+  if (/paypal/i.test(paymentSource)) return { paymentLabel: "PayPal" };
+  if (/affirm/i.test(paymentSource)) return { paymentLabel: "Affirm" };
+  if (/email\s*money\s*transfer|e-?transfer|\bemt\b/i.test(paymentSource)) {
+    return { paymentLabel: "Email Money Transfer" };
+  }
+  return null;
+};
+
 const isEmailFirstSeenLessThanOneYear = (emailFirstSeen) => {
   if (!emailFirstSeen) return false;
   const firstSeenDate = new Date(emailFirstSeen);
@@ -1559,13 +1569,27 @@ Thank you!
 
     const orderId = record.entity_id;
     const incrementId = record.increment_id || orderId;
+    const manualRefundWarning = getManualRefundRoutingWarning(record);
+    const cancelWorkflowDescription = dryRun
+      ? "This will simulate supported automation steps (void/delete invoice by order id, cancel order, create/send cancellation ticket, and update cancellation custom attributes) and show a summary without changing Magento."
+      : "This will attempt supported automation steps: void/delete invoice by order id, cancel order, create/send cancellation ticket, and update cancellation custom attributes.";
 
     Modal.confirm({
       title: `${dryRun ? "Dry Run" : "Cancel Order"} #${incrementId}?`,
       icon: <ExclamationCircleOutlined />,
-      content: dryRun
-        ? "This will simulate supported automation steps (void/delete invoice by order id, cancel order, create/send cancellation ticket, and update cancellation custom attributes) and show a summary without changing Magento."
-        : "This will attempt supported automation steps: void/delete invoice by order id, cancel order, create/send cancellation ticket, and update cancellation custom attributes.",
+      content: (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <span>{cancelWorkflowDescription}</span>
+          {manualRefundWarning ? (
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-start", color: "#ad6800" }}>
+              <ExclamationCircleOutlined style={{ marginTop: 3 }} />
+              <span>
+                {manualRefundWarning.paymentLabel} refunds need to be processed manually by Jacob. Send this order to Jacob after running the cancel workflow.
+              </span>
+            </div>
+          ) : null}
+        </div>
+      ),
       okText: dryRun ? "Run Dry Run" : "Run Cancel Workflow",
       okButtonProps: dryRun ? {} : { danger: true },
       cancelText: "Back",
@@ -2191,6 +2215,7 @@ Thank you!
                     const cancelling = Boolean(cancellingOrders[orderId]);
                     const initializingPo = Boolean(initializingPoOrders[orderId]);
                     const isAlreadyCancelled = String(record?.status || "").toLowerCase().includes("cancel");
+                    const manualRefundWarning = getManualRefundRoutingWarning(record);
 
                     return (
                       <Space size={6}>
@@ -2214,6 +2239,11 @@ Thank you!
                         >
                           {isAlreadyCancelled ? "Cancelled" : "Cancel Order"}
                         </Button>
+                        {manualRefundWarning ? (
+                          <Tooltip title={`${manualRefundWarning.paymentLabel} refund needs Jacob to manually process it. Send this order to Jacob.`}>
+                            <ExclamationCircleOutlined style={{ color: "#fa8c16", fontSize: 16 }} />
+                          </Tooltip>
+                        ) : null}
                       </Space>
                     );
                   },
