@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { Alert, Button, Progress, Spin, Table, Tag } from 'antd';
+import { Alert, Button, Modal, Progress, Spin, Table, Tag } from 'antd';
 import './cronJobs.scss';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -116,6 +116,10 @@ export default function CronJobsDashboard() {
 	const [selectedJobId, setSelectedJobId] = useState(null);
 	const [generatedAt, setGeneratedAt] = useState(null);
 	const [historyLookbackDays, setHistoryLookbackDays] = useState(5);
+	const [logModalOpen, setLogModalOpen] = useState(false);
+	const [logLoading, setLogLoading] = useState(false);
+	const [logError, setLogError] = useState('');
+	const [fullLogPayload, setFullLogPayload] = useState(null);
 
 	useEffect(() => {
 		let mounted = true;
@@ -173,6 +177,58 @@ export default function CronJobsDashboard() {
 			{ total: 0, running: 0, success: 0, attention: 0 }
 		);
 	}, [jobs]);
+
+	const fullLogText = useMemo(() => {
+		if (!fullLogPayload?.lines?.length) return '';
+		return fullLogPayload.lines.join('\n');
+	}, [fullLogPayload]);
+
+	const fetchFullLogs = async ({ command, lines = 2000 } = {}) => {
+		if (!command) return;
+		setLogLoading(true);
+		setLogError('');
+
+		try {
+			const response = await axios.get(
+				`${API_BASE_URL}/api/cron-jobs/${encodeURIComponent(command)}/log-lines`,
+				{ params: { lines } }
+			);
+			setFullLogPayload(response.data || null);
+		} catch (requestError) {
+			setLogError(requestError.response?.data?.error || 'Failed to load full server logs');
+		} finally {
+			setLogLoading(false);
+		}
+	};
+
+	const openLogModal = async () => {
+		if (!selectedJob?.command) return;
+		setLogModalOpen(true);
+		await fetchFullLogs({ command: selectedJob.command, lines: 2000 });
+	};
+
+	const copyLogs = async () => {
+		if (!fullLogText) return;
+		try {
+			await navigator.clipboard.writeText(fullLogText);
+		} catch {
+			setLogError('Clipboard copy failed. Please use Download instead.');
+		}
+	};
+
+	const downloadLogs = () => {
+		if (!fullLogText || !selectedJob?.command) return;
+		const blob = new Blob([fullLogText], { type: 'text/plain;charset=utf-8' });
+		const objectUrl = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+		link.href = objectUrl;
+		link.download = `${selectedJob.command}-${timestamp}.log`;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(objectUrl);
+	};
 
 	const columns = [
 		{
@@ -300,9 +356,12 @@ export default function CronJobsDashboard() {
 									<h2>{selectedJob.jobName}</h2>
 									<p>{selectedJob.command}</p>
 								</div>
-								<Tag color={STATUS_COLORS[selectedJob.status] || 'default'}>
-									{selectedJob.isRunning ? 'RUNNING' : String(selectedJob.status || 'unknown').toUpperCase()}
-								</Tag>
+								<div className='cron-jobs__detail-header-actions'>
+									<Button size='small' onClick={openLogModal}>View Full Server Logs</Button>
+									<Tag color={STATUS_COLORS[selectedJob.status] || 'default'}>
+										{selectedJob.isRunning ? 'RUNNING' : String(selectedJob.status || 'unknown').toUpperCase()}
+									</Tag>
+								</div>
 							</div>
 
 							<div className='cron-jobs__detail-grid'>
@@ -425,6 +484,36 @@ export default function CronJobsDashboard() {
 					)}
 				</div>
 			</div>
+
+			<Modal
+				title={selectedJob ? `${selectedJob.jobName} - Full Server Logs` : 'Full Server Logs'}
+				open={logModalOpen}
+				onCancel={() => setLogModalOpen(false)}
+				width={1000}
+				footer={[
+					<Button key='refresh' onClick={() => fetchFullLogs({ command: selectedJob?.command, lines: 2000 })} loading={logLoading}>
+						Refresh
+					</Button>,
+					<Button key='copy' onClick={copyLogs} disabled={!fullLogText}>
+						Copy
+					</Button>,
+					<Button key='download' type='primary' onClick={downloadLogs} disabled={!fullLogText}>
+						Download
+					</Button>,
+				]}
+			>
+				{logError ? <Alert type='error' showIcon message={logError} style={{ marginBottom: 12 }} /> : null}
+				{fullLogPayload?.logFile ? (
+					<p className='cron-jobs__muted cron-jobs__modal-log-path'>{fullLogPayload.logFile}</p>
+				) : null}
+				{logLoading ? (
+					<div className='cron-jobs__loading'><Spin /></div>
+				) : (
+					<pre className='cron-jobs__log-box cron-jobs__log-box--modal'>
+						{fullLogText || 'No log lines available yet for this job.'}
+					</pre>
+				)}
+			</Modal>
 		</div>
 	);
 }
