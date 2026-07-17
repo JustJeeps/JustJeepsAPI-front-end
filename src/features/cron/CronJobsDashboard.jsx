@@ -15,6 +15,17 @@ const STATUS_COLORS = {
 	disabled: 'default',
 };
 
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function formatTime(hourNumber, minuteNumber) {
+	const date = new Date();
+	date.setHours(hourNumber, minuteNumber, 0, 0);
+	return date.toLocaleTimeString('en-CA', {
+		hour: 'numeric',
+		minute: '2-digit',
+	});
+}
+
 function formatSchedule(schedule) {
 	if (!schedule) return '—';
 
@@ -38,7 +49,7 @@ function formatSchedule(schedule) {
 	}
 
 	const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
-	if (minute === '*' || dayOfMonth !== '*' || month !== '*' || dayOfWeek !== '*') {
+	if (minute === '*' || dayOfMonth !== '*' || month !== '*') {
 		return schedule;
 	}
 
@@ -58,15 +69,23 @@ function formatSchedule(schedule) {
 	}
 
 	const timeLabels = parsedHours
-		.map((hourNumber) => {
-			const date = new Date();
-			date.setHours(hourNumber, minuteNumber, 0, 0);
-			return date.toLocaleTimeString('en-CA', {
-				hour: 'numeric',
-				minute: '2-digit',
-			});
-		})
+		.map((hourNumber) => formatTime(hourNumber, minuteNumber))
 		.join(', ');
+
+	if (dayOfWeek !== '*') {
+		const dayParts = dayOfWeek.split(',').map((value) => value.trim()).filter(Boolean);
+		const parsedDays = dayParts.map((value) => Number(value));
+
+		if (dayParts.length === 0 || parsedDays.some((value) => Number.isNaN(value) || value < 0 || value > 7)) {
+			return schedule;
+		}
+
+		const dayLabels = parsedDays
+			.map((dayNumber) => WEEKDAYS[dayNumber === 7 ? 0 : dayNumber])
+			.join(', ');
+
+		return `Weekly on ${dayLabels} at ${timeLabels}`;
+	}
 
 	return `Daily at ${timeLabels}`;
 }
