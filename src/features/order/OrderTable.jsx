@@ -3635,7 +3635,9 @@ console.log("IS ARRAY?", Array.isArray(orders));
         <div className="container-xl" style={{ maxWidth: '100%', padding: '0 15px', marginTop: '170px' }}>
           <div className="container mb-3 order-top-bar" 
             style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '10px', marginTop: '5px' }}>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+            {/* position:relative + caption absoluto: o "Last sync" nao pode
+                adicionar altura ao top bar, senao empurra/sobrepoe a barra de filtros */}
+            <div style={{ position: "relative" }}>
               <Button
                 className="update-orders-btn"
                 type="primary"
@@ -3661,7 +3663,20 @@ console.log("IS ARRAY?", Array.isArray(orders));
                   : "Update Orders"}
               </Button>
               {lastSyncedAt && (
-                <span style={{ fontSize: 11, color: "#888" }}>
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    marginTop: 2,
+                    textAlign: "center",
+                    fontSize: 11,
+                    color: "#888",
+                    whiteSpace: "nowrap",
+                    pointerEvents: "none",
+                  }}
+                >
                   Last sync:{" "}
                   {new Date(lastSyncedAt).toLocaleTimeString([], {
                     hour: "2-digit",
@@ -3875,8 +3890,11 @@ console.log("IS ARRAY?", Array.isArray(orders));
 
             {/* Expand Mode Toggle */}
             <div className="order-expand-controls" style={{ marginLeft: 16, marginRight: 16 }}>
-              <div className="order-expand-row" style={{ display: "flex", alignItems: "center" }}>
-                <span style={{ fontWeight: 500, marginRight: 8 }}>Expand Mode:</span>
+              <div
+                className="order-expand-row"
+                style={{ display: "flex", alignItems: "center", flexWrap: "wrap", rowGap: 4 }}
+              >
+                <span style={{ fontWeight: 500, marginRight: 8, whiteSpace: "nowrap" }}>Expand Mode:</span>
                 <Segmented
                   options={[
                     { label: 'Expand One', value: 'single' },
@@ -3884,7 +3902,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
                   ]}
                   value={expandMode}
                   onChange={setExpandMode}
-                  style={{ minWidth: 180 }}
+                  style={{ minWidth: 180, flexShrink: 0 }}
                 />
                 <Button
                   type="primary"
@@ -3900,6 +3918,8 @@ console.log("IS ARRAY?", Array.isArray(orders));
                     color: "white",
                     fontWeight: 600,
                     borderRadius: 6,
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
                   }}
                 >
                   {seedingType === "orders-all"
@@ -3910,7 +3930,9 @@ console.log("IS ARRAY?", Array.isArray(orders));
             </div>
 
                   <span style={{ color: '#666' }}>
-                    Showing {orders.length} of {pagination.total} orders
+                    <span style={{ whiteSpace: 'nowrap' }}>
+                      Showing {orders.length} of {pagination.total} orders
+                    </span>
                     {filters.filterMode === 'items' && <Tag color="cyan" style={{ marginLeft: 8 }}>ITEMS MODE</Tag>}
                     {filters.starStatus === 'starred' && <Tag color="gold" style={{ marginLeft: 4 }}>STARRED PO</Tag>}
                     {filters.starStatus === 'starred_ready' && <Tag color="lime" style={{ marginLeft: 4 }}>STARRED READY</Tag>}
