@@ -26,6 +26,7 @@ import {
   Col,
   Card,
   Segmented,
+  message as antdMessage,
 } from "antd";
 import { FilterOutlined, ClearOutlined, ReloadOutlined } from "@ant-design/icons";
 import Highlighter from "react-highlight-words";
@@ -108,6 +109,7 @@ const OrderTable = () => {
     totalCount: 0,
   });
   const [metricsLoading, setMetricsLoading] = useState(true);
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
   const [orderShippingCosts, setOrderShippingCosts] = useState({});
   const [unitCostEdits, setUnitCostEdits] = useState({});
   const [savingUnitCost, setSavingUnitCost] = useState({});
@@ -117,7 +119,8 @@ const OrderTable = () => {
   const [textFromDrawer, setTextFromDrawer] = useState("");
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
   const seedPollRef = useRef(null);
-  const seedPollCountRef = useRef(0);
+  const [seedProgress, setSeedProgress] = useState(null); // { processed, total | null }
+  const lastQueryRef = useRef({ page: 1, pageSize: 250, filters: null });
   const isSeeding = seedingType !== null;
 
 
@@ -829,8 +832,11 @@ Thank you!
 
 
   // Load metrics (independent of pagination)
-  const loadMetrics = useCallback(async () => {
-    setMetricsLoading(true);
+  const loadMetrics = useCallback(async (options = {}) => {
+    const { silent = false } = options;
+    if (!silent) {
+      setMetricsLoading(true);
+    }
     try {
       const response = await axios.get(`${API_URL}/api/orders/metrics`);
       setMetrics(response.data);
@@ -839,7 +845,19 @@ Thank you!
       // Fallback: calculate metrics from current page data (not ideal but better than 0)
       // This will only be used if the metrics endpoint is not available
     } finally {
-      setMetricsLoading(false);
+      if (!silent) {
+        setMetricsLoading(false);
+      }
+    }
+  }, []);
+
+  // Last successful orders delta sync (cron or button)
+  const loadSyncState = useCallback(async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/orders/sync-state`);
+      setLastSyncedAt(response.data?.lastSyncedAt || null);
+    } catch (error) {
+      console.error("Failed to fetch orders sync state:", error);
     }
   }, []);
 
@@ -860,6 +878,13 @@ Thank you!
     loadVendors();
   }, []);
 
+  // Keep the "last sync" indicator fresh (the delta cron runs server-side)
+  useEffect(() => {
+    loadSyncState();
+    const syncStateInterval = setInterval(loadSyncState, 60 * 1000);
+    return () => clearInterval(syncStateInterval);
+  }, [loadSyncState]);
+
   // Reload when filters change
   useEffect(() => {
     loadData(1, pagination.pageSize, filters);
@@ -868,7 +893,7 @@ Thank you!
   useEffect(() => {
     return () => {
       if (seedPollRef.current) {
-        clearInterval(seedPollRef.current);
+        clearTimeout(seedPollRef.current);
         seedPollRef.current = null;
       }
     };
@@ -877,6 +902,7 @@ Thank you!
   //load all data with pagination and filters
   const loadData = useCallback(async (page = 1, pageSize = 25, currentFilters = filters, options = {}) => {
     const { silent = false } = options;
+    lastQueryRef.current = { page, pageSize, filters: currentFilters };
     if (!silent) {
       setLoading(true);
     }
@@ -987,94 +1013,101 @@ Thank you!
     });
   };
 
-  //seed orders
-  const handleSeedOrders = async (limit = 200) => {
-    if (isSeeding) return;
-
-    const pollIntervalMs = 2500;
-    const maxPollAttempts = 12;
-
-    const stopPolling = () => {
-      if (seedPollRef.current) {
-        clearInterval(seedPollRef.current);
-        seedPollRef.current = null;
-      }
-      seedPollCountRef.current = 0;
-      setSeedingType(null);
-    };
-
-    const startPolling = () => {
-      if (seedPollRef.current) {
-        clearInterval(seedPollRef.current);
-      }
-      seedPollCountRef.current = 0;
-      seedPollRef.current = setInterval(() => {
-        seedPollCountRef.current += 1;
-        loadData(pagination.current, pagination.pageSize, filters);
-        loadMetrics();
-
-        if (seedPollCountRef.current >= maxPollAttempts) {
-          stopPolling();
-        }
-      }, pollIntervalMs);
-    };
-
-    setLoading(true);
-    setSeedingType("orders");
-    try {
-      await axios.get(`${API_URL}/api/seed-orders`, { params: { limit } });
-      startPolling();
-    } catch (error) {
-      console.error(error);
-      stopPolling();
-    } finally {
-      setLoading(false);
+  //seed orders (job-based: poll the tiny status endpoint, refresh the table once at the end)
+  const stopSeedPolling = () => {
+    if (seedPollRef.current) {
+      clearTimeout(seedPollRef.current);
+      seedPollRef.current = null;
     }
+    setSeedingType(null);
+    setSeedProgress(null);
   };
 
-  const handleSeedOrdersAll = async () => {
+  const runSeedJob = async ({ startUrl, body, type, maxDurationMs, pollIntervalMs = 2000 }) => {
     if (isSeeding) return;
+    setSeedingType(type);
+    setSeedProgress(null);
 
-    const pollIntervalMs = 2500;
-    const maxPollAttempts = 12;
-
-    const stopPolling = () => {
-      if (seedPollRef.current) {
-        clearInterval(seedPollRef.current);
-        seedPollRef.current = null;
-      }
-      seedPollCountRef.current = 0;
-      setSeedingType(null);
-    };
-
-    const startPolling = () => {
-      if (seedPollRef.current) {
-        clearInterval(seedPollRef.current);
-      }
-      seedPollCountRef.current = 0;
-      seedPollRef.current = setInterval(() => {
-        seedPollCountRef.current += 1;
-        loadData(pagination.current, pagination.pageSize, filters);
-        loadMetrics();
-
-        if (seedPollCountRef.current >= maxPollAttempts) {
-          stopPolling();
-        }
-      }, pollIntervalMs);
-    };
-
-    setLoading(true);
-    setSeedingType("orders-all");
+    let jobId;
     try {
-      await axios.get(`${API_URL}/api/seed-orders-all`);
-      startPolling();
+      const res = await axios.post(startUrl, body);
+      jobId = res.data?.jobId;
+      if (!jobId) throw new Error("No jobId returned");
     } catch (error) {
       console.error(error);
-      stopPolling();
-    } finally {
-      setLoading(false);
+      antdMessage.error(
+        error?.response?.status === 409
+          ? "An order update is already running"
+          : "Failed to start order update"
+      );
+      stopSeedPolling();
+      return;
     }
+
+    const startedAt = Date.now();
+
+    const finishWithRefresh = async (text, kind = "success") => {
+      stopSeedPolling();
+      const { page, pageSize, filters: lastFilters } = lastQueryRef.current;
+      await Promise.all([
+        loadData(page, pageSize, lastFilters || filters, { silent: true }),
+        loadMetrics({ silent: true }),
+        loadSyncState(),
+      ]);
+      if (text) antdMessage[kind](text);
+    };
+
+    const poll = async () => {
+      try {
+        const { data: job } = await axios.get(`${API_URL}/api/seed-orders/status/${jobId}`);
+        if (job.status === "done") {
+          await finishWithRefresh(
+            `Orders updated (${job.processed}${job.total ? ` of ${job.total}` : ""})`
+          );
+          return;
+        }
+        if (job.status === "error") {
+          await finishWithRefresh(`Order update failed: ${job.error || "unknown error"}`, "error");
+          return;
+        }
+        setSeedProgress({ processed: job.processed ?? 0, total: job.total ?? null });
+      } catch (error) {
+        if (error?.response?.status === 404) {
+          // Job expired (1h TTL) or server restarted — jobs are in-memory
+          await finishWithRefresh(
+            "Update status lost (server may have restarted) — showing latest data",
+            "warning"
+          );
+          return;
+        }
+        console.error(error); // transient network error: keep polling
+      }
+      if (Date.now() - startedAt >= maxDurationMs) {
+        await finishWithRefresh("Update is taking longer than expected — showing latest data", "warning");
+        return;
+      }
+      seedPollRef.current = setTimeout(poll, pollIntervalMs);
+    };
+
+    seedPollRef.current = setTimeout(poll, pollIntervalMs);
   };
+
+  // Delta sync: busca so pedidos com updated_at >= watermark e faz upsert
+  const handleSeedOrders = () =>
+    runSeedJob({
+      startUrl: `${API_URL}/api/seed-orders-delta/start`,
+      body: {},
+      type: "orders",
+      maxDurationMs: 5 * 60 * 1000,
+    });
+
+  const handleSeedOrdersAll = () =>
+    runSeedJob({
+      startUrl: `${API_URL}/api/seed-orders-all/start`,
+      body: {},
+      type: "orders-all",
+      maxDurationMs: 30 * 60 * 1000,
+    });
 
   //delete an order
   const handleDeleteOrder = (record) => {
@@ -3602,26 +3635,41 @@ console.log("IS ARRAY?", Array.isArray(orders));
         <div className="container-xl" style={{ maxWidth: '100%', padding: '0 15px', marginTop: '170px' }}>
           <div className="container mb-3 order-top-bar" 
             style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '10px', marginTop: '5px' }}>
-            <Button 
-              className="update-orders-btn"
-              type="primary" 
-              onClick={() => handleSeedOrders(200)}
-              size="large"
-              disabled={isSeeding}
-              loading={seedingType === "orders"}
-              style={{ 
-                backgroundColor: "#dc3545",
-                borderColor: "white",
-                color: "white",
-                fontSize: "1.5rem",
-                fontWeight: "600",
-                borderRadius: "5px",
-                height: "60px",         // ✅ slightly taller to match card height
-                width: "200px",
-              }}
-            >
-              {seedingType === "orders" ? "Seeding..." : "Update Orders"}
-            </Button>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+              <Button
+                className="update-orders-btn"
+                type="primary"
+                onClick={handleSeedOrders}
+                size="large"
+                disabled={isSeeding}
+                loading={seedingType === "orders"}
+                style={{
+                  backgroundColor: "#dc3545",
+                  borderColor: "white",
+                  color: "white",
+                  fontSize: "1.5rem",
+                  fontWeight: "600",
+                  borderRadius: "5px",
+                  height: "60px",         // ✅ slightly taller to match card height
+                  width: "200px",
+                }}
+              >
+                {seedingType === "orders"
+                  ? seedProgress?.total
+                    ? `Seeding ${seedProgress.processed}/${seedProgress.total}`
+                    : "Seeding..."
+                  : "Update Orders"}
+              </Button>
+              {lastSyncedAt && (
+                <span style={{ fontSize: 11, color: "#888" }}>
+                  Last sync:{" "}
+                  {new Date(lastSyncedAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              )}
+            </div>
 
 
             <div className="order-top-metrics" style={{ flex: 1 }}>
@@ -3854,7 +3902,9 @@ console.log("IS ARRAY?", Array.isArray(orders));
                     borderRadius: 6,
                   }}
                 >
-                  {seedingType === "orders-all" ? "Seeding All..." : "Update Orders (All)"}
+                  {seedingType === "orders-all"
+                    ? `Seeding All... ${seedProgress?.processed ?? 0}`
+                    : "Update Orders (All)"}
                 </Button>
               </div>
             </div>
