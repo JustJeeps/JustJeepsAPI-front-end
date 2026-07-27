@@ -1047,14 +1047,19 @@ Thank you!
     const startedAt = Date.now();
 
     const finishWithRefresh = async (text, kind = "success") => {
-      stopSeedPolling();
-      const { page, pageSize, filters: lastFilters } = lastQueryRef.current;
-      await Promise.all([
-        loadData(page, pageSize, lastFilters || filters, { silent: true }),
-        loadMetrics({ silent: true }),
-        loadSyncState(),
-      ]);
-      if (text) antdMessage[kind](text);
+      // O botao segura o estado "Seeding..." ate os dados novos renderizarem:
+      // resetar antes dos awaits fazia a conclusao parecer "nada aconteceu".
+      try {
+        const { page, pageSize, filters: lastFilters } = lastQueryRef.current;
+        await Promise.all([
+          loadData(page, pageSize, lastFilters || filters, { silent: true }),
+          loadMetrics({ silent: true }),
+          loadSyncState(),
+        ]);
+        if (text) antdMessage[kind](text);
+      } finally {
+        stopSeedPolling();
+      }
     };
 
     const poll = async () => {
