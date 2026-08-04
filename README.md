@@ -6,7 +6,8 @@ React SPA for the JustJeeps order management system.
 
 - **Build**: Vite
 - **Framework**: React 18
-- **UI**: Ant Design, MUI
+- **UI**: Ant Design (primary), MUI (legacy pages), Bootstrap (navbar/layout)
+- **Drag and drop**: @atlaskit/pragmatic-drag-and-drop (requests board)
 - **HTTP**: Axios
 - **Routing**: React Router v6
 
@@ -29,7 +30,8 @@ Visit `http://localhost:5173`
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `VITE_API_URL` | Backend API URL | http://localhost:8080 |
+| `VITE_API_URL` | Backend API URL. Empty string in dev: relative `/api` calls go through the Vite proxy, which targets `http://localhost:8080` (see `vite.config.js`) | `''` (empty) |
+| `VITE_USD_TO_CAD_RATE` | USD to CAD conversion rate used by pricing views | - |
 
 ## Available Scripts
 
@@ -45,24 +47,38 @@ Visit `http://localhost:5173`
 src/
 ├── components/     # Shared components (auth, etc.)
 ├── context/        # React Context (AuthContext)
-├── features/       # Feature modules
-│   ├── order/      # Order management
+├── features/       # Feature modules (one folder per feature + its .scss)
+│   ├── order/      # Order management (main table)
+│   ├── items/      # SKU/brand search
+│   ├── requests/   # Internal tickets (list, board, drawer)
+│   ├── settings/   # Admin settings (Trello integration, gear icon)
+│   ├── cron/       # Cron jobs dashboard
+│   ├── quickbooks/ # QuickBooks customer lookup
+│   ├── report/     # Purchaser report
+│   ├── navbar/     # Top navigation
 │   ├── dashboard/  # Dashboard views
 │   ├── po/         # Purchase orders
 │   └── supplier/   # Supplier management
 ├── hooks/          # Custom hooks
-├── pages/          # Page components
-└── utils/          # Utility functions
+├── pages/          # Page components (LoginPage)
+└── utils/          # Utility functions (api.js: HTTP wrappers + error helper)
 ```
 
 ## Main Routes
 
+All routes except `/login` are wrapped in `ProtectedRoute` (when the backend has `ENABLE_AUTH=true`). Some are gated further by username allowlist (`/cron-jobs`) or triage users (`/settings`).
+
 | Route | Description |
 |-------|-------------|
-| `/` | Order management |
-| `/orders` | Order table |
+| `/`, `/orders` | Order management table |
+| `/items` | Search by SKU or brand |
+| `/requests` | Internal tickets (list + kanban board) |
+| `/settings` | Admin settings: Trello integration (triage users only) |
+| `/purchaser-report` | Purchaser report |
+| `/quickbooks-customer-lookup` | QuickBooks customer lookup |
+| `/cron-jobs` | Cron dashboard (allowlisted users) |
 | `/suppliers` | Supplier management |
-| `/dashboard` | Dashboard (protected) |
+| `/dashboard`, `/dashboard/po` | Dashboards |
 | `/po` | Purchase order form |
 | `/login` | Authentication |
 

@@ -19,9 +19,10 @@ npm run preview      # Preview production build
 
 ### Tech Stack
 - **Build**: Vite with React plugin
-- **UI Libraries**: Ant Design (primary), MUI, React Bootstrap
+- **UI Libraries**: Ant Design (primary), MUI (legacy pages), Bootstrap (navbar/layout)
+- **Drag and drop**: @atlaskit/pragmatic-drag-and-drop (+auto-scroll) on the requests board
 - **Routing**: React Router v6
-- **HTTP**: Axios
+- **HTTP**: Axios (global instance; wrappers in `src/utils/api.js`)
 - **Styling**: SCSS + Bootstrap
 - **Charts**: Recharts
 
@@ -49,12 +50,18 @@ src/
 - JWT tokens stored in localStorage
 
 ### Main Routes
+All routes except `/login` are wrapped in `ProtectedRoute` (effective when the backend has `ENABLE_AUTH=true`).
 - `/` and `/orders` - Order management table (OrderTable)
+- `/items` - Items listing (search by SKU or brand)
+- `/requests` - Internal tickets (list + kanban board with drag and drop)
+- `/settings` - Admin settings: Trello integration (gear icon, triage users only)
+- `/purchaser-report` - Purchaser report (username allowlist)
+- `/quickbooks-customer-lookup` - QuickBooks customer lookup
+- `/cron-jobs` - Cron dashboard (`allowedUsers={['tess']}`)
 - `/suppliers` - Supplier table
-- `/dashboard` - Dashboard (protected)
-- `/dashboard/po` - Purchase order dashboard (protected)
-- `/po` - Purchase order form (protected)
-- `/items` - Items listing
+- `/dashboard` - Dashboard
+- `/dashboard/po` - Purchase order dashboard
+- `/po` - Purchase order form
 - `/login` - Login page
 
 ### Data Flow Pattern
