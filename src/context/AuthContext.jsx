@@ -46,13 +46,20 @@ export const AuthProvider = ({ children }) => {
     isLoggingOut.current = false;
   }, []);
 
-  // Configura interceptor de resposta para tratar erros 401
+  // Configura interceptor de resposta para tratar erros de autenticação.
+  // 401 sempre desloga. 403 SÓ desloga quando o payload é do middleware de
+  // auth do backend (token inválido/expirado) — outros 403/409 são regra de
+  // negócio (ex.: rotas de requests) e não podem derrubar a sessão.
   useEffect(() => {
+    const AUTH_403_ERRORS = ['Invalid or expired token', 'User not found', 'Access token required'];
     const interceptorId = axios.interceptors.response.use(
       (response) => response,
       (error) => {
-        // Se receber 401 (Unauthorized) ou 403 (Forbidden), faz logout
-        if (error.response?.status === 401 || error.response?.status === 403) {
+        const status = error.response?.status;
+        const errorLabel = error.response?.data?.error;
+        const isAuthFailure =
+          status === 401 || (status === 403 && AUTH_403_ERRORS.includes(errorLabel));
+        if (isAuthFailure) {
           console.warn('Sessão expirada ou não autorizada. Redirecionando para login...');
           handleUnauthorized();
         }

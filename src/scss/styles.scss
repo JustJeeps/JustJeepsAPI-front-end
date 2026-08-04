@@ -22,11 +22,19 @@
 	padding: 45px;
 	font-family: 'Source Sans Pro', sans-serif;
 	font-family: 'Space Mono', monospace;
-	font-size: xx-large;
+	// Era xx-large: com o item Requests + engrenagem o menu quebrava linha.
+	font-size: 1rem;
 	position: fixed;
 	z-index: 10;
 	width: 100%;
 	top:0;
+}
+
+// fs-5 do Bootstrap usa !important — para reduzir a fonte dos links do menu
+// (e impedir quebra de linha) precisa sobrescrever com !important tambem.
+.navbar .nav-link {
+	font-size: 16px !important;
+	white-space: nowrap;
 }
 
 nav svg {
@@ -48,6 +56,20 @@ nav button {
 nav .nav_right {
 	display: flexbox;
 	justify-content: space-between;
+}
+
+// Engrenagem /settings (novo painel admin do Trello) — alinhamento do ícone
+// ao lado do avatar; não altera nada do restante da navbar.
+nav .nav-right {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+}
+
+nav .nav-settings-gear {
+	display: inline-flex;
+	align-items: center;
+	line-height: 1;
 }
 
 .ant_table_thead {

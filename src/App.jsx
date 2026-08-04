@@ -9,6 +9,8 @@ import { DashBoard } from './features/dashboard/DashBoard.jsx';
 import { DashBoardPO } from './features/dashboard/DashBoardPO.jsx';
 import CronJobsDashboard from './features/cron/CronJobsDashboard.jsx';
 import QuickBooksCustomerLookup from './features/quickbooks/QuickBooksCustomerLookup.jsx';
+import RequestsPage from './features/requests/RequestsPage.jsx';
+import SettingsPage from './features/settings/SettingsPage.jsx';
 import { PoForm } from './features/po/PoForm.jsx';
 import { Items } from './features/items/Items.jsx';
 import { AuthProvider } from "./context/AuthContext";
@@ -86,6 +88,16 @@ function App() {
 				<Route path='/quickbooks-customer-lookup' element={
 					<ProtectedRoute>
 						<QuickBooksCustomerLookup />
+					</ProtectedRoute>
+				} />
+				<Route path='/requests' element={
+					<ProtectedRoute>
+						<RequestsPage />
+					</ProtectedRoute>
+				} />
+				<Route path='/settings' element={
+					<ProtectedRoute>
+						<SettingsPage />
 					</ProtectedRoute>
 				} />
 			</Routes>
