@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Segmented, Space, Spin, Tabs, Typography, message } from 'antd';
+import { Alert, Button, Result, Segmented, Space, Spin, Tabs, Typography, message } from 'antd';
 import { AppstoreOutlined, BarsOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -54,14 +54,18 @@ const RequestsPage = () => {
 		const loadAll = async () => {
 			setLoading(true);
 			try {
-				const [requestsData, usersData, metaData] = await Promise.all([
-					fetchRequests(),
-					fetchUsers(),
-					fetchRequestsMeta(),
-				]);
-				setRequests(requestsData);
-				setUsers(usersData);
+				// Meta primeiro: se o rollout gate não liberou o usuário, nem
+				// tenta as rotas gated (409) — a página mostra o aviso amigável.
+				const metaData = await fetchRequestsMeta();
 				setMeta(metaData);
+				if (metaData?.requestsEnabled) {
+					const [requestsData, usersData] = await Promise.all([
+						fetchRequests(),
+						fetchUsers(),
+					]);
+					setRequests(requestsData);
+					setUsers(usersData);
+				}
 				setError(null);
 			} catch (loadError) {
 				setError(apiErrorMessage(loadError, 'Failed to load requests'));
@@ -131,6 +135,20 @@ const RequestsPage = () => {
 		return (
 			<div className="requests-page requests-page--loading">
 				<Spin size="large" />
+			</div>
+		);
+	}
+
+	// Rollout gate: acesso direto pela URL sem liberação cai aqui (defensivo —
+	// o back bloqueia todas as rotas com 409 REQUESTS_RESTRICTED).
+	if (meta && !meta.requestsEnabled) {
+		return (
+			<div className="requests-page">
+				<Result
+					status="warning"
+					title="Not available yet"
+					subTitle="The requests feature is being tested with a small group and will be released to everyone soon."
+				/>
 			</div>
 		);
 	}

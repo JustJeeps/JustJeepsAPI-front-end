@@ -2,17 +2,35 @@ import { Login, Logout } from '../../icons';
 import { SettingOutlined, UserOutlined } from '@ant-design/icons';
 import { Avatar, Space, Button, Dropdown } from 'antd';
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import logo_jeeps from './logo_jeeps.png';
 import { useAuth } from '../../context/AuthContext';
 import LoginModal from '../../components/auth/LoginModal';
+import { fetchRequestsMetaCached } from '../requests/requestsApi';
 
 const ALLOWED_USERS = ['tess', 'paula', 'karoline'];
 const CRON_JOBS_ALLOWED_USERS = ['tess'];
 const Navbar = () => {
 	const { authEnabled, isAuthenticated, user, logout } = useAuth();
 	const [showLoginModal, setShowLoginModal] = useState(false);
+	// Rollout gate da feature Requests: o item de menu so aparece para quem o
+	// back liberou (meta.requestsEnabled); a validacao real e nas rotas.
+	const [requestsEnabled, setRequestsEnabled] = useState(false);
 	const normalizedUsername = (user?.username || user?.name || '').toLowerCase();
+
+	useEffect(() => {
+		if (!user) {
+			setRequestsEnabled(false);
+			return;
+		}
+		let cancelled = false;
+		fetchRequestsMetaCached()
+			.then((meta) => {
+				if (!cancelled) setRequestsEnabled(Boolean(meta?.requestsEnabled));
+			})
+			.catch(() => {});
+		return () => { cancelled = true; };
+	}, [user]);
 
 	const handleLogout = async () => {
 		await logout();
@@ -97,7 +115,7 @@ const Navbar = () => {
 								</Link>
 							</li>
 						)}
-						{user && (
+						{user && requestsEnabled && (
 							<li className='nav-item'>
 								<Link
 									className='aria-current nav-link active fs-5 mx-4'
