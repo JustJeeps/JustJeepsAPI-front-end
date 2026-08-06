@@ -1,0 +1,76 @@
+.feeds-page {
+	max-width: 1180px;
+	margin: 0 auto;
+	// Navbar do app é fixed e alta — clearance explícita
+	padding: 190px 20px 60px;
+
+	&__header {
+		margin-bottom: 18px;
+	}
+
+	&__eyebrow {
+		display: block;
+		font-size: 11px;
+		text-transform: uppercase;
+		letter-spacing: 1.2px;
+	}
+
+	&__title {
+		margin: 0;
+	}
+}
+
+.feeds-panel {
+	&__help {
+		display: block;
+		margin-bottom: 16px;
+	}
+
+	&__alert {
+		margin-bottom: 14px;
+	}
+
+	&__feed-name {
+		font-size: 12px;
+	}
+
+	&__runs-rows {
+		font-family: monospace;
+		font-size: 12px;
+	}
+
+	&__dragger {
+		display: block;
+		margin: 14px 0;
+	}
+
+	&__modal-alert {
+		margin-bottom: 12px;
+	}
+
+	&__note {
+		margin-top: 4px;
+	}
+
+	&__actions {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		align-items: stretch;
+	}
+
+	&__run-status {
+		margin: 12px 0 8px;
+	}
+
+	&__run-log {
+		max-height: 320px;
+		overflow: auto;
+		background: #f5f5f5;
+		padding: 10px;
+		border-radius: 4px;
+		font-size: 12px;
+		white-space: pre-wrap;
+		word-break: break-word;
+	}
+}
