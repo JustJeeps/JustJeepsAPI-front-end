@@ -13,6 +13,9 @@ node_modules/
 # Environment & Secrets (SECURITY CRITICAL)
 # -----------------------------------------------------------------------------
 # NEVER commit these files - they contain configuration
+# .env em qualquer nivel (src/.env chegou a ser versionado)
+**/.env
+**/.env.local
 .env
 .env.local
 .env.*.local

@@ -98,6 +98,16 @@ const Navbar = () => {
 								</Link>
 							</li>
 						)}
+						{user && (
+							<li className='nav-item'>
+								<Link
+									className='aria-current nav-link active fs-5 mx-4'
+									to='/feeds'
+								>
+									Vendor Feeds
+								</Link>
+							</li>
+						)}
 						{user && CRON_JOBS_ALLOWED_USERS.includes(normalizedUsername) && (
 							<li className='nav-item'>
 								<Link
