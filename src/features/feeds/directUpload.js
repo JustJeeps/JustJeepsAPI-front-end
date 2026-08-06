@@ -26,9 +26,11 @@ const putPart = async (url, blob, attempt = 1) => {
 	try {
 		const response = await fetch(url, { method: 'PUT', body: blob });
 		if (!response.ok) throw new Error(`part upload failed with status ${response.status}`);
-		const etag = response.headers.get('etag');
-		if (!etag) throw new Error('bucket did not return an ETag for the part');
-		return etag;
+		// O ETag não é lido aqui de propósito: o navegador só enxerga esse header
+		// se o CORS do bucket expuser (o painel do Spaces não tem esse campo).
+		// Quem monta a lista de partes no final é o servidor, consultando o
+		// próprio bucket — a fonte confiável do que foi realmente gravado.
+		return true;
 	} catch (error) {
 		if (attempt >= PART_RETRIES) throw error;
 		// Espera crescente: rede instável costuma se resolver em segundos.
@@ -52,7 +54,8 @@ const uploadOneFile = async ({ feed, file, sha256, note, batchId, onStage }) => 
 			const blob = file.slice(start, Math.min(start + partSizeBytes, file.size));
 			const { url } = await apiPost(`/api/ingest/feeds/${feed}/uploads/${uploadId}/part`, { partNumber })
 				.then((res) => res.data);
-			parts.push({ partNumber, etag: await putPart(url, blob) });
+			await putPart(url, blob);
+			parts.push({ partNumber });
 			onStage?.({ phase: 'uploading', percent: Math.round((partNumber / totalParts) * 100) });
 		}
 
