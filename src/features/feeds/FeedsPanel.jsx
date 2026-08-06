@@ -358,7 +358,6 @@ const FeedsPanel = () => {
 
 	return (
 		<Card
-			title="Vendor Feeds"
 			extra={<Button icon={<ReloadOutlined />} size="small" onClick={load}>Refresh</Button>}
 			className="feeds-panel"
 		>
