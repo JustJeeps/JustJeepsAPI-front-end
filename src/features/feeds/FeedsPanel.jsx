@@ -275,13 +275,23 @@ const RunScriptModal = ({ feed, onClose, onFinished }) => {
 				const next = await fetchFeedRunStatus(feed.feed);
 				if (cancelled) return;
 				setStatus(next);
+				// A run started a moment ago answers 404 on the first polls. Once
+				// the status arrives, drop the earlier complaint instead of leaving
+				// a red box on top of a run that is clearly working.
+				setError(null);
 				if (next.status === 'running') {
 					timer = setTimeout(poll, 2000);
 				} else {
 					onFinished();
 				}
 			} catch (pollError) {
-				if (!cancelled) setError(apiErrorMessage(pollError, 'Failed to read the run status'));
+				if (cancelled) return;
+				// While the run is still registering, keep waiting quietly.
+				if (pollError.response?.status === 404) {
+					timer = setTimeout(poll, 2000);
+					return;
+				}
+				setError(apiErrorMessage(pollError, 'Failed to read the run status'));
 			}
 		};
 		poll();
