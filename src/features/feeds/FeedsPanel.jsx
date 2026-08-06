@@ -18,6 +18,7 @@ import {
 import { CloudUploadOutlined, InboxOutlined, PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import { apiErrorMessage } from '../../utils/api';
 import { fetchFeeds, fetchFeedRuns, uploadFeedFiles, runFeedScript, fetchFeedRunStatus } from './feedsApi';
+import { uploadFileDirect } from './directUpload';
 import './feeds.scss';
 
 const { Text } = Typography;
@@ -104,11 +105,12 @@ const FeedRuns = ({ feed }) => {
 };
 
 // Modal de upload: feeds multi-arquivo exigem todos os arquivos numa request.
-const UploadFeedModal = ({ feed, onClose, onUploaded }) => {
+const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 	const [fileList, setFileList] = useState([]);
 	const [note, setNote] = useState('');
 	const [uploading, setUploading] = useState(false);
 	const [progress, setProgress] = useState(0);
+	const [stage, setStage] = useState('');
 
 	const missing = useMemo(() => {
 		const names = fileList.map((file) => file.name);
@@ -118,14 +120,51 @@ const UploadFeedModal = ({ feed, onClose, onUploaded }) => {
 	const handleUpload = async () => {
 		setUploading(true);
 		setProgress(0);
-		try {
-			const result = await uploadFeedFiles(
-				feed.feed,
-				fileList.map((file) => file.originFileObj || file),
-				note.trim(),
-				setProgress
-			);
+		setStage('');
+		const files = fileList.map((file) => file.originFileObj || file);
+
+		// Enquanto o CORS do bucket não estiver configurado, o navegador não
+		// consegue falar direto com o Spaces (nem ler o ETag da parte). Em vez de
+		// falhar, cai para o envio via API — o upload sempre funciona.
+		const uploadThroughApi = async () => {
+			setStage('Sending through the server');
+			setProgress(0);
+			const result = await uploadFeedFiles(feed.feed, files, note.trim(), setProgress);
 			message.success(`Batch ${result.batchId.slice(0, 8)} uploaded for ${feed.label}`);
+		};
+
+		try {
+			if (directEnabled) {
+				try {
+				// Caminho direto: bytes vão do navegador para o bucket, em partes.
+				// Feeds de vários arquivos compartilham o mesmo lote (batchId), senão
+				// cada arquivo viraria um lote incompleto e nenhum valeria.
+				let batchId;
+				for (const [index, file] of files.entries()) {
+					const result = await uploadFileDirect({
+						feed: feed.feed,
+						file,
+						note: note.trim(),
+						batchId,
+						onStage: ({ phase, percent }) => {
+							setStage(phase === 'hashing'
+								? `Reading ${file.name}`
+								: phase === 'finishing'
+									? `Saving ${file.name}`
+									: `Sending ${file.name}${files.length > 1 ? ` (${index + 1} of ${files.length})` : ''}`);
+							setProgress(percent);
+						},
+					});
+					batchId = result.batchId;
+				}
+				message.success(`Batch ${String(batchId).slice(0, 8)} uploaded for ${feed.label}`);
+				} catch (directError) {
+					console.warn('Direct upload unavailable, falling back to the API:', directError?.message);
+					await uploadThroughApi();
+				}
+			} else {
+				await uploadThroughApi();
+			}
 			onUploaded();
 			onClose();
 		} catch (error) {
@@ -179,11 +218,13 @@ const UploadFeedModal = ({ feed, onClose, onUploaded }) => {
 				<div className="feeds-panel__run-live">
 					<Space align="center" size={10}>
 						<Spin size="small" />
-						<Text strong>{progress >= 99 ? 'Saving the file on the server' : 'Sending the file'}</Text>
+						<Text strong>{stage || 'Sending the file'}</Text>
 					</Space>
 					<Progress percent={progress} size="small" status="active" />
 					<Text type="secondary" className="feeds-panel__run-hint">
-						Keep this window open until it finishes. Large sheets can take a while.
+						{directEnabled
+							? 'The file goes straight to storage in pieces, so a network hiccup only resends the piece that failed. Keep this window open until it finishes.'
+							: 'Keep this window open until it finishes. Large sheets can take a while.'}
 					</Text>
 				</div>
 			)}
@@ -453,7 +494,12 @@ const FeedsPanel = () => {
 			/>
 
 			{uploadFeed && (
-				<UploadFeedModal feed={uploadFeed} onClose={() => setUploadFeed(null)} onUploaded={load} />
+				<UploadFeedModal
+					feed={uploadFeed}
+					directEnabled={Boolean(data?.directUpload?.enabled) && Boolean(window.crypto?.subtle)}
+					onClose={() => setUploadFeed(null)}
+					onUploaded={load}
+				/>
 			)}
 
 			{runFeed && (
