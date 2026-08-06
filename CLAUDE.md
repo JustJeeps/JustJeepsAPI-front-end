@@ -54,7 +54,7 @@ All routes except `/login` are wrapped in `ProtectedRoute` (effective when the b
 - `/` and `/orders` - Order management table (OrderTable)
 - `/items` - Items listing (search by SKU or brand)
 - `/requests` - Internal tickets (list + kanban board with drag and drop)
-- `/settings` - Admin settings: Trello integration and imports overview (gear icon, triage users only)
+- `/settings` - Settings hub (gear icon): Trello tab (triage only) + Imports tab (vendor feeds panel). `/feeds` redirects here.
 - `/purchaser-report` - Purchaser report (username allowlist)
 - `/quickbooks-customer-lookup` - QuickBooks customer lookup
 - `/cron-jobs` - Cron dashboard (`allowedUsers={['tess']}`)

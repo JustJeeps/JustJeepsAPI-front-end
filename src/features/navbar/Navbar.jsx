@@ -2,35 +2,17 @@ import { Login, Logout } from '../../icons';
 import { SettingOutlined, UserOutlined } from '@ant-design/icons';
 import { Avatar, Space, Button, Dropdown } from 'antd';
 import { Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import logo_jeeps from './logo_jeeps.png';
 import { useAuth } from '../../context/AuthContext';
 import LoginModal from '../../components/auth/LoginModal';
-import { fetchRequestsMetaCached } from '../requests/requestsApi';
 
 const ALLOWED_USERS = ['tess', 'paula', 'karoline'];
 const CRON_JOBS_ALLOWED_USERS = ['tess'];
 const Navbar = () => {
 	const { authEnabled, isAuthenticated, user, logout } = useAuth();
 	const [showLoginModal, setShowLoginModal] = useState(false);
-	const [isTriage, setIsTriage] = useState(false);
 	const normalizedUsername = (user?.username || user?.name || '').toLowerCase();
-
-	// Engrenagem /settings só para triage (meta.triageUsers vem do back; o
-	// gate real é validado nas rotas — aqui é só visibilidade do ícone).
-	useEffect(() => {
-		if (!user) {
-			setIsTriage(false);
-			return;
-		}
-		let cancelled = false;
-		fetchRequestsMetaCached()
-			.then((meta) => {
-				if (!cancelled) setIsTriage(Boolean(meta?.triageUsers?.includes(normalizedUsername)));
-			})
-			.catch(() => {});
-		return () => { cancelled = true; };
-	}, [user, normalizedUsername]);
 
 	const handleLogout = async () => {
 		await logout();
@@ -125,16 +107,6 @@ const Navbar = () => {
 								</Link>
 							</li>
 						)}
-						{user && (
-							<li className='nav-item'>
-								<Link
-									className='aria-current nav-link active fs-5 mx-4'
-									to='/feeds'
-								>
-									Vendor Feeds
-								</Link>
-							</li>
-						)}
 						{user && CRON_JOBS_ALLOWED_USERS.includes(normalizedUsername) && (
 							<li className='nav-item'>
 								<Link
@@ -148,9 +120,12 @@ const Navbar = () => {
 					</ul>
 					
 					<div className='nav-right'>
-						{/* Engrenagem de configurações (Link de propósito: a regra global
-						    "nav button" do styles.scss deformaria um <button>) */}
-						{user && isTriage && (
+						{/* Settings gear: the single entry point for configuration (Trello,
+						    imports). Visible to every logged in user; each section gates
+						    itself and the backend enforces the real permissions.
+						    A Link on purpose: the global "nav button" rule would deform a
+						    <button>. */}
+						{user && (
 							<Link
 								to='/settings'
 								className='nav-settings-gear'

@@ -1,5 +1,6 @@
 .settings-page {
-	max-width: 980px;
+	// Largura do painel de feeds (aba Imports) — a mais larga das seções.
+	max-width: 1180px;
 	margin: 0 auto;
 	// Navbar do app é fixed e alta — clearance explícita (padrão requests.scss)
 	padding: 190px 20px 60px;

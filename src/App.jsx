@@ -2,14 +2,13 @@ import Navbar from './features/navbar/Navbar.jsx';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import OrderTable from './features/order/OrderTable.jsx';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import PurchaserReport from './features/report/PurchaserReport.jsx';
 import { SupplierTable } from './features/supplier/SupplierTable.jsx';
 import { DashBoard } from './features/dashboard/DashBoard.jsx';
 import { DashBoardPO } from './features/dashboard/DashBoardPO.jsx';
 import CronJobsDashboard from './features/cron/CronJobsDashboard.jsx';
 import QuickBooksCustomerLookup from './features/quickbooks/QuickBooksCustomerLookup.jsx';
-import FeedsPage from './features/feeds/FeedsPage.jsx';
 import RequestsPage from './features/requests/RequestsPage.jsx';
 import SettingsPage from './features/settings/SettingsPage.jsx';
 import { PoForm } from './features/po/PoForm.jsx';
@@ -91,11 +90,8 @@ function App() {
 						<QuickBooksCustomerLookup />
 					</ProtectedRoute>
 				} />
-				<Route path='/feeds' element={
-					<ProtectedRoute>
-						<FeedsPage />
-					</ProtectedRoute>
-				} />
+				{/* Feeds moved into Settings (Imports tab); keep old links working */}
+				<Route path='/feeds' element={<Navigate to='/settings?tab=imports' replace />} />
 				<Route path='/requests' element={
 					<ProtectedRoute>
 						<RequestsPage />

@@ -1,22 +1,28 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Button, Result, Space, Spin, Tabs, Typography } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { apiErrorMessage } from '../../utils/api';
 import { fetchRequestsMetaCached } from '../requests/requestsApi';
 import { fetchTrelloSettings, fetchTrelloUserBoards, fetchUsersLite } from './settingsApi';
 import TrelloCredentialsCard from './TrelloCredentialsCard';
 import TrelloUserBoardsTable from './TrelloUserBoardsTable';
-import ImportsSettingsCard from './ImportsSettingsCard';
+import FeedsPanel from '../feeds/FeedsPanel';
+import '../feeds/feeds.scss';
 import './settings.scss';
 
 const { Title, Text } = Typography;
 
-// Painel de configuração (engrenagem do navbar). Hoje só integração Trello:
-// credencial global + board por usuário. Gate client-side por meta.triageUsers
-// — cosmético; o back valida de verdade em todas as rotas (409 TRIAGE_ONLY).
+// Hub único de configurações (engrenagem do navbar), em seções:
+//   Trello  — credencial global + board por usuário (só triage de requests;
+//             o back valida de verdade, aqui o gate é cosmético)
+//   Imports — painel completo dos vendor feeds (leitura para todos; upload e
+//             Run now dependem de FEEDS_TRIAGE_USERS, validado no back)
+// Deep link por aba: /settings?tab=imports
 const SettingsPage = () => {
 	const { user } = useAuth();
+	const [searchParams] = useSearchParams();
 	const [meta, setMeta] = useState(null);
 	const [settings, setSettings] = useState(null);
 	const [users, setUsers] = useState([]);
@@ -67,17 +73,23 @@ const SettingsPage = () => {
 		);
 	}
 
-	if (!isTriage) {
-		return (
-			<div className="settings-page">
-				<Result
-					status="warning"
-					title="Restricted"
-					subTitle="Settings are available to triage users only."
-				/>
-			</div>
-		);
-	}
+	const trelloTab = isTriage ? (
+		<Space direction="vertical" size={16} className="settings-page__stack">
+			<TrelloCredentialsCard settings={settings} onSaved={setSettings} />
+			<TrelloUserBoardsTable
+				configured={Boolean(settings?.configured)}
+				users={users}
+				userBoards={userBoards}
+				onChanged={refreshUserBoards}
+			/>
+		</Space>
+	) : (
+		<Result
+			status="warning"
+			title="Restricted"
+			subTitle="Trello configuration is available to triage users only."
+		/>
+	);
 
 	return (
 		<div className="settings-page">
@@ -92,28 +104,10 @@ const SettingsPage = () => {
 			{error && <Alert type="error" showIcon message={error} className="settings-page__error" />}
 
 			<Tabs
-				defaultActiveKey="trello"
+				defaultActiveKey={searchParams.get('tab') === 'imports' ? 'imports' : 'trello'}
 				items={[
-					{
-						key: 'trello',
-						label: 'Trello',
-						children: (
-							<Space direction="vertical" size={16} className="settings-page__stack">
-								<TrelloCredentialsCard settings={settings} onSaved={setSettings} />
-								<TrelloUserBoardsTable
-									configured={Boolean(settings?.configured)}
-									users={users}
-									userBoards={userBoards}
-									onChanged={refreshUserBoards}
-								/>
-							</Space>
-						),
-					},
-					{
-						key: 'imports',
-						label: 'Imports',
-						children: <ImportsSettingsCard />,
-					},
+					{ key: 'trello', label: 'Trello', children: trelloTab },
+					{ key: 'imports', label: 'Imports', children: <FeedsPanel /> },
 				]}
 			/>
 		</div>

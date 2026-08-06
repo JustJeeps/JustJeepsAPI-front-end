@@ -73,7 +73,7 @@ All routes except `/login` are wrapped in `ProtectedRoute` (when the backend has
 | `/`, `/orders` | Order management table |
 | `/items` | Search by SKU or brand |
 | `/requests` | Internal tickets (list + kanban board) |
-| `/settings` | Admin settings: Trello and imports sections (triage users only) |
+| `/settings` | Settings hub: Trello (triage only) + Imports (vendor feeds panel) |
 | `/purchaser-report` | Purchaser report |
 | `/quickbooks-customer-lookup` | QuickBooks customer lookup |
 | `/cron-jobs` | Cron dashboard (allowlisted users) |
