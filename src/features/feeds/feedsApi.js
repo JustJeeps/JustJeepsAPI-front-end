@@ -16,9 +16,16 @@ export const runFeedScript = (feed) => apiPost(`/api/ingest/feeds/${feed}/run`).
 export const fetchFeedRunStatus = (feed) =>
 	apiGet(`/api/ingest/feeds/${feed}/run-status`).then((res) => res.data);
 
-export const uploadFeedFiles = (feed, files, note) => {
+// onProgress recebe 0..100 — planilhas de feed passam de 30MB e o envio leva
+// tempo suficiente para a tela parecer travada sem indicação.
+export const uploadFeedFiles = (feed, files, note, onProgress) => {
 	const formData = new FormData();
 	files.forEach((file) => formData.append('files', file));
 	if (note) formData.append('note', note);
-	return apiPost(`/api/ingest/feeds/${feed}/upload`, formData).then((res) => res.data);
+	return apiPost(`/api/ingest/feeds/${feed}/upload`, formData, {
+		onUploadProgress: (event) => {
+			if (!onProgress || !event.total) return;
+			onProgress(Math.min(99, Math.round((event.loaded / event.total) * 100)));
+		},
+	}).then((res) => res.data);
 };

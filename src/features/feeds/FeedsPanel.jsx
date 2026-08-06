@@ -5,6 +5,9 @@ import {
 	Card,
 	Input,
 	Modal,
+	Progress,
+	Space,
+	Spin,
 	Table,
 	Tag,
 	Tooltip,
@@ -105,6 +108,7 @@ const UploadFeedModal = ({ feed, onClose, onUploaded }) => {
 	const [fileList, setFileList] = useState([]);
 	const [note, setNote] = useState('');
 	const [uploading, setUploading] = useState(false);
+	const [progress, setProgress] = useState(0);
 
 	const missing = useMemo(() => {
 		const names = fileList.map((file) => file.name);
@@ -113,8 +117,14 @@ const UploadFeedModal = ({ feed, onClose, onUploaded }) => {
 
 	const handleUpload = async () => {
 		setUploading(true);
+		setProgress(0);
 		try {
-			const result = await uploadFeedFiles(feed.feed, fileList.map((file) => file.originFileObj || file), note.trim());
+			const result = await uploadFeedFiles(
+				feed.feed,
+				fileList.map((file) => file.originFileObj || file),
+				note.trim(),
+				setProgress
+			);
 			message.success(`Batch ${result.batchId.slice(0, 8)} uploaded for ${feed.label}`);
 			onUploaded();
 			onClose();
@@ -164,8 +174,38 @@ const UploadFeedModal = ({ feed, onClose, onUploaded }) => {
 				maxLength={2000}
 				className="feeds-panel__note"
 			/>
+
+			{uploading && (
+				<div className="feeds-panel__run-live">
+					<Space align="center" size={10}>
+						<Spin size="small" />
+						<Text strong>{progress >= 99 ? 'Saving the file on the server' : 'Sending the file'}</Text>
+					</Space>
+					<Progress percent={progress} size="small" status="active" />
+					<Text type="secondary" className="feeds-panel__run-hint">
+						Keep this window open until it finishes. Large sheets can take a while.
+					</Text>
+				</div>
+			)}
 		</Modal>
 	);
+};
+
+// Traduz a última linha útil do log numa frase e num percentual.
+// Feeds grandes (o da Keystone tem 460MB) levam minutos baixando do bucket: o
+// servidor emite "⬇️ arquivo 40% (…)" a cada 10MB e é isso que vira barra aqui.
+const readPhase = (logTail) => {
+	const lines = String(logTail || '').trim().split('\n').filter(Boolean);
+	for (let i = lines.length - 1; i >= 0; i -= 1) {
+		const line = lines[i];
+		const download = line.match(/⬇️.*?([\w.-]+\.(?:csv|xlsx|xls)).*?(\d{1,3})%/i);
+		if (download) return { text: `Downloading ${download[1]}`, percent: Number(download[2]) };
+		if (/⬇️/.test(line)) return { text: line.replace(/^[^A-Za-z]*/, '').slice(0, 90), percent: null };
+		if (/verificando hash|checking hash/i.test(line)) return { text: 'Checking the file signature', percent: null };
+		if (/🔗|feed-sync/.test(line)) return { text: 'Linking the file for the vendor script', percent: null };
+		if (/Seeding|Starting|Running/i.test(line)) return { text: 'Running the vendor script', percent: null };
+	}
+	return { text: 'Starting', percent: null };
 };
 
 // Acompanha a execução do script de um feed no servidor: mostra o log ao vivo
@@ -202,6 +242,7 @@ const RunScriptModal = ({ feed, onClose, onFinished }) => {
 	}, [feed, onFinished]);
 
 	const running = status?.status === 'running';
+	const phase = readPhase(status?.logTail);
 
 	return (
 		<Modal
@@ -218,8 +259,24 @@ const RunScriptModal = ({ feed, onClose, onFinished }) => {
 						<code>npm run {status.command}</code> started by {status.startedBy || 'unknown'}
 						{status.durationMs ? ` · ${Math.round(status.durationMs / 1000)}s` : ''}
 					</Text>
+
+					{running && (
+						<div className="feeds-panel__run-live">
+							<Space align="center" size={10}>
+								<Spin size="small" />
+								<Text strong>{phase.text}</Text>
+							</Space>
+							{phase.percent !== null && (
+								<Progress percent={phase.percent} size="small" status="active" />
+							)}
+							<Text type="secondary" className="feeds-panel__run-hint">
+								Large vendor files take a few minutes. You can close this window and come
+								back — the script keeps running on the server.
+							</Text>
+						</div>
+					)}
+
 					<div className="feeds-panel__run-status">
-						{running && <Tag color="blue">running</Tag>}
 						{status.status === 'success' && <Tag color="green">finished with no errors</Tag>}
 						{status.status === 'failed' && <Tag color="red">failed (exit {status.exitCode})</Tag>}
 						{status.error && <Text type="danger"> {status.error}</Text>}
