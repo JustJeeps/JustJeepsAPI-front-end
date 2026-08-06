@@ -11,7 +11,8 @@
 // objeto que já existe (objetos são imutáveis e endereçados por conteúdo).
 import { apiPost, apiDelete } from '../../utils/api';
 
-const PART_RETRIES = 3;
+// Tentativas por parte (build-time via Vite; não é segredo, é ajuste fino).
+const PART_RETRIES = Number(import.meta.env.VITE_FEED_PART_RETRIES || 3);
 
 // SHA-256 do arquivo. Em blocos para não estourar a memória com arquivos
 // grandes. crypto.subtle exige contexto seguro (https ou localhost).
