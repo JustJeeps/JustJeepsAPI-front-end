@@ -33,6 +33,14 @@ const formatAge = (ageHours) => {
 	return `${Math.round(ageHours / 24)}d ago`;
 };
 
+// Absolute date next to the relative one: "3h ago" answers how fresh, but the
+// team also needs to know which day the file is from when checking a vendor.
+const formatDateTime = (value) => {
+	if (!value) return '';
+	const date = new Date(value);
+	return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
 const formatBytes = (bytes) => {
 	if (!Number.isFinite(bytes)) return '';
 	if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
@@ -357,6 +365,20 @@ const FeedsPanel = () => {
 		load();
 	}, [load]);
 
+	// Work started here (Run now) or by the schedule (the vendor FTP fetch) ends
+	// on the server, with nothing to tell the page. While anything is running the
+	// table refreshes on its own, so the result shows up without asking the
+	// person to press Refresh.
+	const somethingRunning = Boolean(
+		data?.feeds?.some((feed) => feed.running || feed.lastFetch?.status === 'running')
+	);
+
+	useEffect(() => {
+		if (!somethingRunning) return undefined;
+		const timer = setInterval(load, 15000);
+		return () => clearInterval(timer);
+	}, [somethingRunning, load]);
+
 	const handleRun = async (feed) => {
 		setStarting(feed.feed);
 		try {
@@ -393,12 +415,15 @@ const FeedsPanel = () => {
 				const source = feed.currentBatch.artifacts[0];
 				return (
 					<div>
-						<Tag color={feed.stale ? 'orange' : 'green'}>
-							{feed.stale ? 'stale' : 'fresh'} · {formatAge(feed.ageHours)}
-						</Tag>
+						<Tooltip title={`Uploaded ${formatDateTime(feed.currentBatch.uploadedAt)}`}>
+							<Tag color={feed.stale ? 'orange' : 'green'}>
+								{feed.stale ? 'stale' : 'fresh'} · {formatAge(feed.ageHours)}
+							</Tag>
+						</Tooltip>
 						<div>
 							<Text type="secondary" className="feeds-panel__feed-name">
-								{source.source}{source.uploadedBy ? ` by ${source.uploadedBy}` : ''}
+								{formatDateTime(feed.currentBatch.uploadedAt)}
+								{' · '}{source.source}{source.uploadedBy ? ` by ${source.uploadedBy}` : ''}
 								{' · '}{feed.currentBatch.artifacts.map((a) => formatBytes(a.sizeBytes)).join(' + ')}
 							</Text>
 						</div>
@@ -411,12 +436,20 @@ const FeedsPanel = () => {
 			key: 'lastRun',
 			render: (feed) => {
 				if (!feed.lastRun) return <Text type="secondary">never</Text>;
+				const finishedAt = feed.lastRun.finishedAt;
 				return (
 					<div>
 						<Tag color={RUN_STATUS_COLORS[feed.lastRun.status] || 'default'}>{feed.lastRun.status}</Tag>
-						<Text type="secondary" className="feeds-panel__feed-name">
-							{feed.lastRun.finishedAt ? formatAge((Date.now() - new Date(feed.lastRun.finishedAt)) / 36e5) : ''}
-						</Text>
+						<div>
+							<Text type="secondary" className="feeds-panel__feed-name">
+								{finishedAt ? `${formatDateTime(finishedAt)} · ${formatAge((Date.now() - new Date(finishedAt)) / 36e5)}` : 'running'}
+							</Text>
+						</div>
+						{feed.lastRun.status === 'success' && (
+							<Text type="secondary" className="feeds-panel__feed-name">
+								+{feed.lastRun.rowsInserted} ~{feed.lastRun.rowsUpdated} -{feed.lastRun.rowsDeleted}
+							</Text>
+						)}
 					</div>
 				);
 			},
@@ -467,6 +500,15 @@ const FeedsPanel = () => {
 				show up here and in the daily cron digest.
 			</Text>
 
+			{somethingRunning && (
+				<Alert
+					type="info"
+					showIcon
+					icon={<Spin size="small" />}
+					className="feeds-panel__alert"
+					message="Something is running on the server right now. This table updates by itself when it finishes."
+				/>
+			)}
 			{error && <Alert type="error" showIcon message={error} className="feeds-panel__alert" />}
 			{data && data.canManage === false && (
 				<Alert
