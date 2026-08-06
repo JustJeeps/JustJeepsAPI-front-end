@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [authEnabled, setAuthEnabled] = useState(false);
 
-  // Ref para evitar múltiplos logouts simultâneos
+  // Ref to avoid multiple simultaneous logouts
   const isLoggingOut = useRef(false);
 
   // API base URL - adjust if needed
@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
   // /api requests to the backend on localhost:8080.
   const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
-  // Função de logout que pode ser chamada pelo interceptor
+  // Logout function that the interceptor can call
   const handleUnauthorized = useCallback(() => {
     if (isLoggingOut.current) return;
     isLoggingOut.current = true;
@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('authToken');
     delete axios.defaults.headers.common['Authorization'];
 
-    // Redireciona para login se não estiver já lá
+    // Redirect to login if we are not already there
     if (window.location.pathname !== '/login') {
       window.location.href = '/login';
     }
@@ -62,14 +62,14 @@ export const AuthProvider = ({ children }) => {
         const isAuthFailure =
           status === 401 || (status === 403 && AUTH_403_ERRORS.includes(error.response?.data?.error));
         if (isAuthFailure) {
-          console.warn('Sessão expirada ou não autorizada. Redirecionando para login...');
+          console.warn('Session expired or not authorized. Redirecting to login...');
           handleUnauthorized();
         }
         return Promise.reject(error);
       }
     );
 
-    // Cleanup: remove o interceptor quando o componente desmonta
+    // Cleanup: remove the interceptor when the component unmounts
     return () => {
       axios.interceptors.response.eject(interceptorId);
     };

@@ -8,10 +8,10 @@ const LoginPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Obtém a página de origem (de onde o usuário veio)
+  // Get the origin page (where the user came from)
   const from = location.state?.from || '/';
 
-  // Se ainda está carregando, mostra loading
+  // If it is still loading, show the loading state
   if (loading) {
     return (
       <div style={{
@@ -21,7 +21,7 @@ const LoginPage = () => {
         justifyContent: 'center',
         background: '#f5f5f5'
       }}>
-        <p>Carregando...</p>
+        <p>Loading...</p>
       </div>
     );
   }
@@ -41,7 +41,7 @@ const LoginPage = () => {
     }}>
       <LoginForm
         onLoginSuccess={() => {
-          // Redireciona para a página de origem ou para home
+          // Redirect to the origin page or to home
           navigate(from, { replace: true });
         }}
       />

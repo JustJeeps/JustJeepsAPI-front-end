@@ -14,7 +14,7 @@ import { PoForm } from './features/po/PoForm.jsx';
 import { Items } from './features/items/Items.jsx';
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
-// AuthTestPage removido por segurança - não expor página de teste em produção
+// AuthTestPage removed for security: do not expose a test page in production
 import LoginPage from "./pages/LoginPage";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -33,10 +33,10 @@ function App() {
 		<AuthProvider>
 			<Navbar />
 			<Routes>
-				{/* Rota pública - Login */}
+				{/* Public route: Login */}
 				<Route path='/login' element={<LoginPage />} />
 
-				{/* Rotas protegidas */}
+				{/* Protected routes */}
 				<Route path='/' element={
 					<ProtectedRoute>
 						<OrderTable />

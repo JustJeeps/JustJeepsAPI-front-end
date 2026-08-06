@@ -5,13 +5,13 @@ import LoginModal from './LoginModal';
 import { Spin } from 'antd';
 
 /**
- * ProtectedRoute - Componente para proteger rotas que requerem autenticação
+ * ProtectedRoute: component that protects routes requiring authentication
  *
- * @param {ReactNode} children - Componentes filhos a serem renderizados se autenticado
- * @param {ReactNode} fallback - Componente alternativo (opcional)
- * @param {boolean} requireAuth - Se true, força autenticação mesmo quando authEnabled=false (default: true)
- * @param {boolean} redirectToLogin - Se true, redireciona para /login em vez de mostrar modal (default: true)
- * @param {string[]} allowedUsers - Lista opcional de usernames permitidos
+ * @param {ReactNode} children - Child components rendered when authenticated
+ * @param {ReactNode} fallback - Alternative component (optional)
+ * @param {boolean} requireAuth - If true, forces authentication even when authEnabled=false (default: true)
+ * @param {boolean} redirectToLogin - If true, redirects to /login instead of showing the modal (default: true)
+ * @param {string[]} allowedUsers - Optional list of allowed usernames
  */
 const ProtectedRoute = ({
   children,
@@ -25,9 +25,9 @@ const ProtectedRoute = ({
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Determina se deve exigir autenticação
-  // Se authEnabled=false no backend, não exige autenticação
-  // Se authEnabled=true no backend, usa o valor de requireAuth (default: true)
+  // Decides whether authentication has to be required
+  // If authEnabled=false on the backend, authentication is not required
+  // If authEnabled=true on the backend, use the requireAuth value (default: true)
   const shouldRequireAuth = authEnabled && requireAuth;
   const normalizedUsername = (user?.username || user?.name || '').toLowerCase();
   const isAllowedUser = !Array.isArray(allowedUsers) || allowedUsers.length === 0
@@ -35,9 +35,9 @@ const ProtectedRoute = ({
     : allowedUsers.map((value) => String(value).toLowerCase()).includes(normalizedUsername);
 
   useEffect(() => {
-    // Se não está autenticado e deve redirecionar, vai para login
+    // If the user is not authenticated and we should redirect, go to login
     if (!loading && shouldRequireAuth && !isAuthenticated && redirectToLogin) {
-      // Salva a URL atual para redirecionar após o login
+      // Save the current URL so we can redirect back to it after login
       navigate('/login', {
         state: { from: location.pathname },
         replace: true
@@ -54,12 +54,12 @@ const ProtectedRoute = ({
         alignItems: 'center',
         height: '200px'
       }}>
-        <Spin size="large" tip="Verificando autenticação..." />
+        <Spin size="large" tip="Checking your access..." />
       </div>
     );
   }
 
-  // Se não requer autenticação, renderiza normalmente
+  // If authentication is not required, render normally
   if (!shouldRequireAuth) {
     return children;
   }
@@ -75,15 +75,15 @@ const ProtectedRoute = ({
           borderRadius: '8px',
           margin: '20px'
         }}>
-          <h3>Acesso Restrito</h3>
-          <p>Você não tem permissão para acessar esta página.</p>
+          <h3>Restricted</h3>
+          <p>You do not have permission to open this page.</p>
         </div>
       );
     }
     return children;
   }
 
-  // Se vai redirecionar, não mostra nada (evita flash de conteúdo)
+  // If we are about to redirect, render nothing (avoids a flash of content)
   if (redirectToLogin) {
     return (
       <div style={{
@@ -92,12 +92,12 @@ const ProtectedRoute = ({
         alignItems: 'center',
         height: '200px'
       }}>
-        <Spin size="large" tip="Redirecionando para login..." />
+        <Spin size="large" tip="Taking you to the sign in page..." />
       </div>
     );
   }
 
-  // Fallback: mostra opção de login via modal
+  // Fallback: show a login option through the modal
   return (
     <div>
       {fallback || (
@@ -108,8 +108,8 @@ const ProtectedRoute = ({
           borderRadius: '8px',
           margin: '20px'
         }}>
-          <h3>Autenticação Necessária</h3>
-          <p>Por favor, faça login para acessar este conteúdo.</p>
+          <h3>Sign in required</h3>
+          <p>Please sign in to see this content.</p>
           <button
             onClick={() => setShowLoginModal(true)}
             style={{
@@ -121,7 +121,7 @@ const ProtectedRoute = ({
               cursor: 'pointer'
             }}
           >
-            Entrar
+            Sign in
           </button>
         </div>
       )}

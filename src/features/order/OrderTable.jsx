@@ -1047,8 +1047,9 @@ Thank you!
     const startedAt = Date.now();
 
     const finishWithRefresh = async (text, kind = "success") => {
-      // O botao segura o estado "Seeding..." ate os dados novos renderizarem:
-      // resetar antes dos awaits fazia a conclusao parecer "nada aconteceu".
+      // The button holds the "Seeding..." state until the new data renders:
+      // resetting before the awaits made the completion look like "nothing
+      // happened".
       try {
         const { page, pageSize, filters: lastFilters } = lastQueryRef.current;
         await Promise.all([
@@ -1097,7 +1098,7 @@ Thank you!
     seedPollRef.current = setTimeout(poll, pollIntervalMs);
   };
 
-  // Delta sync: busca so pedidos com updated_at >= watermark e faz upsert
+  // Delta sync: fetches only orders with updated_at >= watermark and upserts them
   const handleSeedOrders = () =>
     runSeedJob({
       startUrl: `${API_URL}/api/seed-orders-delta/start`,
@@ -3640,8 +3641,9 @@ console.log("IS ARRAY?", Array.isArray(orders));
         <div className="container-xl" style={{ maxWidth: '100%', padding: '0 15px', marginTop: '170px' }}>
           <div className="container mb-3 order-top-bar" 
             style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '10px', marginTop: '5px' }}>
-            {/* position:relative + caption absoluto: o "Last sync" nao pode
-                adicionar altura ao top bar, senao empurra/sobrepoe a barra de filtros */}
+            {/* position:relative + absolutely positioned caption: the "Last sync"
+                label must not add height to the top bar, otherwise it pushes or
+                overlaps the filter bar */}
             <div style={{ position: "relative" }}>
               <Button
                 className="update-orders-btn"

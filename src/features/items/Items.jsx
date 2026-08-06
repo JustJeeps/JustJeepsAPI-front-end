@@ -2202,7 +2202,7 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
                           showSizeChanger: true,
                           pageSizeOptions: ['25', '50', '100', '200'],
                           showTotal: (total, range) =>
-                            `${range[0]}-${range[1]} de ${total} produtos`,
+                            `${range[0]}-${range[1]} of ${total} products`,
                           onChange: handleTableChange,
                           onShowSizeChange: handleTableChange,
                           position: ['topRight', 'bottomRight'],
@@ -2215,7 +2215,7 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
                             ) : <span />}
                           </div>
                           <span style={{ fontWeight: 'bold' }}>
-                            Total: {pagination.total.toLocaleString()} produtos
+                            Total: {pagination.total.toLocaleString()} products
                           </span>
                         </div>
                       )}

@@ -1,7 +1,7 @@
 .feeds-page {
 	max-width: 1180px;
 	margin: 0 auto;
-	// Navbar do app é fixed e alta — clearance explícita
+	// The app navbar is fixed and tall, so the clearance is explicit here
 	padding: 190px 20px 60px;
 
 	&__header {
