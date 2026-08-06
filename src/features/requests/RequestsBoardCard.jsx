@@ -14,9 +14,10 @@ const { Text } = Typography;
 
 // Card do board: arrastável entre lanes via pragmatic-drag-and-drop. Como as
 // lanes agregam status, o card mostra a tag do status exato. O Select
-// "Move to" continua como alternativa (DnD nativo é só mouse) e ambos
-// disparam o mesmo PATCH — o back valida a transição (409 vira toast).
-const RequestsBoardCard = ({ request, lane, onOpen, onInlinePatch }) => {
+// "Move to" é a alternativa por teclado (DnD nativo é só mouse); os dois
+// caminhos passam pelo onChangeStatus do board, que aplica o gate de
+// comentário antes do PATCH — o back valida de novo (409 vira toast).
+const RequestsBoardCard = ({ request, lane, onOpen, onChangeStatus }) => {
 	const cardRef = useRef(null);
 	const [dragging, setDragging] = useState(false);
 
@@ -70,9 +71,7 @@ const RequestsBoardCard = ({ request, lane, onOpen, onInlinePatch }) => {
 						variant="borderless"
 						value={request.status}
 						style={{ width: '100%', marginTop: 6 }}
-						onChange={(value) =>
-							onInlinePatch(request.id, { status: value }, `Status set to ${value}`)
-						}
+						onChange={(value) => onChangeStatus(request.id, value)}
 						options={STATUS_NAMES.map((name) => ({ value: name, label: `Move to: ${name}` }))}
 					/>
 				</div>

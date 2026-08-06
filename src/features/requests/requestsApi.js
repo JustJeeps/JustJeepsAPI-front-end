@@ -8,17 +8,22 @@ export const fetchRequestDetail = (id) => apiGet(`/api/requests/${id}`).then((re
 
 export const fetchRequestsMeta = () => apiGet('/api/requests/meta').then((res) => res.data);
 
-// Cache de módulo do meta: Navbar (engrenagem só para triage) e RequestsPage
-// compartilham o mesmo fetch. Falha limpa o cache para permitir retry.
-let metaPromise = null;
-export const fetchRequestsMetaCached = () => {
-	if (!metaPromise) {
-		metaPromise = fetchRequestsMeta().catch((error) => {
-			metaPromise = null;
-			throw error;
-		});
+// Cache de módulo do meta, compartilhado por Navbar (item Requests + engrenagem)
+// e SettingsPage. Chaveado pelo usuário: logout/login não recarregam a página
+// (é SPA), então sem a chave o próximo usuário herdaria as permissões do
+// anterior na UI. Falha limpa o cache para permitir retry.
+let metaCache = { key: null, promise: null };
+export const fetchRequestsMetaCached = (cacheKey) => {
+	if (metaCache.key !== cacheKey || !metaCache.promise) {
+		metaCache = {
+			key: cacheKey,
+			promise: fetchRequestsMeta().catch((error) => {
+				metaCache = { key: null, promise: null };
+				throw error;
+			}),
+		};
 	}
-	return metaPromise;
+	return metaCache.promise;
 };
 
 export const fetchUsers = () => apiGet('/api/users').then((res) => res.data);

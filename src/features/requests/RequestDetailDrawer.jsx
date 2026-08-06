@@ -5,7 +5,6 @@ import {
 	Descriptions,
 	Drawer,
 	Input,
-	Modal,
 	Select,
 	Space,
 	Spin,
@@ -19,6 +18,7 @@ import { apiErrorMessage } from '../../utils/api';
 import { addComment, fetchRequestDetail, updateRequest } from './requestsApi';
 import {
 	COMMENT_REQUIRED_STATUSES,
+	DONE_STATUSES,
 	PRIORITIES,
 	PRIORITY_COLORS,
 	PROJECTS,
@@ -33,6 +33,7 @@ import {
 import RequestComments from './RequestComments';
 import RequestActivityLog from './RequestActivityLog';
 import RequestAttachments from './RequestAttachments';
+import RequestCommentGateModal from './RequestCommentGateModal';
 import RequestTrelloPanel from './RequestTrelloPanel';
 
 const { Text, Title, Paragraph } = Typography;
@@ -247,7 +248,7 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, isTriage, curren
 								Edit
 							</Button>
 						)}
-						{(['Completed', 'Closed'].includes(detail.status) || detail.archivedAt) && (
+						{(DONE_STATUSES.includes(detail.status) || detail.archivedAt) && (
 							<Button
 								icon={<InboxOutlined />}
 								disabled={saving}
@@ -398,12 +399,10 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, isTriage, curren
 				</div>
 			)}
 
-			<Modal
-				open={Boolean(commentGate)}
-				title={commentGate ? `Move to ${commentGate.status}` : ''}
-				okText="Update status"
-				confirmLoading={saving}
-				onCancel={() => setCommentGate(null)}
+			<RequestCommentGateModal
+				gate={commentGate}
+				saving={saving}
+				onChange={(comment) => setCommentGate((gate) => ({ ...gate, comment }))}
 				onOk={async () => {
 					const ok = await applyPatch(
 						{ status: commentGate.status, comment: commentGate.comment.trim() },
@@ -411,21 +410,8 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, isTriage, curren
 					);
 					if (ok) setCommentGate(null);
 				}}
-				okButtonProps={{ disabled: !commentGate?.comment?.trim() }}
-			>
-				<Text>A comment is required for this status.</Text>
-				<Input.TextArea
-					rows={3}
-					style={{ marginTop: 12 }}
-					placeholder={
-						commentGate?.status === 'Completed'
-							? 'What was done and where it was deployed'
-							: 'Why is this blocked / waiting'
-					}
-					value={commentGate?.comment || ''}
-					onChange={(event) => setCommentGate({ ...commentGate, comment: event.target.value })}
-				/>
-			</Modal>
+				onCancel={() => setCommentGate(null)}
+			/>
 
 		</Drawer>
 	);

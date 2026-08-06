@@ -52,9 +52,9 @@ const buildGroups = (requests, groupBy, users) => {
 	return [unassigned, ...byUser].filter((group) => group.rows.length || group.key === 'unassigned');
 };
 
-// Lista agrupada e colapsável. Edição inline: priority (todos) e assignee
-// (só triage vê o Select — o back valida de novo).
-const RequestsList = ({ requests, groupBy, users, isTriage, onOpen, onInlinePatch }) => {
+// Lista agrupada e colapsável. Edição inline de priority e assignees para
+// qualquer usuário — o back valida de novo (fechar segue restrito a triage).
+const RequestsList = ({ requests, groupBy, users, onOpen, onInlinePatch }) => {
 	const groups = useMemo(() => buildGroups(requests, groupBy, users), [requests, groupBy, users]);
 
 	const columns = [

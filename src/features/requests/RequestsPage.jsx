@@ -33,7 +33,7 @@ const RequestsPage = () => {
 	const [tab, setTab] = useState('requests');
 	const [mode, setMode] = useState('list');
 	const [filters, setFilters] = useState(EMPTY_FILTERS);
-	const [view, setView] = useState(null); // mine | unassigned | open | aging
+	const [view, setView] = useState(null); // mine | unassigned | open | aging | archived
 	const [statusFilter, setStatusFilter] = useState(null); // vindo dos KPIs
 	const [selectedId, setSelectedId] = useState(null);
 	const [newOpen, setNewOpen] = useState(false);
@@ -184,7 +184,6 @@ const RequestsPage = () => {
 					requests={visibleRequests}
 					groupBy={filters.groupBy}
 					users={users}
-					isTriage={isTriage}
 					onOpen={setSelectedId}
 					onInlinePatch={handleInlinePatch}
 				/>

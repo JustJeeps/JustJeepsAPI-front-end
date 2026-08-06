@@ -15,6 +15,9 @@ export const STATUSES = [
 
 export const STATUS_NAMES = STATUSES.map((status) => status.name);
 
+// Status "concluídos": únicos arquiváveis (espelha DONE_STATUSES do back).
+export const DONE_STATUSES = ['Completed', 'Closed'];
+
 // Lanes do board (pedido de 2026-08-03): 4 colunas agregando os 8 status.
 // dropStatus = status aplicado ao soltar um card na lane; para 'requests' o
 // alvo depende de ter assignee (Assigned) ou não (New Request).
@@ -22,16 +25,15 @@ export const BOARD_LANES = [
 	{ key: 'requests', name: 'Requests', color: '#a855f7', statuses: ['New Request', 'Estimation', 'Assigned'] },
 	{ key: 'doing', name: 'Doing', color: '#10a35a', statuses: ['Work in Progress'], dropStatus: 'Work in Progress' },
 	{ key: 'blocked', name: 'Blocked', color: '#ef4444', statuses: ['Awaiting Client Response', 'On Hold'], dropStatus: 'On Hold' },
-	{ key: 'done', name: 'Done', color: '#2563eb', statuses: ['Completed', 'Closed'], dropStatus: 'Completed' },
+	{ key: 'done', name: 'Done', color: '#2563eb', statuses: DONE_STATUSES, dropStatus: 'Completed' },
 ];
 
-export const laneOfStatus = (status) =>
-	BOARD_LANES.find((lane) => lane.statuses.includes(status)) || BOARD_LANES[0];
 
 export const STATUS_COLORS = Object.fromEntries(STATUSES.map((status) => [status.name, status.color]));
 
 // Status que exigem comentário na transição (validado também no back).
 export const COMMENT_REQUIRED_STATUSES = ['Awaiting Client Response', 'On Hold', 'Completed'];
+
 
 export const PRIORITIES = ['Urgent', 'High', 'Normal', 'Low'];
 

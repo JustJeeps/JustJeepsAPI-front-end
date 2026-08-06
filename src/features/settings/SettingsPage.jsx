@@ -37,7 +37,7 @@ const SettingsPage = () => {
 		setLoading(true);
 		setError(null);
 		try {
-			const metaData = await fetchRequestsMetaCached();
+			const metaData = await fetchRequestsMetaCached(normalizedUsername);
 			setMeta(metaData);
 			const allowed = metaData?.triageUsers?.includes((user?.username || '').toLowerCase());
 			if (allowed) {
@@ -55,7 +55,7 @@ const SettingsPage = () => {
 		} finally {
 			setLoading(false);
 		}
-	}, [user]);
+	}, [user, normalizedUsername]);
 
 	useEffect(() => {
 		loadAll();

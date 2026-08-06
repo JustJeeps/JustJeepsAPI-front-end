@@ -24,13 +24,13 @@ const Navbar = () => {
 			return;
 		}
 		let cancelled = false;
-		fetchRequestsMetaCached()
+		fetchRequestsMetaCached(normalizedUsername)
 			.then((meta) => {
 				if (!cancelled) setRequestsEnabled(Boolean(meta?.requestsEnabled));
 			})
 			.catch(() => {});
 		return () => { cancelled = true; };
-	}, [user]);
+	}, [user, normalizedUsername]);
 
 	const handleLogout = async () => {
 		await logout();

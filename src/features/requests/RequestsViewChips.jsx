@@ -17,7 +17,7 @@ export const matchesView = (request, view, currentUserId) => {
 		case 'unassigned':
 			return !request.assignee;
 		case 'open':
-			return request.status !== 'Closed' && request.status !== 'Completed';
+			return !DONE_STATUSES.includes(request.status);
 		case 'aging':
 			return (
 				request.status !== 'Closed' &&

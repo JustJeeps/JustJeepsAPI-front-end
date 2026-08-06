@@ -37,6 +37,7 @@ const RequestTrelloPanel = ({ detail, meta, onUpdated }) => {
 						icon={<LinkOutlined />}
 						href={detail.trelloCardUrl}
 						target="_blank"
+					rel="noreferrer"
 						className="requests-trello__action"
 					>
 						Open Trello card

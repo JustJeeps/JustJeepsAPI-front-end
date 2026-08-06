@@ -9,7 +9,7 @@ const { Text } = Typography;
 // Lane do board: alvo de drop para cards. Soltar aplica o status alvo da
 // lane (mesma lane não aceita drop). A lane Done ganha o botão Archive all,
 // que some com os concluídos da tela padrão sem apagar nada.
-const RequestsBoardColumn = ({ lane, cards, onOpen, onInlinePatch, onDropCard, onArchiveDone }) => {
+const RequestsBoardColumn = ({ lane, cards, onOpen, onChangeStatus, onDropCard, onArchiveDone }) => {
 	const columnRef = useRef(null);
 	const [dragOver, setDragOver] = useState(false);
 
@@ -39,8 +39,8 @@ const RequestsBoardColumn = ({ lane, cards, onOpen, onInlinePatch, onDropCard, o
 				<Text type="secondary">{cards.length}</Text>
 				{onArchiveDone && cards.length > 0 && (
 					<Popconfirm
-						title="Archive all done requests?"
-						description="They stay saved and show up under the Archived view."
+						title={`Archive the ${cards.length} done request${cards.length > 1 ? "s" : ""} shown?`}
+						description="Only the cards currently visible in this lane. They stay saved and show up under the Archived view."
 						okText="Archive"
 						onConfirm={() => onArchiveDone(cards)}
 					>
@@ -62,7 +62,7 @@ const RequestsBoardColumn = ({ lane, cards, onOpen, onInlinePatch, onDropCard, o
 						request={request}
 						lane={lane}
 						onOpen={onOpen}
-						onInlinePatch={onInlinePatch}
+						onChangeStatus={onChangeStatus}
 					/>
 				))}
 				{!cards.length && <Text type="secondary" italic className="requests-board__empty">Empty</Text>}

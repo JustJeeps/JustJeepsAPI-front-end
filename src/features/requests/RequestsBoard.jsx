@@ -1,15 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Input, Modal, Typography } from 'antd';
 import { autoScrollForElements } from '@atlaskit/pragmatic-drag-and-drop-auto-scroll/element';
 import { BOARD_LANES, COMMENT_REQUIRED_STATUSES } from './requestsConstants';
 import RequestsBoardColumn from './RequestsBoardColumn';
-
-const { Text } = Typography;
+import RequestCommentGateModal from './RequestCommentGateModal';
 
 // Modo Board (kanban): 4 lanes fixas (Requests / Doing / Blocked / Done)
-// agregando os 8 status internos. Soltar um card na lane aplica o status
-// alvo dela; Blocked/Done exigem comentário na transição, então o drop abre
-// o mesmo gate de comentário do drawer antes de disparar o PATCH.
+// agregando os 8 status internos. O board é o dono da regra de transição:
+// tanto soltar um card numa lane quanto escolher no Select do card passam por
+// aqui, e os status que exigem comentário abrem o gate antes do PATCH.
 const RequestsBoard = ({ requests, onOpen, onInlinePatch, onArchiveDone }) => {
 	const boardRef = useRef(null);
 	const [commentGate, setCommentGate] = useState(null); // { requestId, status, comment }
@@ -20,6 +18,18 @@ const RequestsBoard = ({ requests, onOpen, onInlinePatch, onArchiveDone }) => {
 		return autoScrollForElements({ element });
 	}, []);
 
+	// Ponto único de mudança de status no board (drop e Select do card).
+	const changeStatus = useCallback(
+		(requestId, targetStatus) => {
+			if (COMMENT_REQUIRED_STATUSES.includes(targetStatus)) {
+				setCommentGate({ requestId, status: targetStatus, comment: '' });
+				return;
+			}
+			onInlinePatch(requestId, { status: targetStatus }, `Status set to ${targetStatus}`);
+		},
+		[onInlinePatch]
+	);
+
 	const handleDropCard = useCallback(
 		(requestId, lane) => {
 			const request = requests.find((entry) => entry.id === requestId);
@@ -28,13 +38,9 @@ const RequestsBoard = ({ requests, onOpen, onInlinePatch, onArchiveDone }) => {
 			const targetStatus = lane.dropStatus
 				|| (request.assignee_id || request.assignee ? 'Assigned' : 'New Request');
 			if (request.status === targetStatus) return;
-			if (COMMENT_REQUIRED_STATUSES.includes(targetStatus)) {
-				setCommentGate({ requestId, status: targetStatus, comment: '' });
-				return;
-			}
-			onInlinePatch(requestId, { status: targetStatus }, `Status set to ${targetStatus}`);
+			changeStatus(requestId, targetStatus);
 		},
-		[requests, onInlinePatch]
+		[requests, changeStatus]
 	);
 
 	const submitCommentGate = async () => {
@@ -51,32 +57,18 @@ const RequestsBoard = ({ requests, onOpen, onInlinePatch, onArchiveDone }) => {
 					lane={lane}
 					cards={requests.filter((request) => lane.statuses.includes(request.status))}
 					onOpen={onOpen}
-					onInlinePatch={onInlinePatch}
+					onChangeStatus={changeStatus}
 					onDropCard={handleDropCard}
 					onArchiveDone={lane.key === 'done' ? onArchiveDone : undefined}
 				/>
 			))}
 
-			<Modal
-				open={Boolean(commentGate)}
-				title={`Move to ${commentGate?.status}`}
-				okText="Move"
+			<RequestCommentGateModal
+				gate={commentGate}
+				onChange={(comment) => setCommentGate((gate) => ({ ...gate, comment }))}
 				onOk={submitCommentGate}
-				okButtonProps={{ disabled: !commentGate?.comment.trim() }}
 				onCancel={() => setCommentGate(null)}
-				destroyOnHidden
-			>
-				<Text type="secondary">A comment is required for this status.</Text>
-				<Input.TextArea
-					autoSize={{ minRows: 3 }}
-					style={{ marginTop: 10 }}
-					value={commentGate?.comment}
-					onChange={(event) =>
-						setCommentGate((gate) => ({ ...gate, comment: event.target.value }))
-					}
-					placeholder="Why is this request moving?"
-				/>
-			</Modal>
+			/>
 		</div>
 	);
 };
