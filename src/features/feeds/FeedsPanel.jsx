@@ -472,7 +472,9 @@ const FeedsPanel = () => {
 					<Tooltip title={!data?.canManage
 						? MANAGE_HINT
 						: feed.seedCommand
-							? `Runs "npm run ${feed.seedCommand}" on the server and shows the result`
+							// A feed can list more than one script (Quadratec applies
+							// prices and then inventory); show them as they will run.
+							? `Runs ${[].concat(feed.seedCommand).map((c) => `"npm run ${c}"`).join(' then ')} on the server and shows the result`
 							: feed.seedCommandNote}>
 						<Button
 							icon={<PlayCircleOutlined />}
