@@ -51,6 +51,28 @@
 	}
 }
 
+.settings-card__spin {
+	display: flex;
+	justify-content: center;
+	padding: 30px 0;
+}
+
+.settings-imports {
+	&__tag {
+		margin-left: 8px;
+		font-size: 10px;
+	}
+
+	&__storage {
+		margin-bottom: 14px;
+	}
+
+	&__note {
+		margin: 14px 0 0;
+		font-size: 12px;
+	}
+}
+
 .settings-user {
 	display: inline-flex;
 	align-items: center;

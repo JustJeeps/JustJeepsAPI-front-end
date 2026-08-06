@@ -51,7 +51,7 @@ src/
 │   ├── order/      # Order management (main table)
 │   ├── items/      # SKU/brand search
 │   ├── requests/   # Internal tickets (list, board, drawer)
-│   ├── settings/   # Admin settings (Trello integration, gear icon)
+│   ├── settings/   # Admin settings (Trello + imports sections, gear icon)
 │   ├── cron/       # Cron jobs dashboard
 │   ├── quickbooks/ # QuickBooks customer lookup
 │   ├── report/     # Purchaser report
@@ -73,7 +73,7 @@ All routes except `/login` are wrapped in `ProtectedRoute` (when the backend has
 | `/`, `/orders` | Order management table |
 | `/items` | Search by SKU or brand |
 | `/requests` | Internal tickets (list + kanban board) |
-| `/settings` | Admin settings: Trello integration (triage users only) |
+| `/settings` | Admin settings: Trello and imports sections (triage users only) |
 | `/purchaser-report` | Purchaser report |
 | `/quickbooks-customer-lookup` | QuickBooks customer lookup |
 | `/cron-jobs` | Cron dashboard (allowlisted users) |

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Button, Result, Space, Spin, Typography } from 'antd';
+import { Alert, Button, Result, Space, Spin, Tabs, Typography } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import { useAuth } from '../../context/AuthContext';
 import { apiErrorMessage } from '../../utils/api';
@@ -7,6 +7,7 @@ import { fetchRequestsMetaCached } from '../requests/requestsApi';
 import { fetchTrelloSettings, fetchTrelloUserBoards, fetchUsersLite } from './settingsApi';
 import TrelloCredentialsCard from './TrelloCredentialsCard';
 import TrelloUserBoardsTable from './TrelloUserBoardsTable';
+import ImportsSettingsCard from './ImportsSettingsCard';
 import './settings.scss';
 
 const { Title, Text } = Typography;
@@ -90,15 +91,31 @@ const SettingsPage = () => {
 
 			{error && <Alert type="error" showIcon message={error} className="settings-page__error" />}
 
-			<Space direction="vertical" size={16} className="settings-page__stack">
-				<TrelloCredentialsCard settings={settings} onSaved={setSettings} />
-				<TrelloUserBoardsTable
-					configured={Boolean(settings?.configured)}
-					users={users}
-					userBoards={userBoards}
-					onChanged={refreshUserBoards}
-				/>
-			</Space>
+			<Tabs
+				defaultActiveKey="trello"
+				items={[
+					{
+						key: 'trello',
+						label: 'Trello',
+						children: (
+							<Space direction="vertical" size={16} className="settings-page__stack">
+								<TrelloCredentialsCard settings={settings} onSaved={setSettings} />
+								<TrelloUserBoardsTable
+									configured={Boolean(settings?.configured)}
+									users={users}
+									userBoards={userBoards}
+									onChanged={refreshUserBoards}
+								/>
+							</Space>
+						),
+					},
+					{
+						key: 'imports',
+						label: 'Imports',
+						children: <ImportsSettingsCard />,
+					},
+				]}
+			/>
 		</div>
 	);
 };
