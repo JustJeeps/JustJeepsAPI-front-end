@@ -46,12 +46,13 @@ export const AuthProvider = ({ children }) => {
     isLoggingOut.current = false;
   }, []);
 
-  // Interceptor de resposta: só 401 encerra a sessão.
+  // Response interceptor: only a 401 ends the session.
   //
-  // 403 no back é decisão de AUTORIZAÇÃO (allowlist de rota, feature travada),
-  // não sessão inválida — deslogar nesses casos derrubava a pessoa no meio do
-  // trabalho, com perda do que estava preenchido. O 403 de token inválido vem
-  // do middleware de auth e é reconhecido pela mensagem.
+  // A 403 from the backend is an AUTHORIZATION decision (route allowlist, locked
+  // feature), not an invalid session. Logging out in those cases kicked people
+  // out in the middle of their work and lost whatever they had filled in. The
+  // 403 for an invalid token comes from the auth middleware and is recognized by
+  // its message.
   useEffect(() => {
     const AUTH_403_ERRORS = ['Invalid or expired token', 'User not found', 'Access token required'];
     const interceptorId = axios.interceptors.response.use(

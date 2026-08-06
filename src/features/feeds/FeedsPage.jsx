@@ -4,10 +4,10 @@ import './feeds.scss';
 
 const { Title, Text } = Typography;
 
-// Página dos feeds de vendor (arquivos de preço e estoque no bucket).
-// Qualquer usuário logado enxerga o estado dos arquivos; só usuários de triage
-// sobem arquivo novo ou rodam o script (o backend valida e o painel usa o
-// canManage da API para habilitar os botões).
+// Vendor feeds page (price and inventory files in the bucket).
+// Any logged in user can see the state of the files; only triage users upload a
+// new file or run the script (the backend validates it and the panel uses
+// canManage from the API to enable the buttons).
 const FeedsPage = () => (
 	<div className="feeds-page">
 		<div className="feeds-page__header">

@@ -25,7 +25,7 @@ const { Text } = Typography;
 
 const MANAGE_HINT = 'Only the pricing data team can upload files or run scripts';
 
-// Idade do lote em texto curto (ageHours vem do back).
+// Batch age as short text (ageHours comes from the backend).
 const formatAge = (ageHours) => {
 	if (ageHours === null || ageHours === undefined) return null;
 	if (ageHours < 1) return `${Math.round(ageHours * 60)}min ago`;
@@ -47,7 +47,7 @@ const RUN_STATUS_COLORS = {
 	'skipped-locked': 'default',
 };
 
-// Últimas rodadas de ingest do feed (linha expandida da tabela).
+// Latest ingest runs for the feed (expanded table row).
 const FeedRuns = ({ feed }) => {
 	const [runs, setRuns] = useState(null);
 	const [error, setError] = useState(null);
@@ -91,20 +91,20 @@ const FeedRuns = ({ feed }) => {
 				{
 					title: 'Batch',
 					dataIndex: 'artifactBatchId',
-					render: (value) => (value ? <Text code>{value.slice(0, 8)}</Text> : '—'),
+					render: (value) => (value ? <Text code>{value.slice(0, 8)}</Text> : '-'),
 				},
 				{
 					title: 'Error',
 					dataIndex: 'error',
 					ellipsis: true,
-					render: (value) => (value ? <Tooltip title={value}><Text type="danger">{value}</Text></Tooltip> : '—'),
+					render: (value) => (value ? <Tooltip title={value}><Text type="danger">{value}</Text></Tooltip> : '-'),
 				},
 			]}
 		/>
 	);
 };
 
-// Modal de upload: feeds multi-arquivo exigem todos os arquivos numa request.
+// Upload modal: multi-file feeds require every file in a single request.
 const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 	const [fileList, setFileList] = useState([]);
 	const [note, setNote] = useState('');
@@ -123,9 +123,9 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 		setStage('');
 		const files = fileList.map((file) => file.originFileObj || file);
 
-		// Enquanto o CORS do bucket não estiver configurado, o navegador não
-		// consegue falar direto com o Spaces (nem ler o ETag da parte). Em vez de
-		// falhar, cai para o envio via API — o upload sempre funciona.
+		// While the bucket CORS is not configured, the browser cannot talk directly
+		// to Spaces (nor read the part ETag). Instead of failing, it falls back to
+		// sending through the API, so the upload always works.
 		const uploadThroughApi = async () => {
 			setStage('Sending through the server');
 			setProgress(0);
@@ -153,8 +153,8 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 					});
 
 					if (result.unchanged) {
-						// Mesmo conteúdo do arquivo em uso: nenhum byte trafegou.
-						message.info(`${feed.label} is already up to date — the file has not changed`);
+						// Same content as the file in use: no bytes were transferred.
+						message.info(`${feed.label} is already up to date: the file has not changed`);
 					} else {
 						const reusedNote = result.reused > 0 ? `, ${result.reused} unchanged file(s) reused` : '';
 						message.success(`Batch ${String(result.batchId).slice(0, 8)} ready for ${feed.label}${reusedNote}`);
@@ -178,7 +178,7 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 	return (
 		<Modal
 			open
-			title={`Upload — ${feed.label}`}
+			title={`Upload: ${feed.label}`}
 			onCancel={onClose}
 			onOk={handleUpload}
 			okText="Upload"
@@ -186,7 +186,7 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 		>
 			<Text type="secondary">
 				Expected file{feed.files.length > 1 ? 's (all in one upload)' : ''}: {feed.files.join(', ')}.
-				Max {formatBytes(feed.maxUploadBytes)} per file — bigger files go through the CLI.
+				Max {formatBytes(feed.maxUploadBytes)} per file. Bigger files go through the CLI.
 			</Text>
 			<Upload.Dragger
 				multiple={feed.files.length > 1}
@@ -203,12 +203,12 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 					type="warning"
 					showIcon
 					className="feeds-panel__modal-alert"
-					message={`Missing file(s): ${missing.join(', ')} — file names must match exactly.`}
+					message={`Missing file(s): ${missing.join(', ')}. File names must match exactly.`}
 				/>
 			)}
 			<Input.TextArea
 				rows={2}
-				placeholder="Note (optional) — e.g. 'sheet received from vendor on Aug 5'"
+				placeholder="Note (optional), e.g. 'sheet received from vendor on Aug 5'"
 				value={note}
 				onChange={(event) => setNote(event.target.value)}
 				maxLength={2000}
@@ -233,9 +233,10 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 	);
 };
 
-// Traduz a última linha útil do log numa frase e num percentual.
-// Feeds grandes (o da Keystone tem 460MB) levam minutos baixando do bucket: o
-// servidor emite "⬇️ arquivo 40% (…)" a cada 10MB e é isso que vira barra aqui.
+// Turns the last useful log line into a sentence and a percentage.
+// Big feeds (the Keystone one is 460MB) take minutes to download from the bucket:
+// the server emits "⬇️ <file> 40% (...)" every 10MB and that is what becomes the
+// progress bar here.
 const readPhase = (logTail) => {
 	const lines = String(logTail || '').trim().split('\n').filter(Boolean);
 	for (let i = lines.length - 1; i >= 0; i -= 1) {
@@ -250,9 +251,9 @@ const readPhase = (logTail) => {
 	return { text: 'Starting', percent: null };
 };
 
-// Acompanha a execução do script de um feed no servidor: mostra o log ao vivo
-// e o resultado final (o back roda um script por vez e bloqueia durante o
-// seed-all diário).
+// Follows a feed script running on the server: shows the live log and the final
+// result (the backend runs one script at a time and blocks during the daily
+// seed-all).
 const RunScriptModal = ({ feed, onClose, onFinished }) => {
 	const [status, setStatus] = useState(null);
 	const [error, setError] = useState(null);
@@ -289,7 +290,7 @@ const RunScriptModal = ({ feed, onClose, onFinished }) => {
 	return (
 		<Modal
 			open
-			title={`Run script — ${feed.label}`}
+			title={`Run script: ${feed.label}`}
 			onCancel={onClose}
 			footer={<Button onClick={onClose}>{running ? 'Close (keeps running)' : 'Close'}</Button>}
 			width={760}
@@ -313,7 +314,7 @@ const RunScriptModal = ({ feed, onClose, onFinished }) => {
 							)}
 							<Text type="secondary" className="feeds-panel__run-hint">
 								Large vendor files take a few minutes. You can close this window and come
-								back — the script keeps running on the server.
+								back, the script keeps running on the server.
 							</Text>
 						</div>
 					)}
@@ -330,8 +331,8 @@ const RunScriptModal = ({ feed, onClose, onFinished }) => {
 	);
 };
 
-// Catálogo dos feeds de vendor: o que está no bucket, idade, quem subiu e as
-// últimas rodadas de ingest. Upload manual por feed (triage; o back valida).
+// Vendor feed catalog: what is in the bucket, how old it is, who uploaded it and
+// the latest ingest runs. Manual upload per feed (triage; the backend validates).
 const FeedsPanel = () => {
 	const [data, setData] = useState(null);
 	const [error, setError] = useState(null);

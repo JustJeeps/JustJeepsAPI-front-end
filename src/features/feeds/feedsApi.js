@@ -1,6 +1,7 @@
-// Chamadas HTTP da feature Feeds (catálogo de feeds de vendor no Spaces).
-// Funções finas sobre o axios global (via src/utils/api.js) — token e
-// interceptors do AuthContext. Upload exige usuário de triage (o back valida).
+// HTTP calls for the Feeds feature (vendor feed catalog in Spaces).
+// Thin functions over the global axios instance (via src/utils/api.js), so they
+// keep the token and the interceptors from AuthContext. Uploading requires a
+// triage user (the backend validates it).
 import { apiGet, apiPost } from '../../utils/api';
 
 export const fetchFeeds = () => apiGet('/api/ingest/feeds').then((res) => res.data);
@@ -8,16 +9,16 @@ export const fetchFeeds = () => apiGet('/api/ingest/feeds').then((res) => res.da
 export const fetchFeedRuns = (feed, limit = 10) =>
 	apiGet('/api/ingest/runs', { params: { feed, limit } }).then((res) => res.data);
 
-// files: File[] do input — feeds multi-arquivo exigem TODOS os arquivos numa
-// request só (o back responde 409 FEED_BATCH_INCOMPLETE se faltar algum).
-// Dispara o script do feed no servidor (assíncrono) e acompanha o resultado.
+// files: File[] from the input, and multi-file feeds require ALL the files in a
+// single request (the backend answers 409 FEED_BATCH_INCOMPLETE if one is missing).
+// Triggers the feed script on the server (async) and follows the result.
 export const runFeedScript = (feed) => apiPost(`/api/ingest/feeds/${feed}/run`).then((res) => res.data);
 
 export const fetchFeedRunStatus = (feed) =>
 	apiGet(`/api/ingest/feeds/${feed}/run-status`).then((res) => res.data);
 
-// onProgress recebe 0..100 — planilhas de feed passam de 30MB e o envio leva
-// tempo suficiente para a tela parecer travada sem indicação.
+// onProgress receives 0..100: feed spreadsheets go over 30MB and the upload takes
+// long enough that the screen looks frozen without any indication.
 export const uploadFeedFiles = (feed, files, note, onProgress) => {
 	const formData = new FormData();
 	files.forEach((file) => formData.append('files', file));

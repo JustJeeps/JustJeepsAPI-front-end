@@ -1,21 +1,21 @@
-// Upload direto do navegador para o bucket, em partes assinadas.
+// Direct upload from the browser to the bucket, in signed parts.
 //
-// Por que não passa pela API: o servidor tem 1 vCPU e 2GB, e um arquivo de
-// dezenas de MB atravessando a API disputa recurso com quem está usando o
-// sistema. Aqui a API só autoriza (assina cada parte) e cataloga no final; os
-// bytes vão direto para o Spaces. Em partes, uma falha de rede reenvia só o
-// pedaço perdido em vez do arquivo inteiro.
+// Why it does not go through the API: the server has 1 vCPU and 2GB, and a file
+// of tens of MB crossing the API competes for resources with whoever is using
+// the system. Here the API only authorizes (signs each part) and catalogs at the
+// end; the bytes go straight to Spaces. Split in parts, a network failure only
+// resends the piece that was lost instead of the whole file.
 //
-// Antes de enviar qualquer byte o arquivo é identificado pelo SHA-256: se o
-// conteúdo já está no bucket, nada é transferido — o catálogo aponta para o
-// objeto que já existe (objetos são imutáveis e endereçados por conteúdo).
+// Before any byte is sent the file is identified by its SHA-256: if the content
+// is already in the bucket, nothing is transferred and the catalog points to the
+// object that already exists (objects are immutable and content addressed).
 import { apiPost, apiDelete } from '../../utils/api';
 
-// Tentativas por parte (build-time via Vite; não é segredo, é ajuste fino).
+// Retries per part (build-time via Vite; not a secret, just a tuning knob).
 const PART_RETRIES = Number(import.meta.env.VITE_FEED_PART_RETRIES || 3);
 
-// SHA-256 do arquivo. Em blocos para não estourar a memória com arquivos
-// grandes. crypto.subtle exige contexto seguro (https ou localhost).
+// SHA-256 of the file. Done in blocks so big files do not blow up memory.
+// crypto.subtle requires a secure context (https or localhost).
 export const hashFile = async (file) => {
 	if (!window.crypto?.subtle) throw new Error('Secure context required to hash the file');
 	const buffer = await file.arrayBuffer();
@@ -27,14 +27,14 @@ const putPart = async (url, blob, attempt = 1) => {
 	try {
 		const response = await fetch(url, { method: 'PUT', body: blob });
 		if (!response.ok) throw new Error(`part upload failed with status ${response.status}`);
-		// O ETag não é lido aqui de propósito: o navegador só enxerga esse header
-		// se o CORS do bucket expuser (o painel do Spaces não tem esse campo).
-		// Quem monta a lista de partes no final é o servidor, consultando o
-		// próprio bucket — a fonte confiável do que foi realmente gravado.
+		// The ETag is deliberately not read here: the browser only sees that header
+		// if the bucket CORS exposes it (the Spaces panel has no such field).
+		// The server is the one that assembles the part list at the end, by asking
+		// the bucket itself, which is the reliable source of what was really written.
 		return true;
 	} catch (error) {
 		if (attempt >= PART_RETRIES) throw error;
-		// Espera crescente: rede instável costuma se resolver em segundos.
+		// Growing backoff: an unstable network usually recovers within seconds.
 		await new Promise((resolve) => setTimeout(resolve, 500 * attempt * attempt));
 		return putPart(url, blob, attempt + 1);
 	}
@@ -64,16 +64,16 @@ const uploadOneFile = async ({ feed, file, sha256, note, batchId, onStage }) => 
 		return await apiPost(`/api/ingest/feeds/${feed}/uploads/${uploadId}/complete`, { parts, sha256, note, batchId })
 			.then((res) => res.data);
 	} catch (error) {
-		// Sem o abort, as partes já enviadas ficam ocupando espaço no bucket.
+		// Without the abort, the parts already sent keep taking up space in the bucket.
 		await apiDelete(`/api/ingest/feeds/${feed}/uploads/${uploadId}`).catch(() => {});
 		throw error;
 	}
 };
 
-// Envia o conjunto de arquivos de um feed como UM lote.
-// onStage({ phase, percent, fileName }) — phase: hashing | checking | uploading | reusing | finishing
+// Sends the set of files of a feed as ONE batch.
+// onStage({ phase, percent, fileName }), phase: hashing | checking | uploading | reusing | finishing
 export const uploadFilesDirect = async ({ feed, files, note, onStage }) => {
-	// 1) Identifica cada arquivo e pergunta ao servidor se o conteúdo já existe.
+	// 1) Identify each file and ask the server whether the content already exists.
 	const prepared = [];
 	for (const file of files) {
 		onStage?.({ phase: 'hashing', percent: 0, fileName: file.name });
@@ -84,13 +84,13 @@ export const uploadFilesDirect = async ({ feed, files, note, onStage }) => {
 		prepared.push({ file, sha256, ...check });
 	}
 
-	// 2) Nada mudou: todos os arquivos já são exatamente os que estão em uso.
+	// 2) Nothing changed: every file is already exactly the one in use.
 	if (prepared.every((item) => item.duplicate && item.isCurrent)) {
 		return { unchanged: true, files: prepared.map((item) => item.file.name) };
 	}
 
-	// 3) Um lote só para o conjunto. Conteúdo repetido é reaproveitado (o
-	// catálogo aponta para o objeto existente); o resto sobe em partes.
+	// 3) A single batch for the whole set. Repeated content is reused (the catalog
+	// points to the existing object); the rest is uploaded in parts.
 	let batchId;
 	let reused = 0;
 	let uploaded = 0;

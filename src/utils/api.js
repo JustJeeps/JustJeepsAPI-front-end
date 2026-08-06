@@ -1,6 +1,6 @@
-// Wrapper fino sobre o axios GLOBAL. Não usar axios.create(): a instância não
-// herdaria as mutações de axios.defaults.headers.common feitas pelo
-// AuthContext (token) nem os interceptors de sessão.
+// Thin wrapper over the GLOBAL axios instance. Do not use axios.create(): the new
+// instance would not inherit the axios.defaults.headers.common mutations made by
+// AuthContext (the token), nor the session interceptors.
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -13,6 +13,6 @@ export const apiPut = (path, data, config) => axios.put(url(path), data, config)
 export const apiPatch = (path, data, config) => axios.patch(url(path), data, config);
 export const apiDelete = (path, config) => axios.delete(url(path), config);
 
-// Mensagem de erro amigável vinda da API ({ error } | { message }) ou fallback.
+// Friendly error message coming from the API ({ error } | { message }) or a fallback.
 export const apiErrorMessage = (error, fallback = 'Request failed') =>
 	error?.response?.data?.error || error?.response?.data?.message || fallback;
