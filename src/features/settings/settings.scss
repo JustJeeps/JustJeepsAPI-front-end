@@ -1,0 +1,62 @@
+.settings-page {
+	max-width: 980px;
+	margin: 0 auto;
+	// Navbar do app é fixed e alta — clearance explícita (padrão requests.scss)
+	padding: 190px 20px 60px;
+
+	&--loading {
+		display: flex;
+		justify-content: center;
+		padding-top: 240px;
+	}
+
+	&__header {
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		margin-bottom: 18px;
+	}
+
+	&__eyebrow {
+		display: block;
+		font-size: 11px;
+		text-transform: uppercase;
+		letter-spacing: 1.2px;
+	}
+
+	&__title {
+		margin: 0;
+	}
+
+	&__error {
+		margin-bottom: 14px;
+	}
+
+	&__stack {
+		width: 100%;
+	}
+}
+
+.settings-card {
+	&__help {
+		margin-bottom: 18px;
+	}
+
+	&__actions {
+		margin-top: 4px;
+	}
+
+	&__alert {
+		margin-top: 16px;
+	}
+}
+
+.settings-user {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+
+	&__username {
+		font-size: 12px;
+	}
+}

@@ -59,6 +59,20 @@ nav .nav_right {
 	justify-content: space-between;
 }
 
+// Engrenagem /settings (novo painel admin do Trello) — alinhamento do ícone
+// ao lado do avatar; não altera nada do restante da navbar.
+nav .nav-right {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+}
+
+nav .nav-settings-gear {
+	display: inline-flex;
+	align-items: center;
+	line-height: 1;
+}
+
 .ant_table_thead {
 	background-color: gray;
 }

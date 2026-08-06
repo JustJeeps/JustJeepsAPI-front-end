@@ -1,19 +1,36 @@
-import helper_black from '../../assets/helper_black_transparent.png';
-import { Login, Logout, ImageAvatars } from '../../icons';
-import { UserOutlined } from '@ant-design/icons';
+import { Login, Logout } from '../../icons';
+import { SettingOutlined, UserOutlined } from '@ant-design/icons';
 import { Avatar, Space, Button, Dropdown } from 'antd';
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import logo_jeeps from './logo_jeeps.png';
 import { useAuth } from '../../context/AuthContext';
 import LoginModal from '../../components/auth/LoginModal';
+import { fetchRequestsMetaCached } from '../requests/requestsApi';
 
 const ALLOWED_USERS = ['tess', 'paula', 'karoline'];
 const CRON_JOBS_ALLOWED_USERS = ['tess'];
 const Navbar = () => {
 	const { authEnabled, isAuthenticated, user, logout } = useAuth();
 	const [showLoginModal, setShowLoginModal] = useState(false);
+	const [isTriage, setIsTriage] = useState(false);
 	const normalizedUsername = (user?.username || user?.name || '').toLowerCase();
+
+	// Engrenagem /settings só para triage (meta.triageUsers vem do back; o
+	// gate real é validado nas rotas — aqui é só visibilidade do ícone).
+	useEffect(() => {
+		if (!user) {
+			setIsTriage(false);
+			return;
+		}
+		let cancelled = false;
+		fetchRequestsMetaCached()
+			.then((meta) => {
+				if (!cancelled) setIsTriage(Boolean(meta?.triageUsers?.includes(normalizedUsername)));
+			})
+			.catch(() => {});
+		return () => { cancelled = true; };
+	}, [user, normalizedUsername]);
 
 	const handleLogout = async () => {
 		await logout();
@@ -102,6 +119,16 @@ const Navbar = () => {
 							<li className='nav-item'>
 								<Link
 									className='aria-current nav-link active fs-5 mx-4'
+									to='/requests'
+								>
+									Requests
+								</Link>
+							</li>
+						)}
+						{user && (
+							<li className='nav-item'>
+								<Link
+									className='aria-current nav-link active fs-5 mx-4'
 									to='/feeds'
 								>
 									Vendor Feeds
@@ -121,6 +148,18 @@ const Navbar = () => {
 					</ul>
 					
 					<div className='nav-right'>
+						{/* Engrenagem de configurações (Link de propósito: a regra global
+						    "nav button" do styles.scss deformaria um <button>) */}
+						{user && isTriage && (
+							<Link
+								to='/settings'
+								className='nav-settings-gear'
+								title='Settings'
+								aria-label='Settings'
+							>
+								<SettingOutlined style={{ fontSize: 20, color: '#145DA0' }} />
+							</Link>
+						)}
 						{/* Show authentication controls only if auth is enabled */}
 						{authEnabled && (
 							<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

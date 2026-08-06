@@ -1,0 +1,244 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Button, Segmented, Space, Spin, Tabs, Typography, message } from 'antd';
+import { AppstoreOutlined, BarsOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { apiErrorMessage } from '../../utils/api';
+import { fetchRequests, fetchRequestsMeta, fetchUsers, updateRequest } from './requestsApi';
+import RequestsFilterBar, { EMPTY_FILTERS, matchesFilters } from './RequestsFilterBar';
+import RequestsList from './RequestsList';
+import RequestsBoard from './RequestsBoard';
+import RequestsKpiCards from './RequestsKpiCards';
+import RequestsViewChips, { matchesView } from './RequestsViewChips';
+import { WorkflowTab, GuidelinesTab } from './RequestsInfoTabs';
+import RequestDetailDrawer from './RequestDetailDrawer';
+import NewRequestModal from './NewRequestModal';
+import './requests.scss';
+
+const { Title, Text } = Typography;
+
+// Página principal de Requests: orquestra dados (lista, usuários, meta) e
+// estado de UI (abas, modo lista/board, filtros, view, drawer, modal).
+// Filtros/busca/KPIs são client-side — a API devolve a lista completa.
+const RequestsPage = () => {
+	const { user } = useAuth();
+	const [searchParams, setSearchParams] = useSearchParams();
+
+	const [requests, setRequests] = useState([]);
+	const [users, setUsers] = useState([]);
+	const [meta, setMeta] = useState(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
+
+	const [tab, setTab] = useState('requests');
+	const [mode, setMode] = useState('list');
+	const [filters, setFilters] = useState(EMPTY_FILTERS);
+	const [view, setView] = useState(null); // mine | unassigned | open | aging
+	const [statusFilter, setStatusFilter] = useState(null); // vindo dos KPIs
+	const [selectedId, setSelectedId] = useState(null);
+	const [newOpen, setNewOpen] = useState(false);
+
+	const normalizedUsername = (user?.username || '').toLowerCase();
+	const isTriage = Boolean(meta?.triageUsers?.includes(normalizedUsername));
+
+	const loadRequests = useCallback(async () => {
+		try {
+			setRequests(await fetchRequests());
+			setError(null);
+		} catch (loadError) {
+			setError(apiErrorMessage(loadError, 'Failed to load requests'));
+		}
+	}, []);
+
+	useEffect(() => {
+		const loadAll = async () => {
+			setLoading(true);
+			try {
+				const [requestsData, usersData, metaData] = await Promise.all([
+					fetchRequests(),
+					fetchUsers(),
+					fetchRequestsMeta(),
+				]);
+				setRequests(requestsData);
+				setUsers(usersData);
+				setMeta(metaData);
+				setError(null);
+			} catch (loadError) {
+				setError(apiErrorMessage(loadError, 'Failed to load requests'));
+			} finally {
+				setLoading(false);
+			}
+		};
+		loadAll();
+	}, []);
+
+	// Deep-link (?open=<id>) usado pelo e-mail de atribuição.
+	useEffect(() => {
+		const openParam = Number(searchParams.get('open'));
+		if (Number.isInteger(openParam) && openParam > 0) {
+			setSelectedId(openParam);
+			setSearchParams({}, { replace: true });
+		}
+	}, [searchParams, setSearchParams]);
+
+	// Arquivados somem dos filtros padrão; só aparecem na view "Archived".
+	const visibleRequests = useMemo(
+		() => requests.filter(
+			(request) =>
+				(view === 'archived' ? Boolean(request.archivedAt) : !request.archivedAt) &&
+				matchesFilters(request, filters) &&
+				matchesView(request, view, user?.id) &&
+				(!statusFilter || request.status === statusFilter)
+		),
+		[requests, filters, view, statusFilter, user]
+	);
+
+	const activeRequests = useMemo(
+		() => requests.filter((request) => !request.archivedAt),
+		[requests]
+	);
+
+	// PATCH inline (assignee/priority/status). O back é a fonte de verdade:
+	// violação de regra volta como 409 e vira toast, nunca logout.
+	const handleInlinePatch = useCallback(async (id, patch, successText) => {
+		try {
+			await updateRequest(id, patch);
+			if (successText) message.success(successText);
+			await loadRequests();
+		} catch (patchError) {
+			message.error(apiErrorMessage(patchError, 'Update failed'));
+		}
+	}, [loadRequests]);
+
+	// Archive all da lane Done: PATCH archived em cada card (ficam salvos,
+	// visíveis na view "Archived").
+	const handleArchiveDone = useCallback(async (cards) => {
+		try {
+			await Promise.all(cards.map((card) => updateRequest(card.id, { archived: true })));
+			message.success(`${cards.length} request${cards.length > 1 ? 's' : ''} archived`);
+			await loadRequests();
+		} catch (archiveError) {
+			message.error(apiErrorMessage(archiveError, 'Failed to archive'));
+			await loadRequests();
+		}
+	}, [loadRequests]);
+
+	const toggleView = (nextView) => setView((current) => (current === nextView ? null : nextView));
+	const toggleStatusFilter = (nextStatus) =>
+		setStatusFilter((current) => (current === nextStatus ? null : nextStatus));
+
+	if (loading) {
+		return (
+			<div className="requests-page requests-page--loading">
+				<Spin size="large" />
+			</div>
+		);
+	}
+
+	const requestsTabContent = (
+		<>
+			<RequestsKpiCards
+				requests={activeRequests}
+				activeView={view}
+				activeStatus={statusFilter}
+				onToggleView={toggleView}
+				onToggleStatus={toggleStatusFilter}
+			/>
+
+			<RequestsFilterBar
+				filters={filters}
+				onChange={setFilters}
+				users={users}
+				resultLabel={`${visibleRequests.length} of ${requests.length} requests`}
+			/>
+
+			<div className="requests-page__views-row">
+				<RequestsViewChips activeView={view} onToggle={toggleView} />
+				{statusFilter && (
+					<Text type="secondary" className="requests-page__status-filter">
+						Filtering by status: {statusFilter} (click the card again to clear)
+					</Text>
+				)}
+			</div>
+
+			{mode === 'list' ? (
+				<RequestsList
+					requests={visibleRequests}
+					groupBy={filters.groupBy}
+					users={users}
+					isTriage={isTriage}
+					onOpen={setSelectedId}
+					onInlinePatch={handleInlinePatch}
+				/>
+			) : (
+				<RequestsBoard
+					requests={visibleRequests}
+					onOpen={setSelectedId}
+					onInlinePatch={handleInlinePatch}
+					onArchiveDone={handleArchiveDone}
+				/>
+			)}
+		</>
+	);
+
+	return (
+		<div className="requests-page">
+			<div className="requests-page__header">
+				<div>
+					<Text type="secondary" className="requests-page__eyebrow">Pricing Tool / Internal</Text>
+					<Title level={3} className="requests-page__title">Requests</Title>
+				</div>
+				<Space>
+					<Segmented
+						value={mode}
+						onChange={setMode}
+						options={[
+							{ value: 'list', label: 'List', icon: <BarsOutlined /> },
+							{ value: 'board', label: 'Board', icon: <AppstoreOutlined /> },
+						]}
+					/>
+					<Button icon={<ReloadOutlined />} onClick={loadRequests}>Refresh</Button>
+					<Button type="primary" danger icon={<PlusOutlined />} onClick={() => setNewOpen(true)}>
+						New Request
+					</Button>
+				</Space>
+			</div>
+
+			{error && <Alert type="error" showIcon message={error} className="requests-page__error" />}
+
+			<Tabs
+				activeKey={tab}
+				onChange={setTab}
+				items={[
+					{ key: 'requests', label: 'Requests', children: requestsTabContent },
+					{ key: 'workflow', label: 'Workflow', children: <WorkflowTab /> },
+					{ key: 'guidelines', label: 'Guidelines', children: <GuidelinesTab /> },
+				]}
+			/>
+
+			<RequestDetailDrawer
+				requestId={selectedId}
+				onClose={() => setSelectedId(null)}
+				users={users}
+				meta={meta}
+				isTriage={isTriage}
+				currentUser={user}
+				onChanged={loadRequests}
+			/>
+
+			<NewRequestModal
+				open={newOpen}
+				onClose={() => setNewOpen(false)}
+				meta={meta}
+				existingRequests={requests}
+				onCreated={async (created) => {
+					setNewOpen(false);
+					message.success(`REQ-${created.id} created`);
+					await loadRequests();
+				}}
+			/>
+		</div>
+	);
+};
+
+export default RequestsPage;

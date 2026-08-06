@@ -1,0 +1,74 @@
+import { useEffect, useRef, useState } from 'react';
+import { Button, Popconfirm, Tag, Typography } from 'antd';
+import { InboxOutlined } from '@ant-design/icons';
+import { dropTargetForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
+import RequestsBoardCard from './RequestsBoardCard';
+
+const { Text } = Typography;
+
+// Lane do board: alvo de drop para cards. Soltar aplica o status alvo da
+// lane (mesma lane não aceita drop). A lane Done ganha o botão Archive all,
+// que some com os concluídos da tela padrão sem apagar nada.
+const RequestsBoardColumn = ({ lane, cards, onOpen, onInlinePatch, onDropCard, onArchiveDone }) => {
+	const columnRef = useRef(null);
+	const [dragOver, setDragOver] = useState(false);
+
+	useEffect(() => {
+		const element = columnRef.current;
+		if (!element) return undefined;
+		return dropTargetForElements({
+			element,
+			canDrop: ({ source }) =>
+				source.data.type === 'request-card' && source.data.lane !== lane.key,
+			onDragEnter: () => setDragOver(true),
+			onDragLeave: () => setDragOver(false),
+			onDrop: ({ source }) => {
+				setDragOver(false);
+				onDropCard(source.data.requestId, lane);
+			},
+		});
+	}, [lane, onDropCard]);
+
+	return (
+		<div
+			ref={columnRef}
+			className={`requests-board__column${dragOver ? ' requests-board__column--drag-over' : ''}`}
+		>
+			<div className="requests-board__column-header">
+				<Tag color={lane.color} className="requests-list__group-tag">{lane.name}</Tag>
+				<Text type="secondary">{cards.length}</Text>
+				{onArchiveDone && cards.length > 0 && (
+					<Popconfirm
+						title="Archive all done requests?"
+						description="They stay saved and show up under the Archived view."
+						okText="Archive"
+						onConfirm={() => onArchiveDone(cards)}
+					>
+						<Button
+							size="small"
+							type="text"
+							icon={<InboxOutlined />}
+							className="requests-board__archive-all"
+						>
+							Archive all
+						</Button>
+					</Popconfirm>
+				)}
+			</div>
+			<div className="requests-board__cards">
+				{cards.map((request) => (
+					<RequestsBoardCard
+						key={request.id}
+						request={request}
+						lane={lane}
+						onOpen={onOpen}
+						onInlinePatch={onInlinePatch}
+					/>
+				))}
+				{!cards.length && <Text type="secondary" italic className="requests-board__empty">Empty</Text>}
+			</div>
+		</div>
+	);
+};
+
+export default RequestsBoardColumn;
