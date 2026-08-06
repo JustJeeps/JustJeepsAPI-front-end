@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
 	Alert,
 	Button,
@@ -15,7 +15,7 @@ import {
 	Upload,
 	message,
 } from 'antd';
-import { CloudUploadOutlined, InboxOutlined, PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CloudUploadOutlined, EyeOutlined, InboxOutlined, PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import { apiErrorMessage } from '../../utils/api';
 import { fetchFeeds, fetchFeedRuns, uploadFeedFiles, runFeedScript, fetchFeedRunStatus } from './feedsApi';
 import { uploadFilesDirect } from './directUpload';
@@ -35,10 +35,17 @@ const formatAge = (ageHours) => {
 
 // Absolute date next to the relative one: "3h ago" answers how fresh, but the
 // team also needs to know which day the file is from when checking a vendor.
+// The year is spelled out because these feeds go months between updates, and
+// "Aug 5" alone does not say whether that is this year or the last one.
 const formatDateTime = (value) => {
 	if (!value) return '';
-	const date = new Date(value);
-	return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+	return new Date(value).toLocaleString(undefined, {
+		year: 'numeric',
+		month: 'short',
+		day: 'numeric',
+		hour: '2-digit',
+		minute: '2-digit',
+	});
 };
 
 const formatBytes = (bytes) => {
@@ -53,6 +60,29 @@ const RUN_STATUS_COLORS = {
 	running: 'blue',
 	'skipped-unchanged': 'default',
 	'skipped-locked': 'default',
+};
+
+// The status names come from the database and read like internal jargon on a
+// screen the whole team uses.
+const RUN_STATUS_TEXT = {
+	success: 'ok',
+	failed: 'failed',
+	running: 'running',
+	'skipped-unchanged': 'skipped',
+	'skipped-locked': 'skipped',
+};
+
+// The row counters only mean something when the script actually reported them.
+// A bookkeeping row (written by the runner, not by the seed) has no counts, and
+// showing its zeros as "+0 ~0 -0" claimed the script had changed nothing when in
+// fact it had updated hundreds of products.
+const describeCounts = (run) => {
+	if (!run) return null;
+	if (run.status === 'skipped-unchanged') return 'no change (file identical)';
+	if (run.status === 'failed') return null;
+	if (run.sourceKind === 'script-run') return 'ran, counts not reported';
+	if (run.status !== 'success') return null;
+	return `+${run.rowsInserted} ~${run.rowsUpdated} -${run.rowsDeleted}`;
 };
 
 // Latest ingest runs for the feed (expanded table row).
@@ -80,20 +110,20 @@ const FeedRuns = ({ feed }) => {
 				{
 					title: 'Started',
 					dataIndex: 'startedAt',
-					render: (value) => new Date(value).toLocaleString(),
+					render: (value) => formatDateTime(value),
 				},
 				{
 					title: 'Status',
 					dataIndex: 'status',
-					render: (status) => <Tag color={RUN_STATUS_COLORS[status] || 'default'}>{status}</Tag>,
+					render: (status) => (
+						<Tag color={RUN_STATUS_COLORS[status] || 'default'}>{RUN_STATUS_TEXT[status] || status}</Tag>
+					),
 				},
 				{
 					title: 'Rows',
 					key: 'rows',
 					render: (run) => (
-						<Text type="secondary" className="feeds-panel__runs-rows">
-							+{run.rowsInserted} ~{run.rowsUpdated} -{run.rowsDeleted}
-						</Text>
+						<Text type="secondary" className="feeds-panel__runs-rows">{describeCounts(run) || '-'}</Text>
 					),
 				},
 				{
@@ -119,21 +149,52 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 	const [uploading, setUploading] = useState(false);
 	const [progress, setProgress] = useState(0);
 	const [stage, setStage] = useState('');
+	const abortRef = useRef(null);
 
 	const missing = useMemo(() => {
 		const names = fileList.map((file) => file.name);
 		return feed.files.filter((name) => !names.includes(name));
 	}, [feed, fileList]);
 
+	// Names the feed does not expect, and files past the size limit. Both used to
+	// travel all the way to the server before being rejected.
+	const rejected = useMemo(() => fileList.filter((file) => {
+		const size = (file.originFileObj || file).size;
+		return !feed.files.includes(file.name) || (Number.isFinite(size) && size > feed.maxUploadBytes);
+	}), [feed, fileList]);
+
+	const handleSelection = ({ fileList: nextList }) => {
+		// Keeping only the last N silently threw away files the person had just
+		// dropped. Everything selected is kept and what does not belong is named.
+		setFileList(nextList);
+	};
+
+	const handleClose = () => {
+		if (!uploading) return onClose();
+		Modal.confirm({
+			title: 'Cancel the upload?',
+			content: 'The file is still being sent. Closing now stops it and nothing is saved.',
+			okText: 'Cancel the upload',
+			okButtonProps: { danger: true },
+			cancelText: 'Keep uploading',
+			onOk: () => {
+				abortRef.current?.abort();
+				onClose();
+			},
+		});
+		return undefined;
+	};
+
 	const handleUpload = async () => {
 		setUploading(true);
 		setProgress(0);
 		setStage('');
+		const controller = new AbortController();
+		abortRef.current = controller;
 		const files = fileList.map((file) => file.originFileObj || file);
 
 		// While the bucket CORS is not configured, the browser cannot talk directly
-		// to Spaces (nor read the part ETag). Instead of failing, it falls back to
-		// sending through the API, so the upload always works.
+		// to Spaces. Instead of failing, it falls back to sending through the API.
 		const uploadThroughApi = async () => {
 			setStage('Sending through the server');
 			setProgress(0);
@@ -148,6 +209,7 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 						feed: feed.feed,
 						files,
 						note: note.trim(),
+						signal: controller.signal,
 						onStage: ({ phase, percent, fileName }) => {
 							const label = {
 								hashing: `Reading ${fileName}`,
@@ -168,6 +230,11 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 						message.success(`Batch ${String(result.batchId).slice(0, 8)} ready for ${feed.label}${reusedNote}`);
 					}
 				} catch (directError) {
+					// Only a transport failure justifies retrying through the API. A
+					// reply from the API itself (a file too large, a name the feed does
+					// not accept) is a decision, and sending the same bytes again just
+					// to be refused a second time wastes minutes on a big file.
+					if (directError.response || controller.signal.aborted) throw directError;
 					console.warn('Direct upload unavailable, falling back to the API:', directError?.message);
 					await uploadThroughApi();
 				}
@@ -177,8 +244,9 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 			onUploaded();
 			onClose();
 		} catch (error) {
-			message.error(apiErrorMessage(error, 'Upload failed'));
+			if (!controller.signal.aborted) message.error(apiErrorMessage(error, 'Upload failed'));
 		} finally {
+			abortRef.current = null;
 			setUploading(false);
 		}
 	};
@@ -187,10 +255,15 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 		<Modal
 			open
 			title={`Upload: ${feed.label}`}
-			onCancel={onClose}
+			onCancel={handleClose}
+			maskClosable={!uploading}
+			closable={!uploading}
 			onOk={handleUpload}
 			okText="Upload"
-			okButtonProps={{ disabled: fileList.length === 0 || missing.length > 0, loading: uploading }}
+			okButtonProps={{
+				disabled: fileList.length === 0 || missing.length > 0 || rejected.length > 0,
+				loading: uploading,
+			}}
 		>
 			<Text type="secondary">
 				Expected file{feed.files.length > 1 ? 's (all in one upload)' : ''}: {feed.files.join(', ')}.
@@ -200,18 +273,32 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 				multiple={feed.files.length > 1}
 				beforeUpload={() => false}
 				fileList={fileList}
-				onChange={({ fileList: nextList }) => setFileList(nextList.slice(-feed.files.length))}
+				onChange={handleSelection}
+				disabled={uploading}
 				className="feeds-panel__dragger"
 			>
 				<p className="ant-upload-drag-icon"><InboxOutlined /></p>
 				<p className="ant-upload-text">Click or drag the vendor file{feed.files.length > 1 ? 's' : ''} here</p>
 			</Upload.Dragger>
+			{rejected.length > 0 && (
+				<Alert
+					type="error"
+					showIcon
+					className="feeds-panel__modal-alert"
+					message={rejected.map((file) => {
+						const size = (file.originFileObj || file).size;
+						return feed.files.includes(file.name)
+							? `${file.name} is ${formatBytes(size)}, over the ${formatBytes(feed.maxUploadBytes)} limit for this feed`
+							: `${file.name} is not a file this feed expects`;
+					}).join('. ')}
+				/>
+			)}
 			{missing.length > 0 && fileList.length > 0 && (
 				<Alert
 					type="warning"
 					showIcon
 					className="feeds-panel__modal-alert"
-					message={`Missing file(s): ${missing.join(', ')}. File names must match exactly.`}
+					message={`Missing file(s): ${missing.join(', ')}. All of them go up together, and file names must match exactly.`}
 				/>
 			)}
 			<Input.TextArea
@@ -220,6 +307,7 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 				value={note}
 				onChange={(event) => setNote(event.target.value)}
 				maxLength={2000}
+				disabled={uploading}
 				className="feeds-panel__note"
 			/>
 
@@ -252,12 +340,17 @@ const readPhase = (logTail) => {
 		const download = line.match(/⬇️.*?([\w.-]+\.(?:csv|xlsx|xls)).*?(\d{1,3})%/i);
 		if (download) return { text: `Downloading ${download[1]}`, percent: Number(download[2]) };
 		if (/⬇️/.test(line)) return { text: line.replace(/^[^A-Za-z]*/, '').slice(0, 90), percent: null };
-		if (/verificando hash|checking hash/i.test(line)) return { text: 'Checking the file signature', percent: null };
+		if (/checking hash/i.test(line)) return { text: 'Checking the file signature', percent: null };
 		if (/🔗|feed-sync/.test(line)) return { text: 'Linking the file for the vendor script', percent: null };
 		if (/Seeding|Starting|Running/i.test(line)) return { text: 'Running the vendor script', percent: null };
 	}
 	return { text: 'Starting', percent: null };
 };
+
+// A run only exists in the memory of the server process that started it, so a
+// deploy or a restart makes run-status answer 404 forever. Waiting a bounded
+// time and then saying so beats polling an answer that is never coming.
+const RUN_NOT_FOUND_GRACE_MS = 30000;
 
 // Follows a feed script running on the server: shows the live log and the final
 // result (the backend runs one script at a time and blocks during the daily
@@ -265,33 +358,50 @@ const readPhase = (logTail) => {
 const RunScriptModal = ({ feed, onClose, onFinished }) => {
 	const [status, setStatus] = useState(null);
 	const [error, setError] = useState(null);
+	const [gone, setGone] = useState(false);
 
 	useEffect(() => {
 		let cancelled = false;
 		let timer = null;
+		let consecutiveErrors = 0;
+		const startedAt = Date.now();
+
+		const schedule = (delay) => {
+			timer = setTimeout(poll, delay);
+		};
+
+		// Backoff on failure: a server under load answering slowly should not be
+		// polled harder, and the window should not freeze on a red box either.
+		const retryDelay = () => Math.min(2000 * 2 ** (consecutiveErrors - 1), 30000);
 
 		const poll = async () => {
 			try {
 				const next = await fetchFeedRunStatus(feed.feed);
 				if (cancelled) return;
+				consecutiveErrors = 0;
 				setStatus(next);
 				// A run started a moment ago answers 404 on the first polls. Once
 				// the status arrives, drop the earlier complaint instead of leaving
 				// a red box on top of a run that is clearly working.
 				setError(null);
-				if (next.status === 'running') {
-					timer = setTimeout(poll, 2000);
-				} else {
-					onFinished();
-				}
+				setGone(false);
+				if (next.status === 'running') schedule(2000);
+				else onFinished();
 			} catch (pollError) {
 				if (cancelled) return;
-				// While the run is still registering, keep waiting quietly.
 				if (pollError.response?.status === 404) {
-					timer = setTimeout(poll, 2000);
+					// While the run is still registering, keep waiting quietly, but
+					// not forever.
+					if (Date.now() - startedAt > RUN_NOT_FOUND_GRACE_MS) {
+						setGone(true);
+						return;
+					}
+					schedule(2000);
 					return;
 				}
+				consecutiveErrors += 1;
 				setError(apiErrorMessage(pollError, 'Failed to read the run status'));
+				schedule(retryDelay());
 			}
 		};
 		poll();
@@ -313,11 +423,27 @@ const RunScriptModal = ({ feed, onClose, onFinished }) => {
 			footer={<Button onClick={onClose}>{running ? 'Close (keeps running)' : 'Close'}</Button>}
 			width={760}
 		>
-			{error && <Alert type="error" showIcon message={error} className="feeds-panel__modal-alert" />}
+			{gone && (
+				<Alert
+					type="warning"
+					showIcon
+					className="feeds-panel__modal-alert"
+					message="This server no longer knows about that run. It was most likely interrupted by a deploy or a restart. Check the run history below the feed."
+				/>
+			)}
+			{error && !gone && (
+				<Alert
+					type="error"
+					showIcon
+					className="feeds-panel__modal-alert"
+					message={`${error}. Trying again...`}
+				/>
+			)}
 			{status && (
 				<>
 					<Text type="secondary">
-						<code>npm run {status.command}</code> started by {status.startedBy || 'unknown'}
+						<code>{status.command ? `npm run ${status.command}` : 'vendor script'}</code>
+						{' '}started by {status.startedBy || 'unknown'}
 						{status.durationMs ? ` · ${Math.round(status.durationMs / 1000)}s` : ''}
 					</Text>
 
@@ -381,6 +507,7 @@ const FeedsPanel = () => {
 	// person to press Refresh.
 	const somethingRunning = Boolean(
 		data?.feeds?.some((feed) => feed.running || feed.lastFetch?.status === 'running')
+		|| data?.busy?.dailySync
 	);
 
 	useEffect(() => {
@@ -389,7 +516,7 @@ const FeedsPanel = () => {
 		return () => clearInterval(timer);
 	}, [somethingRunning, load]);
 
-	const handleRun = async (feed) => {
+	const startRun = async (feed) => {
 		setStarting(feed.feed);
 		try {
 			await runFeedScript(feed.feed);
@@ -399,6 +526,32 @@ const FeedsPanel = () => {
 		} finally {
 			setStarting(null);
 		}
+	};
+
+	const handleRun = (feed) => {
+		// Running against a batch nobody has refreshed in months usually means the
+		// file is not the one the person thinks they are publishing.
+		if (!feed.stale) return startRun(feed);
+		Modal.confirm({
+			title: `The file for ${feed.label} is old`,
+			content: `The current file was uploaded ${formatAge(feed.ageHours)} (${formatDateTime(feed.currentBatch?.uploadedAt)}). Running now uses that file, not a newer one. Continue?`,
+			okText: 'Run with this file',
+			cancelText: 'Cancel',
+			onOk: () => startRun(feed),
+		});
+		return undefined;
+	};
+
+	// Why the button cannot be pressed right now. The API knows all of this and
+	// used to keep it to itself, so the button looked available and answered 409.
+	const runBlockedReason = (feed) => {
+		if (!data?.canManage) return MANAGE_HINT;
+		if (!feed.seedCommand) return feed.seedCommandNote;
+		if (feed.running) return 'This feed is already running';
+		if (data?.busy?.dailySync) return 'The daily sync is running. Wait for it to finish.';
+		if (data?.busy?.feed) return `Another feed is running right now (${data.busy.feed})`;
+		if (!feed.currentBatch) return 'There is no file for this feed yet. Upload one first.';
+		return null;
 	};
 
 	const columns = [
@@ -434,9 +587,17 @@ const FeedsPanel = () => {
 							<Text type="secondary" className="feeds-panel__feed-name">
 								{formatDateTime(feed.currentBatch.uploadedAt)}
 								{' · '}{source.source}{source.uploadedBy ? ` by ${source.uploadedBy}` : ''}
-								{' · '}{feed.currentBatch.artifacts.map((a) => formatBytes(a.sizeBytes)).join(' + ')}
 							</Text>
 						</div>
+						{/* One line per file: a bare "12.1MB + 460.5MB" left the reader
+						    guessing which size belonged to which file. */}
+						{feed.currentBatch.artifacts.map((artifact) => (
+							<div key={artifact.id}>
+								<Text type="secondary" className="feeds-panel__feed-name">
+									{artifact.fileName}: {formatBytes(artifact.sizeBytes)}
+								</Text>
+							</div>
+						))}
 					</div>
 				);
 			},
@@ -445,20 +606,37 @@ const FeedsPanel = () => {
 			title: 'Last ingest',
 			key: 'lastRun',
 			render: (feed) => {
-				if (!feed.lastRun) return <Text type="secondary">never</Text>;
-				const finishedAt = feed.lastRun.finishedAt;
+				const counts = describeCounts(feed.lastRun);
 				return (
 					<div>
-						<Tag color={RUN_STATUS_COLORS[feed.lastRun.status] || 'default'}>{feed.lastRun.status}</Tag>
-						<div>
-							<Text type="secondary" className="feeds-panel__feed-name">
-								{finishedAt ? `${formatDateTime(finishedAt)} · ${formatAge((Date.now() - new Date(finishedAt)) / 36e5)}` : 'running'}
-							</Text>
-						</div>
-						{feed.lastRun.status === 'success' && (
-							<Text type="secondary" className="feeds-panel__feed-name">
-								+{feed.lastRun.rowsInserted} ~{feed.lastRun.rowsUpdated} -{feed.lastRun.rowsDeleted}
-							</Text>
+						{feed.lastRun ? (
+							<>
+								<Tag color={RUN_STATUS_COLORS[feed.lastRun.status] || 'default'}>
+									{RUN_STATUS_TEXT[feed.lastRun.status] || feed.lastRun.status}
+								</Tag>
+								<div>
+									<Text type="secondary" className="feeds-panel__feed-name">
+										{feed.lastRun.finishedAt
+											? `${formatDateTime(feed.lastRun.finishedAt)} · ${formatAge((Date.now() - new Date(feed.lastRun.finishedAt)) / 36e5)}`
+											: 'running'}
+									</Text>
+								</div>
+								{counts && (
+									<Text type="secondary" className="feeds-panel__feed-name">{counts}</Text>
+								)}
+							</>
+						) : (
+							<Text type="secondary">never</Text>
+						)}
+						{/* Keystone arrives by scheduled FTP fetch, and when that fetch
+						    fails the ingest line above stays green and says nothing. */}
+						{feed.lastFetch && (
+							<div>
+								<Text type="secondary" className="feeds-panel__feed-name">
+									vendor fetch: {RUN_STATUS_TEXT[feed.lastFetch.status] || feed.lastFetch.status}
+									{feed.lastFetch.finishedAt ? ` · ${formatDateTime(feed.lastFetch.finishedAt)}` : ''}
+								</Text>
+							</div>
 						)}
 					</div>
 				);
@@ -467,37 +645,44 @@ const FeedsPanel = () => {
 		{
 			title: '',
 			key: 'actions',
-			render: (feed) => (
-				<div className="feeds-panel__actions">
-					<Tooltip title={data?.canManage ? '' : MANAGE_HINT}>
-						<Button
-							icon={<CloudUploadOutlined />}
-							size="small"
-							disabled={!data?.storeConfigured || !data?.canManage}
-							onClick={() => setUploadFeed(feed)}
-						>
-							Upload
-						</Button>
-					</Tooltip>
-					<Tooltip title={!data?.canManage
-						? MANAGE_HINT
-						: feed.seedCommand
-							// A feed can list more than one script (Quadratec applies
-							// prices and then inventory); show them as they will run.
-							? `Runs ${[].concat(feed.seedCommand).map((c) => `"npm run ${c}"`).join(' then ')} on the server and shows the result`
-							: feed.seedCommandNote}>
-						<Button
-							icon={<PlayCircleOutlined />}
-							size="small"
-							disabled={!feed.seedCommand || !data?.canManage}
-							loading={starting === feed.feed}
-							onClick={() => handleRun(feed)}
-						>
-							Run now
-						</Button>
-					</Tooltip>
-				</div>
-			),
+			render: (feed) => {
+				const blocked = runBlockedReason(feed);
+				return (
+					<div className="feeds-panel__actions">
+						<Tooltip title={data?.canManage ? '' : MANAGE_HINT}>
+							<Button
+								icon={<CloudUploadOutlined />}
+								size="small"
+								disabled={!data?.storeConfigured || !data?.canManage}
+								onClick={() => setUploadFeed(feed)}
+							>
+								Upload
+							</Button>
+						</Tooltip>
+						{feed.running ? (
+							<Button icon={<EyeOutlined />} size="small" onClick={() => setRunFeed(feed)}>
+								View run
+							</Button>
+						) : (
+							<Tooltip title={blocked || (
+								// A feed can list more than one script (Quadratec applies
+								// prices and then inventory); show them as they will run.
+								`Runs ${[].concat(feed.seedCommand).map((c) => `"npm run ${c}"`).join(' then ')} on the server and shows the result`
+							)}>
+								<Button
+									icon={<PlayCircleOutlined />}
+									size="small"
+									disabled={Boolean(blocked)}
+									loading={starting === feed.feed}
+									onClick={() => handleRun(feed)}
+								>
+									Run now
+								</Button>
+							</Tooltip>
+						)}
+					</div>
+				);
+			},
 		},
 	];
 
@@ -518,7 +703,9 @@ const FeedsPanel = () => {
 					showIcon
 					icon={<Spin size="small" />}
 					className="feeds-panel__alert"
-					message="Something is running on the server right now. This table updates by itself when it finishes."
+					message={data?.busy?.dailySync
+						? 'The daily sync is running on the server. Scripts cannot be started by hand until it finishes.'
+						: 'Something is running on the server right now. This table updates by itself when it finishes.'}
 				/>
 			)}
 			{error && <Alert type="error" showIcon message={error} className="feeds-panel__alert" />}
@@ -552,14 +739,18 @@ const FeedsPanel = () => {
 			{uploadFeed && (
 				<UploadFeedModal
 					feed={uploadFeed}
-					directEnabled={Boolean(data?.directUpload?.enabled) && Boolean(window.crypto?.subtle)}
+					directEnabled={Boolean(data?.directUpload?.enabled)}
 					onClose={() => setUploadFeed(null)}
 					onUploaded={load}
 				/>
 			)}
 
 			{runFeed && (
-				<RunScriptModal feed={runFeed} onClose={() => setRunFeed(null)} onFinished={load} />
+				<RunScriptModal
+					feed={runFeed}
+					onClose={() => { setRunFeed(null); load(); }}
+					onFinished={load}
+				/>
 			)}
 		</Card>
 	);
