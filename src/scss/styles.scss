@@ -22,11 +22,20 @@
 	padding: 45px;
 	font-family: 'Source Sans Pro', sans-serif;
 	font-family: 'Space Mono', monospace;
-	font-size: xx-large;
+	// Era xx-large: com mais um item no menu (Vendor Feeds) os links quebravam
+	// linha e a navbar empurrava o conteudo para baixo.
+	font-size: 1rem;
 	position: fixed;
 	z-index: 10;
 	width: 100%;
 	top:0;
+}
+
+// fs-5 do Bootstrap usa !important — para reduzir a fonte dos links do menu
+// (e impedir quebra de linha) precisa sobrescrever com !important tambem.
+.navbar .nav-link {
+	font-size: 16px !important;
+	white-space: nowrap;
 }
 
 nav svg {
