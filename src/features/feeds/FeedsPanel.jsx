@@ -18,7 +18,7 @@ import {
 import { CloudUploadOutlined, InboxOutlined, PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import { apiErrorMessage } from '../../utils/api';
 import { fetchFeeds, fetchFeedRuns, uploadFeedFiles, runFeedScript, fetchFeedRunStatus } from './feedsApi';
-import { uploadFileDirect } from './directUpload';
+import { uploadFilesDirect } from './directUpload';
 import './feeds.scss';
 
 const { Text } = Typography;
@@ -136,28 +136,29 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 		try {
 			if (directEnabled) {
 				try {
-				// Caminho direto: bytes vão do navegador para o bucket, em partes.
-				// Feeds de vários arquivos compartilham o mesmo lote (batchId), senão
-				// cada arquivo viraria um lote incompleto e nenhum valeria.
-				let batchId;
-				for (const [index, file] of files.entries()) {
-					const result = await uploadFileDirect({
+					const result = await uploadFilesDirect({
 						feed: feed.feed,
-						file,
+						files,
 						note: note.trim(),
-						batchId,
-						onStage: ({ phase, percent }) => {
-							setStage(phase === 'hashing'
-								? `Reading ${file.name}`
-								: phase === 'finishing'
-									? `Saving ${file.name}`
-									: `Sending ${file.name}${files.length > 1 ? ` (${index + 1} of ${files.length})` : ''}`);
+						onStage: ({ phase, percent, fileName }) => {
+							const label = {
+								hashing: `Reading ${fileName}`,
+								checking: `Checking if ${fileName} changed`,
+								reusing: `${fileName} is already in storage, reusing it`,
+								finishing: `Saving ${fileName}`,
+							}[phase] || `Sending ${fileName}`;
+							setStage(label);
 							setProgress(percent);
 						},
 					});
-					batchId = result.batchId;
-				}
-				message.success(`Batch ${String(batchId).slice(0, 8)} uploaded for ${feed.label}`);
+
+					if (result.unchanged) {
+						// Mesmo conteúdo do arquivo em uso: nenhum byte trafegou.
+						message.info(`${feed.label} is already up to date — the file has not changed`);
+					} else {
+						const reusedNote = result.reused > 0 ? `, ${result.reused} unchanged file(s) reused` : '';
+						message.success(`Batch ${String(result.batchId).slice(0, 8)} ready for ${feed.label}${reusedNote}`);
+					}
 				} catch (directError) {
 					console.warn('Direct upload unavailable, falling back to the API:', directError?.message);
 					await uploadThroughApi();
