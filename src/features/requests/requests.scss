@@ -553,3 +553,9 @@
 	text-transform: uppercase;
 	letter-spacing: 0.6px;
 }
+
+// Lanes table on the Workflow tab: it explains the grouping the board and the
+// list both use, so it sits above the status table with room to breathe.
+.requests-info__lanes {
+  margin-bottom: 24px;
+}

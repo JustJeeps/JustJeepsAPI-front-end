@@ -1,27 +1,40 @@
 import { Alert, Table, Tag, Typography } from 'antd';
-import { STATUS_COLORS } from './requestsConstants';
+import { BOARD_LANES, STATUS_COLORS } from './requestsConstants';
 
 const { Title, Paragraph, Text } = Typography;
 
 // Conteúdo estático das abas Workflow e Guidelines (texto do design, em inglês
 // — artefatos para o time são sempre em inglês).
 
+// The eight statuses, with who normally moves them. Only the rules listed under
+// ENFORCED_RULES are actually blocked by the system: everything else here is
+// convention, and the column used to read as if it were a permission.
 const WORKFLOW_ROWS = [
-	{ status: 'New Request', meaning: 'Created, not yet reviewed. Always Unassigned.', owner: 'System, on creation' },
-	{ status: 'Estimation', meaning: 'Under review by Triage — scoping before assigning.', owner: 'Triage' },
+	{ status: 'New Request', meaning: 'Created, not yet reviewed. Always starts unassigned.', owner: 'System, on creation' },
+	{ status: 'Estimation', meaning: 'Under review — scoping before assigning.', owner: 'Usually Triage' },
 	{ status: 'Assigned', meaning: 'Owner defined, work not started.', owner: 'Anyone' },
-	{ status: 'Work in Progress', meaning: 'Actively being worked on.', owner: 'Assignee' },
-	{ status: 'Awaiting Client Response', meaning: 'Blocked waiting on the requester or a third party.', owner: 'Assignee / Triage' },
-	{ status: 'On Hold', meaning: 'Blocked internally — dependency, deploy window, deprioritized.', owner: 'Assignee / Triage' },
-	{ status: 'Completed', meaning: 'Work finished, pending validation by the requester.', owner: 'Assignee' },
-	{ status: 'Closed', meaning: 'Validated and archived. Collapsed at the bottom of the list.', owner: 'Triage' },
+	{ status: 'Work in Progress', meaning: 'Actively being worked on.', owner: 'Usually the assignee' },
+	{ status: 'Awaiting Client Response', meaning: 'Blocked waiting on the requester or a third party.', owner: 'Usually the assignee or Triage' },
+	{ status: 'On Hold', meaning: 'Blocked internally — dependency, deploy window, deprioritized.', owner: 'Usually the assignee or Triage' },
+	{ status: 'Completed', meaning: 'Work finished, pending validation by the requester.', owner: 'Usually the assignee' },
+	{ status: 'Closed', meaning: 'Validated. Lives in the Done lane with Completed.', owner: 'Triage only' },
 ];
 
-const TRANSITION_RULES = [
+// What the server actually refuses (lib/requests/transitions.js and archive.js).
+const ENFORCED_RULES = [
 	'Moving to Assigned requires an assignee.',
-	'On Hold and Awaiting Client Response require a comment explaining the blocker.',
-	'Completed requires a comment describing what was done and where it was deployed.',
-	'Reopening a Closed request returns it to Assigned and keeps full history.',
+	'Assigning someone to a brand new request moves it to Assigned on its own.',
+	'On Hold, Awaiting Client Response and Completed require a comment.',
+	'Only Triage can close a request.',
+	'A closed request can only be reopened to Assigned, and keeps its full history.',
+];
+
+// Archiving and deleting are a separate axis from status: neither is a step in
+// the workflow, and the table above says nothing about them.
+const LIFECYCLE_RULES = [
+	'Any status can be archived, by the person who opened the request or by Triage. It is for clearing a duplicate or something opened by mistake off the screen.',
+	'Archiving is an explicit choice: changing the status of an archived request does not bring it back. Use Unarchive, or the Archived saved view.',
+	'Deleting keeps everything (comments, attachments, the Trello card) and only hides it. Triage sees the Deleted view and can restore.',
 ];
 
 const GUIDELINES = [
@@ -35,9 +48,37 @@ const GUIDELINES = [
 
 export const WorkflowTab = () => (
 	<div className="requests-info">
+		<Title level={5}>How the screen groups work</Title>
+		<Paragraph type="secondary">
+			Both the board and the list show four lanes. Each one gathers the statuses below, so a request
+			moves through eight statuses but is read as four steps.
+		</Paragraph>
+		<Table
+			size="small"
+			rowKey="key"
+			pagination={false}
+			className="requests-info__lanes"
+			dataSource={BOARD_LANES}
+			columns={[
+				{
+					title: 'Lane',
+					dataIndex: 'name',
+					width: 220,
+					render: (name, lane) => <Tag color={lane.color} className="requests-list__group-tag">{name}</Tag>,
+				},
+				{
+					title: 'Statuses it gathers',
+					dataIndex: 'statuses',
+					render: (statuses) => statuses.map((status) => (
+						<Tag key={status} color={STATUS_COLORS[status]} className="requests-list__group-tag">{status}</Tag>
+					)),
+				},
+			]}
+		/>
+
 		<Title level={5}>Status workflow</Title>
 		<Paragraph type="secondary">
-			One item per request. Every request enters as New Request and Unassigned; only Triage can close.
+			One item per request. Every request enters as New Request and unassigned.
 		</Paragraph>
 		<Table
 			size="small"
@@ -58,10 +99,20 @@ export const WorkflowTab = () => (
 		<Alert
 			type="warning"
 			className="requests-info__rules"
-			message="Transition rules"
+			message="What the system enforces"
 			description={
 				<ul className="requests-info__rules-list">
-					{TRANSITION_RULES.map((rule) => <li key={rule}>{rule}</li>)}
+					{ENFORCED_RULES.map((rule) => <li key={rule}>{rule}</li>)}
+				</ul>
+			}
+		/>
+		<Alert
+			type="info"
+			className="requests-info__rules"
+			message="Archiving and deleting are not statuses"
+			description={
+				<ul className="requests-info__rules-list">
+					{LIFECYCLE_RULES.map((rule) => <li key={rule}>{rule}</li>)}
 				</ul>
 			}
 		/>
