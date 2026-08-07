@@ -1,0 +1,33 @@
+# CI minimo do front, espelhando o do back-end. Existe por causa do incidente
+# de 07/08: uma constante usada sem import passou pelo `npm run build` (Rollup
+# nao resolve identificador livre) e so quebrou quando o usuario clicou no
+# filtro. O `lint` pega essa classe; o `test` exercita as funcoes puras.
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Lint (no-undef e componentes indefinidos sao erro)
+        run: npm run lint
+
+      - name: Tests
+        run: npm test
+
+      - name: Build
+        run: npm run build

@@ -122,3 +122,15 @@ nav .nav-settings-gear {
 	padding: auto;
 
 }
+// Error boundary: respiro para a mensagem não colar na navbar fixa.
+.error-boundary {
+	padding: 200px 20px 60px;
+}
+
+.error-boundary__detail {
+	max-width: 720px;
+	margin: 0 auto;
+	white-space: pre-wrap;
+	font-size: 12px;
+	color: #8c8c8c;
+}

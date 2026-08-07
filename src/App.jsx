@@ -15,6 +15,7 @@ import { PoForm } from './features/po/PoForm.jsx';
 import { Items } from './features/items/Items.jsx';
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import ErrorBoundary from "./components/ErrorBoundary";
 // AuthTestPage removed for security: do not expose a test page in production
 import LoginPage from "./pages/LoginPage";
 
@@ -33,6 +34,7 @@ function App() {
 	return (
 		<AuthProvider>
 			<Navbar />
+			<ErrorBoundary>
 			<Routes>
 				{/* Public route: Login */}
 				<Route path='/login' element={<LoginPage />} />
@@ -103,6 +105,7 @@ function App() {
 					</ProtectedRoute>
 				} />
 			</Routes>
+			</ErrorBoundary>
 		</AuthProvider>
 	);
 }
