@@ -4,7 +4,7 @@ import { ApiOutlined, DeleteOutlined, SaveOutlined } from '@ant-design/icons';
 import { apiErrorMessage } from '../../utils/api';
 import { saveTrelloSettings, clearTrelloSettings, testTrelloConnection } from './settingsApi';
 
-const { Text, Paragraph, Link: TextLink } = Typography;
+const { Paragraph, Link: TextLink } = Typography;
 
 // Credencial global do Trello (conta do workspace). O token nunca volta
 // completo do back — o placeholder mostra a máscara; só enviamos o token se

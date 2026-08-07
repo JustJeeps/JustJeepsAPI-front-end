@@ -1,9 +1,5 @@
 import { Card } from 'antd';
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-export const isAging = (request) =>
-	request.status !== 'Closed' && Date.now() - new Date(request.updatedAt).getTime() > 7 * DAY_MS;
+import { isAging } from './requestsConstants';
 
 // 7 KPIs do design. Cada card é clicável e liga/desliga um recorte da lista.
 const buildKpis = (requests) => {

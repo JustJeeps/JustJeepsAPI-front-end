@@ -11,6 +11,7 @@ import RequestCommentGateModal from './RequestCommentGateModal';
 const RequestsBoard = ({ requests, onOpen, onInlinePatch, onArchiveDone }) => {
 	const boardRef = useRef(null);
 	const [commentGate, setCommentGate] = useState(null); // { requestId, status, comment }
+	const [saving, setSaving] = useState(false);
 
 	useEffect(() => {
 		const element = boardRef.current;
@@ -45,8 +46,13 @@ const RequestsBoard = ({ requests, onOpen, onInlinePatch, onArchiveDone }) => {
 
 	const submitCommentGate = async () => {
 		const { requestId, status, comment } = commentGate;
-		await onInlinePatch(requestId, { status, comment }, `Status set to ${status}`);
-		setCommentGate(null);
+		setSaving(true);
+		try {
+			await onInlinePatch(requestId, { status, comment }, `Status set to ${status}`);
+			setCommentGate(null);
+		} finally {
+			setSaving(false);
+		}
 	};
 
 	return (
@@ -65,6 +71,7 @@ const RequestsBoard = ({ requests, onOpen, onInlinePatch, onArchiveDone }) => {
 
 			<RequestCommentGateModal
 				gate={commentGate}
+				saving={saving}
 				onChange={(comment) => setCommentGate((gate) => ({ ...gate, comment }))}
 				onOk={submitCommentGate}
 				onCancel={() => setCommentGate(null)}

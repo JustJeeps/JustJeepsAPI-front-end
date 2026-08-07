@@ -1,4 +1,5 @@
 import { Tag, Typography } from 'antd';
+import { DONE_STATUSES, isAging } from './requestsConstants';
 
 const { Text } = Typography;
 
@@ -19,10 +20,8 @@ export const matchesView = (request, view, currentUserId) => {
 		case 'open':
 			return !DONE_STATUSES.includes(request.status);
 		case 'aging':
-			return (
-				request.status !== 'Closed' &&
-				Date.now() - new Date(request.updatedAt).getTime() > 7 * 24 * 60 * 60 * 1000
-			);
+			// Mesma regra do card de KPI que aciona esta view — uma fonte só.
+			return isAging(request);
 		case 'archived':
 			// O corte por archivedAt é feito na página (visibleRequests); aqui
 			// a view só não aplica filtro extra.

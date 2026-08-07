@@ -18,6 +18,13 @@ export const STATUS_NAMES = STATUSES.map((status) => status.name);
 // Status "concluídos": únicos arquiváveis (espelha DONE_STATUSES do back).
 export const DONE_STATUSES = ['Completed', 'Closed'];
 
+// Chamado "parado": sem atualização há mais de 7 dias e ainda não fechado.
+// Regra de domínio usada pelo KPI e pelo recorte de views — uma fonte só.
+const AGING_DAYS = 7;
+export const isAging = (request) =>
+	request.status !== 'Closed'
+	&& Date.now() - new Date(request.updatedAt).getTime() > AGING_DAYS * 24 * 60 * 60 * 1000;
+
 // Lanes do board (pedido de 2026-08-03): 4 colunas agregando os 8 status.
 // dropStatus = status aplicado ao soltar um card na lane; para 'requests' o
 // alvo depende de ter assignee (Assigned) ou não (New Request).
