@@ -144,9 +144,9 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, isTriage, curren
 		applyPatch({ status: nextStatus }, `Status set to ${nextStatus}`);
 	};
 
-	const handleCommentSubmit = async ({ body, internal }) => {
+	const handleCommentSubmit = async ({ body }) => {
 		try {
-			await addComment(requestId, { body, internal });
+			await addComment(requestId, { body });
 			await loadDetail();
 			onChanged();
 			return true;

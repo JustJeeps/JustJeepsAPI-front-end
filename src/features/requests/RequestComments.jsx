@@ -1,21 +1,19 @@
 import { useState } from 'react';
-import { Avatar, Button, Checkbox, Empty, Input, Tag, Typography } from 'antd';
+import { Avatar, Button, Empty, Input, Typography } from 'antd';
 import { relativeTime, userInitials, userLabel } from './requestsConstants';
 
 const { Text } = Typography;
 
-// Thread de comentários + composer com flag "Internal note".
+// Thread de comentários. Todo mundo que abre o chamado lê tudo: não existe
+// comentário escondido (o "Internal note" prometia isso e nunca escondeu nada,
+// removido em 2026-08-07).
 const RequestComments = ({ comments = [], onSubmit, submitting }) => {
 	const [body, setBody] = useState('');
-	const [internal, setInternal] = useState(false);
 
 	const handleSubmit = async () => {
 		if (!body.trim()) return;
-		const ok = await onSubmit({ body: body.trim(), internal });
-		if (ok) {
-			setBody('');
-			setInternal(false);
-		}
+		const ok = await onSubmit({ body: body.trim() });
+		if (ok) setBody('');
 	};
 
 	return (
@@ -32,7 +30,6 @@ const RequestComments = ({ comments = [], onSubmit, submitting }) => {
 						<div className="requests-comments__meta">
 							<Text strong>{userLabel(comment.author)}</Text>
 							<Text type="secondary">{relativeTime(comment.createdAt)}</Text>
-							{comment.internal && <Tag color="gold">Internal note</Tag>}
 						</div>
 						<Text className="requests-comments__body">{comment.body}</Text>
 					</div>
@@ -47,9 +44,6 @@ const RequestComments = ({ comments = [], onSubmit, submitting }) => {
 					onChange={(event) => setBody(event.target.value)}
 				/>
 				<div className="requests-comments__composer-actions">
-					<Checkbox checked={internal} onChange={(event) => setInternal(event.target.checked)}>
-						Internal note
-					</Checkbox>
 					<Button type="primary" onClick={handleSubmit} loading={submitting} disabled={!body.trim()}>
 						Comment
 					</Button>

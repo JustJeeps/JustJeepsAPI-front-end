@@ -34,8 +34,8 @@ export const createRequest = (payload) => apiPost('/api/requests', payload).then
 //          assigneeIds? (lista completa; primeiro = primário), assigneeId? (legado), comment? }
 export const updateRequest = (id, patch) => apiPatch(`/api/requests/${id}`, patch).then((res) => res.data);
 
-export const addComment = (id, { body, internal }) =>
-	apiPost(`/api/requests/${id}/comments`, { body, internal }).then((res) => res.data);
+export const addComment = (id, { body }) =>
+	apiPost(`/api/requests/${id}/comments`, { body }).then((res) => res.data);
 
 export const uploadAttachments = (id, files) => {
 	const formData = new FormData();
