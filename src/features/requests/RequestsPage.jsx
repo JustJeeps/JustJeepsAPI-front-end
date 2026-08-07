@@ -13,7 +13,7 @@ import {
 	restoreRequest,
 	updateRequest,
 } from './requestsApi';
-import { canManageRequest, requestRef } from './requestsConstants';
+import { canManageRequest, matchesLifecycle, requestRef } from './requestsConstants';
 import RequestsFilterBar, { EMPTY_FILTERS, matchesFilters } from './RequestsFilterBar';
 import RequestsList from './RequestsList';
 import RequestsBoard from './RequestsBoard';
@@ -96,11 +96,10 @@ const RequestsPage = () => {
 		}
 	}, [searchParams, setSearchParams]);
 
-	// Arquivados somem dos filtros padrão; só aparecem na view "Archived".
 	const visibleRequests = useMemo(
 		() => (view === 'deleted' ? deletedRequests : requests).filter(
 			(request) =>
-				(view === 'archived' ? Boolean(request.archivedAt) : !request.archivedAt) &&
+				matchesLifecycle(request, view) &&
 				matchesFilters(request, filters) &&
 				matchesView(request, view, user?.id) &&
 				(!statusFilter || request.status === statusFilter)

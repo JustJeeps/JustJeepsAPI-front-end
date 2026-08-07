@@ -25,6 +25,16 @@ export const canManageRequest = (request, currentUser, isTriage) => {
 	return Boolean(isTriage) || request.requester?.id === currentUser.id;
 };
 
+// Eixo de ciclo de vida do chamado (ativo / arquivado / deletado). Explícito
+// para os eixos não se cruzarem: na lixeira a lista já vem só de deletados,
+// então não se filtra por arquivado de novo — senão um chamado arquivado E
+// depois deletado não apareceria em lugar nenhum, sem como restaurar.
+export const matchesLifecycle = (request, view) => {
+	if (view === 'deleted') return true;
+	if (view === 'archived') return Boolean(request.archivedAt);
+	return !request.archivedAt;
+};
+
 // Chamado "parado": sem atualização há mais de 7 dias e ainda não fechado.
 // Regra de domínio usada pelo KPI e pelo recorte de views — uma fonte só.
 const AGING_DAYS = 7;

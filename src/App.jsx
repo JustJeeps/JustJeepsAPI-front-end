@@ -2,7 +2,7 @@ import Navbar from './features/navbar/Navbar.jsx';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import OrderTable from './features/order/OrderTable.jsx';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import PurchaserReport from './features/report/PurchaserReport.jsx';
 import { SupplierTable } from './features/supplier/SupplierTable.jsx';
 import { DashBoard } from './features/dashboard/DashBoard.jsx';
@@ -22,6 +22,7 @@ import LoginPage from "./pages/LoginPage";
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 function App() {
+	const location = useLocation();
 	// Orders state for PurchaserReport
 	const [orders, setOrders] = useState([]);
 	// Fetch orders once for the report page
@@ -34,7 +35,9 @@ function App() {
 	return (
 		<AuthProvider>
 			<Navbar />
-			<ErrorBoundary>
+			{/* key pela rota: navegar para outra tela limpa o estado de erro,
+			    senão o usuário fica preso na mensagem até dar F5. */}
+			<ErrorBoundary key={location.pathname}>
 			<Routes>
 				{/* Public route: Login */}
 				<Route path='/login' element={<LoginPage />} />

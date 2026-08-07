@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { matchesView, VIEWS } from '../RequestsViewChips';
 import { matchesFilters, EMPTY_FILTERS } from '../RequestsFilterBar';
-import { BOARD_LANES, DONE_STATUSES, STATUSES, isAging } from '../requestsConstants';
+import { BOARD_LANES, DONE_STATUSES, STATUSES, isAging, matchesLifecycle } from '../requestsConstants';
 
 // Estes testes existem por causa do incidente de 07/08: a view "All open"
 // chamava uma constante sem import e derrubava a tela. Qualquer chamada real
@@ -107,5 +107,25 @@ describe('constantes de domínio', () => {
 		const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 		expect(isAging({ status: 'Closed', updatedAt: old })).toBe(false);
 		expect(isAging({ status: 'On Hold', updatedAt: old })).toBe(true);
+	});
+});
+
+// Regressão: um chamado arquivado E depois deletado precisa continuar
+// visível na lixeira — senão vira chamado perdido, sem como restaurar.
+describe('eixo de ciclo de vida (ativo / arquivado / deletado)', () => {
+	const lifecycle = (view) => (request) => matchesLifecycle(request, view);
+
+	it('a lixeira mostra o deletado mesmo que ele estivesse arquivado', () => {
+		const arquivadoEDeletado = request({ archivedAt: '2026-08-07T00:00:00Z', deletedAt: '2026-08-07T01:00:00Z' });
+		expect(lifecycle('deleted')(arquivadoEDeletado)).toBe(true);
+	});
+
+	it('as views padrão escondem arquivados e a Archived só mostra eles', () => {
+		const ativo = request();
+		const arquivado = request({ archivedAt: '2026-08-07T00:00:00Z' });
+		expect(lifecycle(null)(ativo)).toBe(true);
+		expect(lifecycle(null)(arquivado)).toBe(false);
+		expect(lifecycle('archived')(arquivado)).toBe(true);
+		expect(lifecycle('archived')(ativo)).toBe(false);
 	});
 });
