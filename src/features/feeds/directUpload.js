@@ -132,9 +132,16 @@ export const uploadFilesDirect = async ({ feed, files, note, signal, onStage }) 
 		throw error;
 	}
 
-	// 4) One call registers the whole set, or none of it.
+	// 4) One call registers the whole set, or none of it. The file dates go with
+	// it: once the file lives in the bucket, the copy on the server is a symlink
+	// into the download cache and its date is when WE fetched it, so the date the
+	// export actually carries has to travel from the browser.
+	const sourceModifiedAt = Object.fromEntries(
+		prepared.filter((item) => item.file.lastModified > 0).map((item) => [item.file.name, item.file.lastModified])
+	);
+
 	onStage?.({ phase: 'finishing', percent: 100, fileName: 'registering the batch' });
-	const result = await apiPost(`/api/ingest/feeds/${feed}/uploads/commit`, { uploadIds, reuse, note })
+	const result = await apiPost(`/api/ingest/feeds/${feed}/uploads/commit`, { uploadIds, reuse, note, sourceModifiedAt })
 		.then((res) => res.data);
 
 	return { batchId: result.batchId, reused: result.reused, uploaded: result.uploaded, carriedForward: result.carriedForward || [] };
