@@ -3,10 +3,10 @@ import { Collapse, Empty, Select, Table, Tag, Tooltip, Typography } from 'antd';
 import RequestActionsMenu from './RequestActionsMenu';
 import { MessageOutlined, PaperClipOutlined } from '@ant-design/icons';
 import {
+	BOARD_LANES,
 	PRIORITIES,
 	PRIORITY_COLORS,
 	PROJECTS,
-	STATUSES,
 	STATUS_COLORS,
 	formatDate,
 	relativeTime,
@@ -17,13 +17,17 @@ import {
 const { Text } = Typography;
 
 // Constrói os grupos (status | project | assignee) da lista já filtrada.
-const buildGroups = (requests, groupBy, users) => {
+export const buildGroups = (requests, groupBy, users) => {
 	if (groupBy === 'status') {
-		return STATUSES.map((status) => ({
-			key: status.name,
-			label: status.name,
-			color: status.color,
-			rows: requests.filter((request) => request.status === status.name),
+		// The same four lanes as the board, with the same names and the same
+		// order. Grouping by the eight raw statuses gave the two views different
+		// shapes for the same data, and the person switching between them had to
+		// translate "Estimation" and "Assigned" into "Requests" every time.
+		return BOARD_LANES.map((lane) => ({
+			key: lane.key,
+			label: lane.name,
+			color: lane.color,
+			rows: requests.filter((request) => lane.statuses.includes(request.status)),
 		}));
 	}
 	if (groupBy === 'project') {
@@ -71,10 +75,14 @@ const RequestsList = ({ requests, groupBy, users, canManage, isTriage, emptyText
 			ellipsis: true,
 			render: (title, record) => (
 				<span className="requests-list__title" onClick={() => onOpen(record.id)}>
-					<span
-						className="requests-list__status-dot"
-						style={{ background: STATUS_COLORS[record.status] || '#ccc' }}
-					/>
+					{/* The group is the lane, so the exact status still has to be
+					    readable: three statuses share the Requests lane. */}
+					<Tooltip title={record.status}>
+						<span
+							className="requests-list__status-dot"
+							style={{ background: STATUS_COLORS[record.status] || '#ccc' }}
+						/>
+					</Tooltip>
 					{title}
 					{record.archivedAt && <Tag className="requests-list__state-tag">Archived</Tag>}
 				</span>

@@ -18,20 +18,21 @@ const { Text } = Typography;
 // "Move to" é a alternativa por teclado (DnD nativo é só mouse); os dois
 // caminhos passam pelo onChangeStatus do board, que aplica o gate de
 // comentário antes do PATCH — o back valida de novo (409 vira toast).
-const RequestsBoardCard = ({ request, lane, canManage, isTriage, onOpen, onChangeStatus, onRequestAction }) => {
+const RequestsBoardCard = ({ request, lane, readOnly = false, canManage, isTriage, onOpen, onChangeStatus, onRequestAction }) => {
 	const cardRef = useRef(null);
 	const [dragging, setDragging] = useState(false);
 
 	useEffect(() => {
 		const element = cardRef.current;
-		if (!element) return undefined;
+		// In the trash a card is restored, not moved to another lane.
+		if (!element || readOnly) return undefined;
 		return draggable({
 			element,
 			getInitialData: () => ({ type: 'request-card', requestId: request.id, lane: lane.key }),
 			onDragStart: () => setDragging(true),
 			onDrop: () => setDragging(false),
 		});
-	}, [request.id, lane.key]);
+	}, [request.id, lane.key, readOnly]);
 
 	return (
 		<div ref={cardRef} className={dragging ? 'requests-board__card--dragging' : undefined}>
@@ -72,16 +73,18 @@ const RequestsBoardCard = ({ request, lane, canManage, isTriage, onOpen, onChang
 						{userInitials(request.assignee)}
 					</Avatar>
 				</div>
-				<div onClick={(event) => event.stopPropagation()}>
-					<Select
-						size="small"
-						variant="borderless"
-						value={request.status}
-						style={{ width: '100%', marginTop: 6 }}
-						onChange={(value) => onChangeStatus(request.id, value)}
-						options={STATUS_NAMES.map((name) => ({ value: name, label: `Move to: ${name}` }))}
-					/>
-				</div>
+				{!readOnly && (
+					<div onClick={(event) => event.stopPropagation()}>
+						<Select
+							size="small"
+							variant="borderless"
+							value={request.status}
+							style={{ width: '100%', marginTop: 6 }}
+							onChange={(value) => onChangeStatus(request.id, value)}
+							options={STATUS_NAMES.map((name) => ({ value: name, label: `Move to: ${name}` }))}
+						/>
+					</div>
+				)}
 			</Card>
 		</div>
 	);

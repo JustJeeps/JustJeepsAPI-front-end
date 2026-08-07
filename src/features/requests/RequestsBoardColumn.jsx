@@ -9,13 +9,13 @@ const { Text } = Typography;
 // Lane do board: alvo de drop para cards. Soltar aplica o status alvo da
 // lane (mesma lane não aceita drop). A lane Done ganha o botão Archive all,
 // que some com os concluídos da tela padrão sem apagar nada.
-const RequestsBoardColumn = ({ lane, cards, canManage, isTriage, onOpen, onChangeStatus, onDropCard, onArchiveDone, onRequestAction }) => {
+const RequestsBoardColumn = ({ lane, cards, readOnly = false, emptyText, canManage, isTriage, onOpen, onChangeStatus, onDropCard, onArchiveDone, onRequestAction }) => {
 	const columnRef = useRef(null);
 	const [dragOver, setDragOver] = useState(false);
 
 	useEffect(() => {
 		const element = columnRef.current;
-		if (!element) return undefined;
+		if (!element || readOnly) return undefined;
 		return dropTargetForElements({
 			element,
 			canDrop: ({ source }) =>
@@ -27,7 +27,7 @@ const RequestsBoardColumn = ({ lane, cards, canManage, isTriage, onOpen, onChang
 				onDropCard(source.data.requestId, lane);
 			},
 		});
-	}, [lane, onDropCard]);
+	}, [lane, onDropCard, readOnly]);
 
 	return (
 		<div
@@ -64,11 +64,16 @@ const RequestsBoardColumn = ({ lane, cards, canManage, isTriage, onOpen, onChang
 						onOpen={onOpen}
 						canManage={canManage}
 						isTriage={isTriage}
+						readOnly={readOnly}
 						onChangeStatus={onChangeStatus}
 						onRequestAction={onRequestAction}
 					/>
 				))}
-				{!cards.length && <Text type="secondary" italic className="requests-board__empty">Drop cards here</Text>}
+				{!cards.length && (
+					<Text type="secondary" italic className="requests-board__empty">
+						{readOnly ? (emptyText || 'Nothing here') : 'Drop cards here'}
+					</Text>
+				)}
 			</div>
 		</div>
 	);

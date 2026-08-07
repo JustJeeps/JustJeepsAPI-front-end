@@ -175,8 +175,14 @@ const RequestsPage = () => {
 			.catch((loadError) => message.error(apiErrorMessage(loadError, 'Failed to load deleted requests')));
 	}, [view, requests]);
 
+	// Opening the trash keeps whatever filters were set for the active board, and
+	// those filters were chosen for a different set of requests: the usual result
+	// is an empty trash that looks broken. Say what is happening instead.
+	const hiddenByFilters = view === 'deleted' && deletedRequests.length > 0 && visibleRequests.length === 0;
 	const emptyListText = view === 'deleted'
-		? 'Nothing deleted'
+		? (hiddenByFilters
+			? `${deletedRequests.length} deleted request${deletedRequests.length === 1 ? '' : 's'} hidden by the filters above. Clear them to see the trash.`
+			: 'Nothing deleted')
 		: view === 'archived'
 			? 'Nothing archived'
 			: 'No requests match these filters';
@@ -235,7 +241,7 @@ const RequestsPage = () => {
 				)}
 			</div>
 
-			{mode === 'list' || view === 'deleted' ? (
+			{mode === 'list' ? (
 				<RequestsList
 					requests={visibleRequests}
 					groupBy={filters.groupBy}
@@ -250,6 +256,8 @@ const RequestsPage = () => {
 			) : (
 				<RequestsBoard
 					requests={visibleRequests}
+					readOnly={view === 'deleted'}
+					emptyText={emptyListText}
 					canManage={canManage}
 					isTriage={isTriage}
 					onOpen={setSelectedId}
