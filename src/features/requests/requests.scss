@@ -416,10 +416,14 @@
 	}
 
 	&__column {
-		flex: none;
+		// Share the width instead of sitting at a fixed 264px: with only four
+		// lanes that left half the screen empty on a normal monitor. The minimum
+		// keeps a card readable, and the flex container still scrolls sideways
+		// when the viewport is narrower than four of those.
+		flex: 1 1 0;
+		min-width: 264px;
 		display: flex;
 		flex-direction: column;
-		width: 264px;
 		background: #f7f7f7;
 		border: 1px solid #e8e8e8;
 		border-radius: 6px;
