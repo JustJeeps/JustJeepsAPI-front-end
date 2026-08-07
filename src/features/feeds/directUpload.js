@@ -137,5 +137,5 @@ export const uploadFilesDirect = async ({ feed, files, note, signal, onStage }) 
 	const result = await apiPost(`/api/ingest/feeds/${feed}/uploads/commit`, { uploadIds, reuse, note })
 		.then((res) => res.data);
 
-	return { batchId: result.batchId, reused: result.reused, uploaded: result.uploaded };
+	return { batchId: result.batchId, reused: result.reused, uploaded: result.uploaded, carriedForward: result.carriedForward || [] };
 };

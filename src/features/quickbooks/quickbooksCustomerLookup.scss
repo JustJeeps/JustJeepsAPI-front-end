@@ -168,3 +168,10 @@
     }
   }
 }
+
+// Age of the snapshot, above everything else on the screen: a stale lookup
+// answers "no purchase history" for a real customer and looks the same as a
+// correct answer.
+.qb-lookup__snapshot {
+  margin-bottom: 16px;
+}

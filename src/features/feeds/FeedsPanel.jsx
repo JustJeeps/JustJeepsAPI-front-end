@@ -15,9 +15,9 @@ import {
 	Upload,
 	message,
 } from 'antd';
-import { CloudUploadOutlined, EyeOutlined, InboxOutlined, PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CloudDownloadOutlined, CloudUploadOutlined, EyeOutlined, InboxOutlined, PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import { apiErrorMessage } from '../../utils/api';
-import { fetchFeeds, fetchFeedRuns, uploadFeedFiles, runFeedScript, fetchFeedRunStatus } from './feedsApi';
+import { fetchFeeds, fetchFeedRuns, uploadFeedFiles, runFeedScript, fetchFeedFromVendor, fetchFeedRunStatus } from './feedsApi';
 import { uploadFilesDirect } from './directUpload';
 import './feeds.scss';
 
@@ -142,7 +142,10 @@ const FeedRuns = ({ feed }) => {
 	);
 };
 
-// Upload modal: multi-file feeds require every file in a single request.
+// Upload modal. A multi-file feed accepts one file at a time: whatever is not
+// picked is carried forward from the current batch by the server, so the feed
+// always ends up with a complete set without forcing the person to have both
+// files in hand.
 const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 	const [fileList, setFileList] = useState([]);
 	const [note, setNote] = useState('');
@@ -151,10 +154,21 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 	const [stage, setStage] = useState('');
 	const abortRef = useRef(null);
 
+	// Files of this feed the person did not pick. They are NOT a blocker: the
+	// server carries each one forward from the current batch, so one file can be
+	// refreshed on its own (the vendor rarely sends both at the same time). The
+	// only case that still needs everything is the very first upload, when there
+	// is nothing to carry forward.
 	const missing = useMemo(() => {
 		const names = fileList.map((file) => file.name);
 		return feed.files.filter((name) => !names.includes(name));
 	}, [feed, fileList]);
+
+	const keptFromCurrentBatch = useMemo(() => missing
+		.map((name) => feed.currentBatch?.artifacts.find((artifact) => artifact.fileName === name))
+		.filter(Boolean), [missing, feed]);
+
+	const missingWithNothingToKeep = missing.length > keptFromCurrentBatch.length;
 
 	// Names the feed does not expect, and files past the size limit. Both used to
 	// travel all the way to the server before being rejected.
@@ -227,7 +241,13 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 						message.info(`${feed.label} is already up to date: the file has not changed`);
 					} else {
 						const reusedNote = result.reused > 0 ? `, ${result.reused} unchanged file(s) reused` : '';
-						message.success(`Batch ${String(result.batchId).slice(0, 8)} ready for ${feed.label}${reusedNote}`);
+						// Naming what was kept matters: on Quadratec the prices come
+						// from the spreadsheet and the inventory from the CSV, so
+						// replacing one and keeping the other is a real decision.
+						const keptNote = result.carriedForward?.length
+							? `. Kept: ${result.carriedForward.map((file) => file.fileName).join(', ')}`
+							: '';
+						message.success(`Batch ${String(result.batchId).slice(0, 8)} ready for ${feed.label}${reusedNote}${keptNote}`);
 					}
 				} catch (directError) {
 					// Only a transport failure justifies retrying through the API. A
@@ -261,13 +281,16 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 			onOk={handleUpload}
 			okText="Upload"
 			okButtonProps={{
-				disabled: fileList.length === 0 || missing.length > 0 || rejected.length > 0,
+				disabled: fileList.length === 0 || missingWithNothingToKeep || rejected.length > 0,
 				loading: uploading,
 			}}
 		>
 			<Text type="secondary">
-				Expected file{feed.files.length > 1 ? 's (all in one upload)' : ''}: {feed.files.join(', ')}.
-				Max {formatBytes(feed.maxUploadBytes)} per file. Bigger files go through the CLI.
+				Expected file{feed.files.length > 1 ? 's' : ''}: {feed.files.join(', ')}.
+				{feed.files.length > 1 && feed.currentBatch
+					? ' You can send just one of them; the other stays as it is.'
+					: ''}
+				{' '}Max {formatBytes(feed.maxUploadBytes)} per file. Bigger files go through the CLI.
 			</Text>
 			<Upload.Dragger
 				multiple={feed.files.length > 1}
@@ -293,12 +316,24 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 					}).join('. ')}
 				/>
 			)}
-			{missing.length > 0 && fileList.length > 0 && (
+			{missingWithNothingToKeep && fileList.length > 0 && (
 				<Alert
 					type="warning"
 					showIcon
 					className="feeds-panel__modal-alert"
-					message={`Missing file(s): ${missing.join(', ')}. All of them go up together, and file names must match exactly.`}
+					message={`This feed has no file yet, so the first upload needs all of them. Missing: ${missing
+						.filter((name) => !keptFromCurrentBatch.some((artifact) => artifact.fileName === name))
+						.join(', ')}. File names must match exactly.`}
+				/>
+			)}
+			{!missingWithNothingToKeep && keptFromCurrentBatch.length > 0 && fileList.length > 0 && (
+				<Alert
+					type="info"
+					showIcon
+					className="feeds-panel__modal-alert"
+					message={`Only what you picked is replaced. ${keptFromCurrentBatch
+						.map((artifact) => `${artifact.fileName} stays as the one from ${formatDateTime(artifact.uploadedAt)}`)
+						.join('; ')}.`}
 				/>
 			)}
 			<Input.TextArea
@@ -528,6 +563,33 @@ const FeedsPanel = () => {
 		}
 	};
 
+	// Asks the vendor for the file now instead of waiting for the next scheduled
+	// window. Keystone is fetched at 4:47 and 16:47, and when the file is not
+	// published yet the run succeeds with the previous day's data.
+	const startFetch = async (feed) => {
+		setStarting(feed.feed);
+		try {
+			await fetchFeedFromVendor(feed.feed);
+			setRunFeed(feed);
+		} catch (fetchError) {
+			message.error(apiErrorMessage(fetchError, 'Could not start the vendor fetch'));
+		} finally {
+			setStarting(null);
+		}
+	};
+
+	// Worth confirming: the Keystone fetch moves about 460MB, takes roughly
+	// twenty minutes and holds the single run slot for that whole time.
+	const handleFetch = (feed) => {
+		Modal.confirm({
+			title: `Fetch ${feed.label} from the vendor now?`,
+			content: 'This downloads the vendor file straight away instead of waiting for the next scheduled fetch. It can take around twenty minutes, and no other feed can run while it does.',
+			okText: 'Fetch now',
+			cancelText: 'Cancel',
+			onOk: () => startFetch(feed),
+		});
+	};
+
 	const handleRun = (feed) => {
 		// Running against a batch nobody has refreshed in months usually means the
 		// file is not the one the person thinks they are publishing.
@@ -540,6 +602,15 @@ const FeedsPanel = () => {
 			onOk: () => startRun(feed),
 		});
 		return undefined;
+	};
+
+	// Same slot as Run now: the server runs one job at a time.
+	const fetchBlockedReason = (feed) => {
+		if (!data?.canManage) return MANAGE_HINT;
+		if (feed.running) return 'This feed is already running';
+		if (data?.busy?.dailySync) return 'The daily sync is running. Wait for it to finish.';
+		if (data?.busy?.feed) return `Another feed is running right now (${data.busy.feed})`;
+		return null;
 	};
 
 	// Why the button cannot be pressed right now. The API knows all of this and
@@ -659,6 +730,20 @@ const FeedsPanel = () => {
 								Upload
 							</Button>
 						</Tooltip>
+						{feed.fetchCommand && !feed.running && (
+							<Tooltip title={fetchBlockedReason(feed)
+								|| 'Downloads the file from the vendor now, instead of waiting for the next scheduled fetch'}>
+								<Button
+									icon={<CloudDownloadOutlined />}
+									size="small"
+									disabled={Boolean(fetchBlockedReason(feed))}
+									loading={starting === feed.feed}
+									onClick={() => handleFetch(feed)}
+								>
+									Fetch now
+								</Button>
+							</Tooltip>
+						)}
 						{feed.running ? (
 							<Button icon={<EyeOutlined />} size="small" onClick={() => setRunFeed(feed)}>
 								View run

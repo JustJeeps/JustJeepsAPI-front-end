@@ -14,6 +14,11 @@ export const fetchFeedRuns = (feed, limit = 10) =>
 // Triggers the feed script on the server (async) and follows the result.
 export const runFeedScript = (feed) => apiPost(`/api/ingest/feeds/${feed}/run`).then((res) => res.data);
 
+// Goes and gets the file at the vendor now. The schedule (4:47/16:47) sometimes
+// runs before the vendor has published, and the result is a successful run that
+// downloaded the previous day's file.
+export const fetchFeedFromVendor = (feed) => apiPost(`/api/ingest/feeds/${feed}/fetch`).then((res) => res.data);
+
 export const fetchFeedRunStatus = (feed) =>
 	apiGet(`/api/ingest/feeds/${feed}/run-status`).then((res) => res.data);
 

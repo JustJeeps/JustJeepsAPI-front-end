@@ -24,6 +24,39 @@ const HISTORY_BADGES = {
   inactiveOver3Years: { text: 'No purchase in 3+ years', color: 'orange' },
 };
 
+// The lookup answers "has this person bought from us before". If the snapshot is
+// weeks old, a recent customer reads as "no purchase history", which is exactly
+// the wrong answer for fraud triage and looked identical to a correct one. The
+// thresholds match the freshness cron (QB_STALE_WARN_DAYS / QB_STALE_CRIT_DAYS).
+const WARN_AGE_DAYS = 14;
+const CRITICAL_AGE_DAYS = 30;
+
+function describeSnapshot(meta) {
+  if (!meta) return null;
+  if (meta.ageDays === null || meta.ageDays === undefined) {
+    return { type: 'error', message: 'No QuickBooks data has been imported yet. This screen has nothing to search.' };
+  }
+
+  const takenAt = meta.sourceExportedAt || meta.lastImportAt;
+  const when = takenAt ? new Date(takenAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'an unknown date';
+  const rounded = Math.round(meta.ageDays);
+  const scope = `${meta.customers.toLocaleString()} customers, exported from QuickBooks on ${when}`;
+
+  if (meta.ageDays > CRITICAL_AGE_DAYS) {
+    return {
+      type: 'error',
+      message: `This data is ${rounded} days old (${scope}). Anyone who bought in the last ${rounded} days will show up here as having no history. Upload a new export in Settings > Imports before relying on it.`,
+    };
+  }
+  if (meta.ageDays > WARN_AGE_DAYS) {
+    return {
+      type: 'warning',
+      message: `This data is ${rounded} days old (${scope}). Purchases made since then are not here yet.`,
+    };
+  }
+  return { type: 'info', message: `Data from ${when}, ${rounded === 0 ? 'today' : `${rounded} day(s) old`} (${meta.customers.toLocaleString()} customers).` };
+}
+
 function formatCurrency(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) return '$0.00';
@@ -107,6 +140,7 @@ export default function QuickBooksCustomerLookup() {
   const [selectedCustomerCode, setSelectedCustomerCode] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [sortState, setSortState] = useState({ field: 'customerName', order: 'ascend' });
+  const [snapshotMeta, setSnapshotMeta] = useState(null);
   const [focusSelectedOnly, setFocusSelectedOnly] = useState(false);
 
   const resetSearchState = useCallback((pageSize = pagination.pageSize) => {
@@ -175,6 +209,18 @@ export default function QuickBooksCustomerLookup() {
       setSearchLoading(false);
     }
   }, [pagination.pageSize, resetSearchState, showAllCustomers, sortState.field, sortState.order]);
+
+  // How old the data is, read once when the screen opens. A failure here is not
+  // worth an error box: the search still works, it just loses the age notice.
+  useEffect(() => {
+    let cancelled = false;
+    axios.get(`${API_BASE_URL}/api/quickbooks/customers/meta`)
+      .then((response) => {
+        if (!cancelled) setSnapshotMeta(response.data);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -434,8 +480,18 @@ export default function QuickBooksCustomerLookup() {
     </span>
   );
 
+  const snapshot = useMemo(() => describeSnapshot(snapshotMeta), [snapshotMeta]);
+
   return (
     <div className='qb-lookup'>
+      {snapshot ? (
+        <Alert
+          type={snapshot.type}
+          showIcon
+          className='qb-lookup__snapshot'
+          message={snapshot.message}
+        />
+      ) : null}
       <div className='qb-lookup__hero'>
         <div>
           <p className='qb-lookup__eyebrow'>Customer History Review</p>
