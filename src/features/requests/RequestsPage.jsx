@@ -4,7 +4,16 @@ import { AppstoreOutlined, BarsOutlined, PlusOutlined, ReloadOutlined } from '@a
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { apiErrorMessage } from '../../utils/api';
-import { fetchRequests, fetchRequestsMeta, fetchUsers, updateRequest } from './requestsApi';
+import {
+	deleteRequest,
+	fetchDeletedRequests,
+	fetchRequests,
+	fetchRequestsMeta,
+	fetchUsers,
+	restoreRequest,
+	updateRequest,
+} from './requestsApi';
+import { canManageRequest, requestRef } from './requestsConstants';
 import RequestsFilterBar, { EMPTY_FILTERS, matchesFilters } from './RequestsFilterBar';
 import RequestsList from './RequestsList';
 import RequestsBoard from './RequestsBoard';
@@ -37,6 +46,8 @@ const RequestsPage = () => {
 	const [statusFilter, setStatusFilter] = useState(null); // vindo dos KPIs
 	const [selectedId, setSelectedId] = useState(null);
 	const [newOpen, setNewOpen] = useState(false);
+	// Lixeira: lista separada, carregada sob demanda (só triage enxerga).
+	const [deletedRequests, setDeletedRequests] = useState([]);
 
 	const normalizedUsername = (user?.username || '').toLowerCase();
 	const isTriage = Boolean(meta?.triageUsers?.includes(normalizedUsername));
@@ -87,14 +98,14 @@ const RequestsPage = () => {
 
 	// Arquivados somem dos filtros padrão; só aparecem na view "Archived".
 	const visibleRequests = useMemo(
-		() => requests.filter(
+		() => (view === 'deleted' ? deletedRequests : requests).filter(
 			(request) =>
 				(view === 'archived' ? Boolean(request.archivedAt) : !request.archivedAt) &&
 				matchesFilters(request, filters) &&
 				matchesView(request, view, user?.id) &&
 				(!statusFilter || request.status === statusFilter)
 		),
-		[requests, filters, view, statusFilter, user]
+		[requests, deletedRequests, filters, view, statusFilter, user]
 	);
 
 	const activeRequests = useMemo(
@@ -126,6 +137,42 @@ const RequestsPage = () => {
 			await loadRequests();
 		}
 	}, [loadRequests]);
+
+	// Uma função só desce para lista/board/drawer decidirem o que mostrar —
+	// evita espalhar isTriage + currentUser por três níveis de props.
+	const canManage = useCallback(
+		(request) => canManageRequest(request, user, isTriage),
+		[user, isTriage]
+	);
+
+	// Um handler para as quatro ações de ciclo de vida do chamado.
+	const handleRequestAction = useCallback(async (request, action) => {
+		try {
+			if (action === 'delete') {
+				await deleteRequest(request.id);
+				message.success(`${requestRef(request.id)} deleted`);
+			} else if (action === 'restore') {
+				await restoreRequest(request.id);
+				message.success(`${requestRef(request.id)} restored`);
+			} else {
+				const archived = action === 'archive';
+				await updateRequest(request.id, { archived });
+				message.success(archived ? 'Request archived' : 'Request unarchived');
+			}
+			setSelectedId(null);
+			await loadRequests();
+		} catch (actionError) {
+			message.error(apiErrorMessage(actionError, 'Action failed'));
+		}
+	}, [loadRequests]);
+
+	// A view "Deleted" vem de outra rota; as demais filtram a lista já carregada.
+	useEffect(() => {
+		if (view !== 'deleted') return;
+		fetchDeletedRequests()
+			.then(setDeletedRequests)
+			.catch((loadError) => message.error(apiErrorMessage(loadError, 'Failed to load deleted requests')));
+	}, [view, requests]);
 
 	const toggleView = (nextView) => setView((current) => (current === nextView ? null : nextView));
 	const toggleStatusFilter = (nextStatus) =>
@@ -171,7 +218,7 @@ const RequestsPage = () => {
 			/>
 
 			<div className="requests-page__views-row">
-				<RequestsViewChips activeView={view} onToggle={toggleView} />
+				<RequestsViewChips activeView={view} onToggle={toggleView} isTriage={isTriage} />
 				{statusFilter && (
 					<Text type="secondary" className="requests-page__status-filter">
 						Filtering by status: {statusFilter} (click the card again to clear)
@@ -184,15 +231,21 @@ const RequestsPage = () => {
 					requests={visibleRequests}
 					groupBy={filters.groupBy}
 					users={users}
+					canManage={canManage}
+					isTriage={isTriage}
 					onOpen={setSelectedId}
 					onInlinePatch={handleInlinePatch}
+					onRequestAction={handleRequestAction}
 				/>
 			) : (
 				<RequestsBoard
 					requests={visibleRequests}
+					canManage={canManage}
+					isTriage={isTriage}
 					onOpen={setSelectedId}
 					onInlinePatch={handleInlinePatch}
 					onArchiveDone={handleArchiveDone}
+					onRequestAction={handleRequestAction}
 				/>
 			)}
 		</>
@@ -240,6 +293,7 @@ const RequestsPage = () => {
 				meta={meta}
 				isTriage={isTriage}
 				currentUser={user}
+				onRequestAction={handleRequestAction}
 				onChanged={loadRequests}
 			/>
 

@@ -53,7 +53,9 @@ src/
 All routes except `/login` are wrapped in `ProtectedRoute` (effective when the backend has `ENABLE_AUTH=true`).
 - `/` and `/orders` - Order management table (OrderTable)
 - `/items` - Items listing (search by SKU or brand)
-- `/requests` - Internal tickets (list + kanban board with drag and drop)
+- `/requests` - Internal tickets (list + kanban board with drag and drop). The author of a request
+  and triage users can archive or delete it from the row menu, the card menu or the drawer;
+  delete is a soft delete and only triage sees the Deleted view and can restore.
 - `/settings` - Settings hub (gear icon): Trello tab (triage only) + Imports tab (vendor feeds panel). `/feeds` redirects here.
 - `/purchaser-report` - Purchaser report (username allowlist)
 - `/quickbooks-customer-lookup` - QuickBooks customer lookup

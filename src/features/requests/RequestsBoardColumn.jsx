@@ -9,7 +9,7 @@ const { Text } = Typography;
 // Lane do board: alvo de drop para cards. Soltar aplica o status alvo da
 // lane (mesma lane não aceita drop). A lane Done ganha o botão Archive all,
 // que some com os concluídos da tela padrão sem apagar nada.
-const RequestsBoardColumn = ({ lane, cards, onOpen, onChangeStatus, onDropCard, onArchiveDone }) => {
+const RequestsBoardColumn = ({ lane, cards, canManage, isTriage, onOpen, onChangeStatus, onDropCard, onArchiveDone, onRequestAction }) => {
 	const columnRef = useRef(null);
 	const [dragOver, setDragOver] = useState(false);
 
@@ -62,7 +62,10 @@ const RequestsBoardColumn = ({ lane, cards, onOpen, onChangeStatus, onDropCard, 
 						request={request}
 						lane={lane}
 						onOpen={onOpen}
+						canManage={canManage}
+						isTriage={isTriage}
 						onChangeStatus={onChangeStatus}
+						onRequestAction={onRequestAction}
 					/>
 				))}
 				{!cards.length && <Text type="secondary" italic className="requests-board__empty">Empty</Text>}

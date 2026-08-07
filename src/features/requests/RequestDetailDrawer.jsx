@@ -18,7 +18,7 @@ import { apiErrorMessage } from '../../utils/api';
 import { addComment, fetchRequestDetail, updateRequest } from './requestsApi';
 import {
 	COMMENT_REQUIRED_STATUSES,
-	DONE_STATUSES,
+	canManageRequest,
 	PRIORITIES,
 	PRIORITY_COLORS,
 	PROJECTS,
@@ -34,13 +34,14 @@ import RequestComments from './RequestComments';
 import RequestActivityLog from './RequestActivityLog';
 import RequestAttachments from './RequestAttachments';
 import RequestCommentGateModal from './RequestCommentGateModal';
+import RequestActionsMenu from './RequestActionsMenu';
 import RequestTrelloPanel from './RequestTrelloPanel';
 
 const { Text, Title, Paragraph } = Typography;
 
 // Drawer de detalhe: meta + transições inline + comentários + activity +
 // anexos. Toda mutação vai pro PATCH/POST e o estado local é o retorno da API.
-const RequestDetailDrawer = ({ requestId, onClose, users, meta, isTriage, currentUser, onChanged }) => {
+const RequestDetailDrawer = ({ requestId, onClose, users, meta, isTriage, currentUser, onChanged, onRequestAction }) => {
 	const [detail, setDetail] = useState(null);
 	const [loading, setLoading] = useState(false);
 	const [saving, setSaving] = useState(false);
@@ -54,6 +55,8 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, isTriage, curren
 	const [draft, setDraft] = useState({ title: '', description: '', links: '' });
 
 	const open = Boolean(requestId);
+	// Autor ou triage: mesma regra do back (lib/requests/permissions.js).
+	const canManage = detail ? canManageRequest(detail, currentUser, isTriage) : false;
 
 	const saveTitle = (value) => {
 		setEditingTitle(false);
@@ -248,7 +251,7 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, isTriage, curren
 								Edit
 							</Button>
 						)}
-						{(DONE_STATUSES.includes(detail.status) || detail.archivedAt) && (
+						{canManage && (
 							<Button
 								icon={<InboxOutlined />}
 								disabled={saving}
@@ -262,6 +265,13 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, isTriage, curren
 								{detail.archivedAt ? 'Unarchive' : 'Archive'}
 							</Button>
 						)}
+						<RequestActionsMenu
+							request={detail}
+							canManage={canManage}
+							isTriage={isTriage}
+							onAction={onRequestAction}
+							size="middle"
+						/>
 					</Space>
 
 					{!isTriage && (

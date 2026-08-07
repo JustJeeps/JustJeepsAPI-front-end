@@ -46,6 +46,13 @@ export const uploadAttachments = (id, files) => {
 export const deleteAttachment = (id, attachmentId) =>
 	apiDelete(`/api/requests/${id}/attachments/${attachmentId}`);
 
+export const deleteRequest = (id) => apiDelete(`/api/requests/${id}`);
+
+export const restoreRequest = (id) => apiPost(`/api/requests/${id}/restore`).then((res) => res.data);
+
+export const fetchDeletedRequests = () =>
+	apiGet('/api/requests?deleted=true').then((res) => res.data);
+
 export const createTrelloCard = (id) =>
 	apiPost(`/api/requests/${id}/trello-card`).then((res) => res.data);
 

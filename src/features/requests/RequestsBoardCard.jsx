@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Avatar, Card, Select, Tag, Typography } from 'antd';
 import { draggable } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
+import RequestActionsMenu from './RequestActionsMenu';
 import {
 	PRIORITY_COLORS,
 	STATUS_COLORS,
@@ -17,7 +18,7 @@ const { Text } = Typography;
 // "Move to" é a alternativa por teclado (DnD nativo é só mouse); os dois
 // caminhos passam pelo onChangeStatus do board, que aplica o gate de
 // comentário antes do PATCH — o back valida de novo (409 vira toast).
-const RequestsBoardCard = ({ request, lane, onOpen, onChangeStatus }) => {
+const RequestsBoardCard = ({ request, lane, canManage, isTriage, onOpen, onChangeStatus, onRequestAction }) => {
 	const cardRef = useRef(null);
 	const [dragging, setDragging] = useState(false);
 
@@ -48,6 +49,12 @@ const RequestsBoardCard = ({ request, lane, onOpen, onChangeStatus }) => {
 					>
 						{request.status}
 					</Tag>
+					<RequestActionsMenu
+						request={request}
+						canManage={canManage?.(request)}
+						isTriage={isTriage}
+						onAction={onRequestAction}
+					/>
 				</div>
 				<div className="requests-board__card-title">{request.title}</div>
 				<div className="requests-board__card-footer">

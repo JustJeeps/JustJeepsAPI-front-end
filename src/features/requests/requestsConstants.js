@@ -18,6 +18,13 @@ export const STATUS_NAMES = STATUSES.map((status) => status.name);
 // Status "concluídos": únicos arquiváveis (espelha DONE_STATUSES do back).
 export const DONE_STATUSES = ['Completed', 'Closed'];
 
+// Quem pode arquivar/deletar um chamado: o autor ou triage (espelho de
+// lib/requests/permissions.js no back, que é quem decide de verdade).
+export const canManageRequest = (request, currentUser, isTriage) => {
+	if (!request || !currentUser) return false;
+	return Boolean(isTriage) || request.requester?.id === currentUser.id;
+};
+
 // Chamado "parado": sem atualização há mais de 7 dias e ainda não fechado.
 // Regra de domínio usada pelo KPI e pelo recorte de views — uma fonte só.
 const AGING_DAYS = 7;

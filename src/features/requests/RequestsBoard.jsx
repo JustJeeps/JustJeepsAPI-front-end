@@ -8,7 +8,7 @@ import RequestCommentGateModal from './RequestCommentGateModal';
 // agregando os 8 status internos. O board é o dono da regra de transição:
 // tanto soltar um card numa lane quanto escolher no Select do card passam por
 // aqui, e os status que exigem comentário abrem o gate antes do PATCH.
-const RequestsBoard = ({ requests, onOpen, onInlinePatch, onArchiveDone }) => {
+const RequestsBoard = ({ requests, canManage, isTriage, onOpen, onInlinePatch, onArchiveDone, onRequestAction }) => {
 	const boardRef = useRef(null);
 	const [commentGate, setCommentGate] = useState(null); // { requestId, status, comment }
 	const [saving, setSaving] = useState(false);
@@ -63,7 +63,10 @@ const RequestsBoard = ({ requests, onOpen, onInlinePatch, onArchiveDone }) => {
 					lane={lane}
 					cards={requests.filter((request) => lane.statuses.includes(request.status))}
 					onOpen={onOpen}
+					canManage={canManage}
+					isTriage={isTriage}
 					onChangeStatus={changeStatus}
+					onRequestAction={onRequestAction}
 					onDropCard={handleDropCard}
 					onArchiveDone={lane.key === 'done' ? onArchiveDone : undefined}
 				/>

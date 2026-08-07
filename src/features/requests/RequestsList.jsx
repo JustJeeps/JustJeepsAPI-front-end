@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Collapse, Select, Table, Tag, Tooltip, Typography } from 'antd';
+import RequestActionsMenu from './RequestActionsMenu';
 import { MessageOutlined, PaperClipOutlined } from '@ant-design/icons';
 import {
 	PRIORITIES,
@@ -54,7 +55,7 @@ const buildGroups = (requests, groupBy, users) => {
 
 // Lista agrupada e colapsável. Edição inline de priority e assignees para
 // qualquer usuário — o back valida de novo (fechar segue restrito a triage).
-const RequestsList = ({ requests, groupBy, users, onOpen, onInlinePatch }) => {
+const RequestsList = ({ requests, groupBy, users, canManage, isTriage, onOpen, onInlinePatch, onRequestAction }) => {
 	const groups = useMemo(() => buildGroups(requests, groupBy, users), [requests, groupBy, users]);
 
 	const columns = [
@@ -168,6 +169,20 @@ const RequestsList = ({ requests, groupBy, users, onOpen, onInlinePatch }) => {
 						</a>
 					)}
 				</span>
+			),
+		},
+		{
+			title: '',
+			key: 'actions',
+			width: 48,
+			align: 'right',
+			render: (_, record) => (
+				<RequestActionsMenu
+					request={record}
+					canManage={canManage?.(record)}
+					isTriage={isTriage}
+					onAction={onRequestAction}
+				/>
 			),
 		},
 	];
