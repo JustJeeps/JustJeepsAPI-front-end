@@ -15,7 +15,9 @@ export const STATUSES = [
 
 export const STATUS_NAMES = STATUSES.map((status) => status.name);
 
-// Status "concluídos": únicos arquiváveis (espelha DONE_STATUSES do back).
+// Status "concluídos": alimentam a lane Done do board e o recorte "All open".
+// Não controlam mais quem arquiva — qualquer status é arquivável pelo autor
+// ou triage (regra no back, lib/requests/archive.js).
 export const DONE_STATUSES = ['Completed', 'Closed'];
 
 // Quem pode arquivar/deletar um chamado: o autor ou triage (espelho de

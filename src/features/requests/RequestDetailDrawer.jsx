@@ -251,20 +251,8 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, isTriage, curren
 								Edit
 							</Button>
 						)}
-						{canManage && (
-							<Button
-								icon={<InboxOutlined />}
-								disabled={saving}
-								onClick={() =>
-									applyPatch(
-										{ archived: !detail.archivedAt },
-										detail.archivedAt ? 'Request unarchived' : 'Request archived'
-									)
-								}
-							>
-								{detail.archivedAt ? 'Unarchive' : 'Archive'}
-							</Button>
-						)}
+						{/* Arquivar/deletar vivem só no menu, iguais à lista e ao board:
+						    ter também um botão dava dois caminhos com efeitos diferentes. */}
 						<RequestActionsMenu
 							request={detail}
 							canManage={canManage}

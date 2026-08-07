@@ -542,3 +542,14 @@
 		}
 	}
 }
+
+.requests-list--empty {
+	padding: 32px 0;
+}
+
+.requests-list__state-tag {
+	margin-left: 8px;
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.6px;
+}

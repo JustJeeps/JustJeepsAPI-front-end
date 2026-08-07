@@ -68,7 +68,7 @@ const RequestsBoardColumn = ({ lane, cards, canManage, isTriage, onOpen, onChang
 						onRequestAction={onRequestAction}
 					/>
 				))}
-				{!cards.length && <Text type="secondary" italic className="requests-board__empty">Empty</Text>}
+				{!cards.length && <Text type="secondary" italic className="requests-board__empty">Drop cards here</Text>}
 			</div>
 		</div>
 	);

@@ -30,6 +30,8 @@ const ACTION_ICONS = {
 	attachment_removed: <DeleteOutlined />,
 	archived: <InboxOutlined />,
 	unarchived: <UndoOutlined />,
+	deleted: <DeleteOutlined />,
+	restored: <UndoOutlined />,
 	trello_card_created: <LinkOutlined />,
 	trello_card_skipped: <LinkOutlined />,
 	trello_card_failed: <LinkOutlined />,
@@ -58,6 +60,10 @@ const activityParts = (activity) => {
 			return { actor, text: `removed attachment ${activity.oldValue}` };
 		case 'archived':
 			return { actor, text: 'archived the request' };
+		case 'deleted':
+			return { actor, text: 'deleted the request' };
+		case 'restored':
+			return { actor, text: 'restored the request' };
 		case 'unarchived':
 			return { actor, text: 'unarchived the request' };
 		case 'trello_card_created':

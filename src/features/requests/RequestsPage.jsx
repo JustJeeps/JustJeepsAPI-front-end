@@ -156,7 +156,9 @@ const RequestsPage = () => {
 			} else {
 				const archived = action === 'archive';
 				await updateRequest(request.id, { archived });
-				message.success(archived ? 'Request archived' : 'Request unarchived');
+				message.success(archived
+					? `${requestRef(request.id)} archived — find it under the Archived view`
+					: `${requestRef(request.id)} unarchived`);
 			}
 			setSelectedId(null);
 			await loadRequests();
@@ -172,6 +174,12 @@ const RequestsPage = () => {
 			.then(setDeletedRequests)
 			.catch((loadError) => message.error(apiErrorMessage(loadError, 'Failed to load deleted requests')));
 	}, [view, requests]);
+
+	const emptyListText = view === 'deleted'
+		? 'Nothing deleted'
+		: view === 'archived'
+			? 'Nothing archived'
+			: 'No requests match these filters';
 
 	const toggleView = (nextView) => setView((current) => (current === nextView ? null : nextView));
 	const toggleStatusFilter = (nextStatus) =>
@@ -213,7 +221,9 @@ const RequestsPage = () => {
 				filters={filters}
 				onChange={setFilters}
 				users={users}
-				resultLabel={`${visibleRequests.length} of ${requests.length} requests`}
+				resultLabel={view === 'deleted'
+					? `${visibleRequests.length} deleted request${visibleRequests.length === 1 ? '' : 's'}`
+					: `${visibleRequests.length} of ${activeRequests.length} requests`}
 			/>
 
 			<div className="requests-page__views-row">
@@ -225,11 +235,12 @@ const RequestsPage = () => {
 				)}
 			</div>
 
-			{mode === 'list' ? (
+			{mode === 'list' || view === 'deleted' ? (
 				<RequestsList
 					requests={visibleRequests}
 					groupBy={filters.groupBy}
 					users={users}
+					emptyText={emptyListText}
 					canManage={canManage}
 					isTriage={isTriage}
 					onOpen={setSelectedId}

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Collapse, Select, Table, Tag, Tooltip, Typography } from 'antd';
+import { Collapse, Empty, Select, Table, Tag, Tooltip, Typography } from 'antd';
 import RequestActionsMenu from './RequestActionsMenu';
 import { MessageOutlined, PaperClipOutlined } from '@ant-design/icons';
 import {
@@ -55,7 +55,7 @@ const buildGroups = (requests, groupBy, users) => {
 
 // Lista agrupada e colapsável. Edição inline de priority e assignees para
 // qualquer usuário — o back valida de novo (fechar segue restrito a triage).
-const RequestsList = ({ requests, groupBy, users, canManage, isTriage, onOpen, onInlinePatch, onRequestAction }) => {
+const RequestsList = ({ requests, groupBy, users, canManage, isTriage, emptyText, onOpen, onInlinePatch, onRequestAction }) => {
 	const groups = useMemo(() => buildGroups(requests, groupBy, users), [requests, groupBy, users]);
 
 	const columns = [
@@ -76,6 +76,7 @@ const RequestsList = ({ requests, groupBy, users, canManage, isTriage, onOpen, o
 						style={{ background: STATUS_COLORS[record.status] || '#ccc' }}
 					/>
 					{title}
+					{record.archivedAt && <Tag className="requests-list__state-tag">Archived</Tag>}
 				</span>
 			),
 		},
@@ -96,6 +97,7 @@ const RequestsList = ({ requests, groupBy, users, canManage, isTriage, onOpen, o
 						variant="borderless"
 						placeholder="Unassigned"
 						maxTagCount="responsive"
+						disabled={Boolean(record.deletedAt)}
 						value={(record.assignees || []).map((entry) => entry.user_id ?? entry.user?.id)}
 						style={{ width: '100%' }}
 						onClick={(event) => event.stopPropagation()}
@@ -119,6 +121,7 @@ const RequestsList = ({ requests, groupBy, users, canManage, isTriage, onOpen, o
 				<Select
 					size="small"
 					variant="borderless"
+					disabled={Boolean(record.deletedAt)}
 					value={priority}
 					style={{ width: '100%' }}
 					onClick={(event) => event.stopPropagation()}
@@ -187,6 +190,14 @@ const RequestsList = ({ requests, groupBy, users, canManage, isTriage, onOpen, o
 		},
 	];
 
+	if (!requests.length) {
+		return (
+			<div className="requests-list requests-list--empty">
+				<Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={emptyText || 'No requests match these filters'} />
+			</div>
+		);
+	}
+
 	const items = groups.map((group) => ({
 		key: group.key,
 		label: (
@@ -204,7 +215,10 @@ const RequestsList = ({ requests, groupBy, users, canManage, isTriage, onOpen, o
 				columns={columns}
 				dataSource={group.rows}
 				pagination={false}
-				onRow={(record) => ({ onClick: () => onOpen(record.id) })}
+				onRow={(record) => ({
+					// Deletado é só leitura: abrir o drawer daria caminho sem saída.
+					onClick: () => !record.deletedAt && onOpen(record.id),
+				})}
 				rowClassName={() => 'requests-list__row'}
 			/>
 		) : (
@@ -217,6 +231,7 @@ const RequestsList = ({ requests, groupBy, users, canManage, isTriage, onOpen, o
 
 	return (
 		<Collapse
+			key={groupBy}
 			className="requests-list"
 			items={items}
 			defaultActiveKey={defaultActiveKeys}

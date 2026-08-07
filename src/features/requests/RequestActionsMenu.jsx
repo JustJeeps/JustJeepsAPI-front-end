@@ -5,6 +5,7 @@ import {
 	MoreOutlined,
 	UndoOutlined,
 } from '@ant-design/icons';
+import { requestRef } from './requestsConstants';
 
 // Menu de ações do chamado (arquivar/desarquivar, deletar, restaurar), usado
 // na lista, no card do board e no drawer — um lugar só para a regra de quais
@@ -37,8 +38,8 @@ const RequestActionsMenu = ({ request, canManage, isTriage, onAction, size = 'sm
 		// Deletar some da tela para todo mundo: confirma antes, e a mensagem
 		// diz que dá para voltar atrás (é soft delete) para não assustar.
 		Modal.confirm({
-			title: `Delete ${request.title}?`,
-			content: 'It disappears for everyone. Nothing is erased: triage can restore it.',
+			title: `Delete ${requestRef(request.id)}?`,
+			content: `"${request.title}" disappears for everyone. Nothing is erased: triage can restore it.`,
 			okText: 'Delete',
 			okButtonProps: { danger: true },
 			onOk: () => onAction(request, 'delete'),
@@ -46,6 +47,9 @@ const RequestActionsMenu = ({ request, canManage, isTriage, onAction, size = 'sm
 	};
 
 	return (
+		// draggable=false: sem isto, segurar o botão e mexer o mouse começa a
+		// arrastar o card do board em vez de abrir o menu.
+		<span draggable={false} onPointerDown={(event) => event.stopPropagation()}>
 		<Dropdown
 			menu={{ items, onClick: handleClick }}
 			trigger={['click']}
@@ -55,10 +59,11 @@ const RequestActionsMenu = ({ request, canManage, isTriage, onAction, size = 'sm
 				type="text"
 				size={size}
 				icon={<MoreOutlined />}
-				aria-label="Request actions"
+				aria-label={`Actions for ${requestRef(request.id)}`}
 				onClick={(event) => event.stopPropagation()}
 			/>
 		</Dropdown>
+		</span>
 	);
 };
 
