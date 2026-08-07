@@ -405,11 +405,20 @@
 	display: flex;
 	gap: 12px;
 	overflow-x: auto;
-	align-items: flex-start;
+	// Colunas esticam até o rodapé: a área de soltar o card é a coluna inteira
+	// (o drop target é o __column), então altura = área de drop utilizável.
+	align-items: stretch;
+	min-height: calc(100vh - 420px);
 	padding-bottom: 8px;
+
+	@media (max-height: 800px) {
+		min-height: 360px;
+	}
 
 	&__column {
 		flex: none;
+		display: flex;
+		flex-direction: column;
 		width: 264px;
 		background: #f7f7f7;
 		border: 1px solid #e8e8e8;
@@ -433,6 +442,9 @@
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
+		// Ocupa o resto da coluna para que o espaço vazio abaixo dos cards
+		// continue sendo alvo de drop até embaixo.
+		flex: 1;
 	}
 
 	&__archive-all {
