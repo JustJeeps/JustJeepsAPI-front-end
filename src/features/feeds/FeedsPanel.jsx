@@ -658,8 +658,12 @@ const FeedsPanel = () => {
 				return (
 					<div>
 						<Tooltip title={`Data from ${formatDateTime(feed.currentBatch.dataAsOf)}, uploaded ${formatDateTime(feed.currentBatch.uploadedAt)}`}>
+							{/* Never "fresh" for a file from March. Each vendor has its
+							    own rhythm (Omix revises twice a year), so the verdict is
+							    about being on schedule for THIS feed, and the age is
+							    always spelled out next to it. */}
 							<Tag color={feed.stale ? 'orange' : 'green'}>
-								{feed.stale ? 'stale' : 'fresh'} · {formatAge(feed.ageHours)}
+								{feed.stale ? 'overdue' : 'on schedule'} · {formatAge(feed.ageHours)}
 							</Tag>
 						</Tooltip>
 						<div>
@@ -791,8 +795,9 @@ const FeedsPanel = () => {
 		>
 			<Text type="secondary" className="feeds-panel__help">
 				Vendor price/inventory files live in the DigitalOcean Spaces bucket. Every upload becomes a new
-				immutable version; the daily sync always reads the latest complete batch. Stale or missing feeds
-				show up here and in the daily cron digest.
+				immutable version; the daily sync always reads the latest complete batch. Every feed shows the
+				date of its data, and each one has its own expected rhythm: a feed only counts as overdue,
+				here and in the daily digest, once it passes what is normal for that vendor.
 			</Text>
 
 			{somethingRunning && (
