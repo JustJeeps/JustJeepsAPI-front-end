@@ -332,7 +332,9 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 					showIcon
 					className="feeds-panel__modal-alert"
 					message={`Only what you picked is replaced. ${keptFromCurrentBatch
-						.map((artifact) => `${artifact.fileName} stays as the one from ${formatDateTime(artifact.uploadedAt)}`)
+						// The date of the FILE, so the person knows how old what they
+						// are keeping actually is, not when it happened to arrive.
+						.map((artifact) => `${artifact.fileName} stays as the one from ${formatDateTime(artifact.sourceModifiedAt || artifact.uploadedAt)}`)
 						.join('; ')}.`}
 				/>
 			)}
@@ -647,16 +649,27 @@ const FeedsPanel = () => {
 			render: (feed) => {
 				if (!feed.currentBatch) return <Tag color="red">no data</Tag>;
 				const source = feed.currentBatch.artifacts[0];
+				// Two different dates, and confusing them is what called a
+				// spreadsheet exported in March "fresh" because it arrived
+				// yesterday. The tag is about the DATA; the upload line is about
+				// the delivery, and only shown when they differ.
+				const arrivedLater = new Date(feed.currentBatch.uploadedAt).getTime()
+					- new Date(feed.currentBatch.dataAsOf).getTime() > 36e5;
 				return (
 					<div>
-						<Tooltip title={`Uploaded ${formatDateTime(feed.currentBatch.uploadedAt)}`}>
+						<Tooltip title={`Data from ${formatDateTime(feed.currentBatch.dataAsOf)}, uploaded ${formatDateTime(feed.currentBatch.uploadedAt)}`}>
 							<Tag color={feed.stale ? 'orange' : 'green'}>
 								{feed.stale ? 'stale' : 'fresh'} · {formatAge(feed.ageHours)}
 							</Tag>
 						</Tooltip>
 						<div>
 							<Text type="secondary" className="feeds-panel__feed-name">
-								{formatDateTime(feed.currentBatch.uploadedAt)}
+								data from {formatDateTime(feed.currentBatch.dataAsOf)}
+							</Text>
+						</div>
+						<div>
+							<Text type="secondary" className="feeds-panel__feed-name">
+								{arrivedLater ? `uploaded ${formatDateTime(feed.currentBatch.uploadedAt)}` : 'uploaded then'}
 								{' · '}{source.source}{source.uploadedBy ? ` by ${source.uploadedBy}` : ''}
 							</Text>
 						</div>
