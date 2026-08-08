@@ -126,7 +126,7 @@ const OrderTable = () => {
 
 
 
-  const API_URL = import.meta.env.VITE_API_URL;
+  const API_URL = import.meta.env.VITE_API_URL || "";
   const SKU_STATUS_ALLOWED_USERS = new Set(["admin", "jerry", "tess", "jacob", "david", "rafael", "ricardo", "paula"]);
   const ORDER_CANCEL_EXECUTE_ALLOWED_USERS = new Set(["tess", "jerry", "jacob", "paula", "karoline"]);
   const ORDER_CANCEL_DRY_RUN_ALLOWED_USERS = new Set(["tess"]);
@@ -350,7 +350,7 @@ const normalizeBrandName = (brand) =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 
-const KEYPARTS_ANTHONY_SEARCHABLE_SKUS = new Set([
+const ANTHONY_STOCK_CHECK_SEARCHABLE_SKUS = new Set([
   "0482-710",
   "0485-138",
   "0485-136",
@@ -362,6 +362,118 @@ const KEYPARTS_ANTHONY_SEARCHABLE_SKUS = new Set([
   "0485-320",
   "0487-221",
   "0487-222",
+  "11132.03",
+  "11151.12",
+  "11209.04",
+  "11218.04",
+  "11229.05",
+  "11251.02",
+  "11251.04",
+  "11303.01",
+  "11352.11",
+  "11546.51",
+  "11586.09",
+  "11609.25",
+  "11609.28",
+  "11650",
+  "11810.05",
+  "11811.35",
+  "11812.04",
+  "11814.03",
+  "12012.24",
+  "12025.23",
+  "12029.01",
+  "12029.28",
+  "12029.32",
+  "12029.40",
+  "12031.02",
+  "12215.07",
+  "12301.02",
+  "12302.05",
+  "12304.02",
+  "12401.01",
+  "12401.25",
+  "12403.01",
+  "12404.01",
+  "12405.32",
+  "12420.03",
+  "16512.55",
+  "16521.07",
+  "16521.15",
+  "16521.22",
+  "16580.66",
+  "16710.04",
+  "16714.01",
+  "16714.09",
+  "16715.22",
+  "16723.03",
+  "16728.02",
+  "16732.01",
+  "16732.50",
+  "16734.03",
+  "16736.03",
+  "16751.07",
+  "16751.12",
+  "16751.13",
+  "16751.14",
+  "16753.01",
+  "16753.02",
+  "16919.02",
+  "17104.80",
+  "17107.01",
+  "17117.01",
+  "17208.03",
+  "17234.12",
+  "17235.01",
+  "17238.04",
+  "17258.01",
+  "17408.06",
+  "17408.10",
+  "17409.01",
+  "17410.01",
+  "17422.01",
+  "17440.01",
+  "17440.02",
+  "17447.24",
+  "17451.14",
+  "17458.01",
+  "17473.26",
+  "17625.01",
+  "17718.03",
+  "17741.03",
+  "17903.04",
+  "18018.01",
+  "18026.03",
+  "18029.01",
+  "18030.02",
+  "18041.02",
+  "18042.02",
+  "18270.05",
+  "18271.02",
+  "18271.19",
+  "18272.04",
+  "18603.54",
+  "18670.35",
+  "18760.27",
+  "18880.15",
+  "18885.03",
+  "18885.08",
+  "18885.32",
+  "18885.33",
+  "18885.30",
+  "13202.05",
+  "13318.02",
+  "13318.05",
+  "15104.42",
+  "15305.51",
+  "19710.03",
+  "19712.01",
+  "19712.10",
+  "4470365",
+  "391122901",
+  "391123401",
+  "1-1001BL",
+  "99STUD5",
 ]);
 
 const normalizeSearchableSku = (value) =>
@@ -373,16 +485,12 @@ const extractSearchableFromSku = (sku) => {
   const raw = String(sku || "").trim();
   if (!raw) return "";
   const matched = raw.match(/(\d{4}-\d{3})$/);
-  return matched ? matched[1] : "";
+  if (matched) return matched[1];
+  const parts = raw.split("-");
+  return parts.length > 1 ? parts[parts.length - 1] : "";
 };
 
-const shouldTagKeypartsAnthonyCheck = (item) => {
-  const normalizedBrand = normalizeBrandName(
-    item?.product?.brand_name || item?.brand_name || ""
-  );
-  const isKeyparts = normalizedBrand === "keyparts" || normalizedBrand === "key parts";
-  if (!isKeyparts) return false;
-
+const shouldTagAnthonyStockCheck = (item) => {
   const candidates = [
     item?.product?.searchable_sku,
     item?.searchable_sku,
@@ -390,7 +498,7 @@ const shouldTagKeypartsAnthonyCheck = (item) => {
   ];
 
   return candidates.some((value) =>
-    KEYPARTS_ANTHONY_SEARCHABLE_SKUS.has(normalizeSearchableSku(value))
+    ANTHONY_STOCK_CHECK_SEARCHABLE_SKUS.has(normalizeSearchableSku(value))
   );
 };
 
@@ -2716,7 +2824,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
               </Form.Item>
             );
           } else {
-            const showAnthonyTag = shouldTagKeypartsAnthonyCheck(record);
+            const showAnthonyTag = shouldTagAnthonyStockCheck(record);
             const showJacobTag = shouldTagJacobStockCheck(record);
             const showBedrugHuskyTag = shouldTagBedrugHuskyCheck(record);
 
