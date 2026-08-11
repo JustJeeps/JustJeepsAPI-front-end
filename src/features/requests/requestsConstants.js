@@ -20,11 +20,25 @@ export const STATUS_NAMES = STATUSES.map((status) => status.name);
 // ou triage (regra no back, lib/requests/archive.js).
 export const DONE_STATUSES = ['Completed', 'Closed'];
 
-// Quem pode arquivar/deletar um chamado: o autor ou triage (espelho de
-// lib/requests/permissions.js no back, que é quem decide de verdade).
-export const canManageRequest = (request, currentUser, isTriage) => {
+// Quem pode arquivar/deletar um chamado: o autor, triage, ou admin do SETOR
+// do chamado (espelho de lib/requests/permissions.js + actorContext no back,
+// que é quem decide de verdade). adminSectorIds vem de meta.myRoles.
+export const canManageRequest = (request, currentUser, isTriage, adminSectorIds = []) => {
 	if (!request || !currentUser) return false;
-	return Boolean(isTriage) || request.requester?.id === currentUser.id;
+	if (Boolean(isTriage) || request.requester?.id === currentUser.id) return true;
+	return Boolean(request.sector?.id) && adminSectorIds.includes(request.sector.id);
+};
+
+// Boards por setor (2026-08-11): o back manda (meta.myRoles vem de
+// GET /api/requests/meta); estes predicados só escondem/mostram UI.
+export const isSectorAdmin = (meta, sectorId) =>
+	Boolean(meta?.myRoles?.adminSectorIds?.includes(sectorId));
+
+// Recorte da tela por setor: null/undefined = "All". Chamado sem setor
+// (dado antigo em trânsito de deploy) só aparece no All.
+export const matchesSector = (request, sectorId) => {
+	if (sectorId === null || sectorId === undefined) return true;
+	return request.sector?.id === sectorId;
 };
 
 // Eixo de ciclo de vida do chamado (ativo / arquivado / deletado). Explícito

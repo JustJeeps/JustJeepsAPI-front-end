@@ -13,11 +13,12 @@ import {
 	restoreRequest,
 	updateRequest,
 } from './requestsApi';
-import { canManageRequest, matchesLifecycle, requestRef } from './requestsConstants';
+import { canManageRequest, matchesLifecycle, matchesSector, requestRef } from './requestsConstants';
 import RequestsFilterBar, { EMPTY_FILTERS, matchesFilters } from './RequestsFilterBar';
 import RequestsList from './RequestsList';
 import RequestsBoard from './RequestsBoard';
 import RequestsKpiCards from './RequestsKpiCards';
+import RequestsSectorTabs from './RequestsSectorTabs';
 import RequestsViewChips, { matchesView } from './RequestsViewChips';
 import { WorkflowTab, GuidelinesTab } from './RequestsInfoTabs';
 import RequestDetailDrawer from './RequestDetailDrawer';
@@ -46,11 +47,14 @@ const RequestsPage = () => {
 	const [statusFilter, setStatusFilter] = useState(null); // vindo dos KPIs
 	const [selectedId, setSelectedId] = useState(null);
 	const [newOpen, setNewOpen] = useState(false);
+	// Boards por setor: null = All; recorta KPIs, lista e board de uma vez.
+	const [sectorId, setSectorId] = useState(null);
 	// Lixeira: lista separada, carregada sob demanda (só triage enxerga).
 	const [deletedRequests, setDeletedRequests] = useState([]);
 
 	const normalizedUsername = (user?.username || '').toLowerCase();
 	const isTriage = Boolean(meta?.triageUsers?.includes(normalizedUsername));
+	const adminSectorIds = useMemo(() => meta?.myRoles?.adminSectorIds || [], [meta]);
 
 	const loadRequests = useCallback(async () => {
 		try {
@@ -96,18 +100,40 @@ const RequestsPage = () => {
 		}
 	}, [searchParams, setSearchParams]);
 
+	// Deep-link do setor (?sector=slug): resolve depois que o meta chega.
+	useEffect(() => {
+		const slug = searchParams.get('sector');
+		if (!slug || !meta?.sectors) return;
+		const sector = meta.sectors.find((entry) => entry.slug === slug);
+		if (sector) setSectorId(sector.id);
+	}, [searchParams, meta]);
+
+	const changeSector = useCallback((nextSectorId) => {
+		setSectorId(nextSectorId);
+		const sector = (meta?.sectors || []).find((entry) => entry.id === nextSectorId);
+		setSearchParams(sector ? { sector: sector.slug } : {}, { replace: true });
+	}, [meta, setSearchParams]);
+
 	const visibleRequests = useMemo(
 		() => (view === 'deleted' ? deletedRequests : requests).filter(
 			(request) =>
+				matchesSector(request, sectorId) &&
 				matchesLifecycle(request, view) &&
 				matchesFilters(request, filters) &&
 				matchesView(request, view, user?.id) &&
 				(!statusFilter || request.status === statusFilter)
 		),
-		[requests, deletedRequests, filters, view, statusFilter, user]
+		[requests, deletedRequests, filters, view, statusFilter, user, sectorId]
 	);
 
+	// KPIs e contadores respeitam o recorte do setor selecionado.
 	const activeRequests = useMemo(
+		() => requests.filter((request) => !request.archivedAt && matchesSector(request, sectorId)),
+		[requests, sectorId]
+	);
+
+	// Base dos tabs de setor: tudo que não está arquivado, sem recorte de setor.
+	const allActiveRequests = useMemo(
 		() => requests.filter((request) => !request.archivedAt),
 		[requests]
 	);
@@ -138,10 +164,11 @@ const RequestsPage = () => {
 	}, [loadRequests]);
 
 	// Uma função só desce para lista/board/drawer decidirem o que mostrar —
-	// evita espalhar isTriage + currentUser por três níveis de props.
+	// evita espalhar isTriage + currentUser por três níveis de props. Admin do
+	// setor do chamado gerencia como triage dentro do próprio setor.
 	const canManage = useCallback(
-		(request) => canManageRequest(request, user, isTriage),
-		[user, isTriage]
+		(request) => canManageRequest(request, user, isTriage, adminSectorIds),
+		[user, isTriage, adminSectorIds]
 	);
 
 	// Um handler para as quatro ações de ciclo de vida do chamado.
@@ -215,6 +242,13 @@ const RequestsPage = () => {
 
 	const requestsTabContent = (
 		<>
+			<RequestsSectorTabs
+				meta={meta}
+				requests={allActiveRequests}
+				value={sectorId}
+				onChange={changeSector}
+			/>
+
 			<RequestsKpiCards
 				requests={activeRequests}
 				activeView={view}
@@ -319,6 +353,7 @@ const RequestsPage = () => {
 				open={newOpen}
 				onClose={() => setNewOpen(false)}
 				meta={meta}
+				defaultSectorId={sectorId}
 				existingRequests={requests}
 				onCreated={async (created) => {
 					setNewOpen(false);

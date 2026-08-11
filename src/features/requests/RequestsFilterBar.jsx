@@ -48,6 +48,7 @@ const RequestsFilterBar = ({ filters, onChange, users, resultLabel }) => {
 						style={{ width: '100%' }}
 						options={[
 							{ value: 'status', label: 'Group by: Status' },
+							{ value: 'sector', label: 'Group by: Sector' },
 							{ value: 'project', label: 'Group by: Project' },
 							{ value: 'assignee', label: 'Group by: Assignee' },
 						]}
