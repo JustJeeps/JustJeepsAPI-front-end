@@ -244,6 +244,7 @@ const RequestsPage = () => {
 		<>
 			<RequestsSectorTabs
 				meta={meta}
+				isTriage={isTriage}
 				requests={allActiveRequests}
 				value={sectorId}
 				onChange={changeSector}

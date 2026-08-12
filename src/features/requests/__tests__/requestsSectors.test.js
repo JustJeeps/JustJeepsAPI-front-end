@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { isSectorAdmin, matchesSector, canManageRequest } from '../requestsConstants';
+import { sectorTabsFor } from '../RequestsSectorTabs';
 
 // Boards por setor (2026-08-11): predicados puros espelhando o back
 // (lib/sectors/permissions.js + requestsService.actorContext). O back decide
@@ -46,6 +47,34 @@ describe('matchesSector', () => {
 	it('chamado sem setor (dado antigo em transito) so aparece no All', () => {
 		expect(matchesSector(request({ sector: null }), null)).toBe(true);
 		expect(matchesSector(request({ sector: null }), 3)).toBe(false);
+	});
+});
+
+describe('sectorTabsFor (visibilidade por membership, 2026-08-12)', () => {
+	const wideMeta = {
+		sectors: [
+			{ id: 1, name: 'General', slug: 'general' },
+			{ id: 3, name: 'TI', slug: 'ti' },
+			{ id: 4, name: 'Vendas', slug: 'vendas', archivedAt: '2026-08-01' },
+		],
+		myRoles: { adminSectorIds: [], memberSectorIds: [3] },
+	};
+
+	it('triage ve todos os setores ativos (arquivado fica de fora)', () => {
+		expect(sectorTabsFor(wideMeta, true).map((s) => s.id)).toEqual([1, 3]);
+	});
+
+	it('nao-triage ve so os setores dos quais e membro', () => {
+		expect(sectorTabsFor(wideMeta, false).map((s) => s.id)).toEqual([3]);
+	});
+
+	it('sem membership nenhum, lista vazia (a tela mostra so os proprios chamados no All)', () => {
+		const meta = { ...wideMeta, myRoles: { adminSectorIds: [], memberSectorIds: [] } };
+		expect(sectorTabsFor(meta, false)).toEqual([]);
+	});
+
+	it('meta ausente nao estoura', () => {
+		expect(sectorTabsFor(null, false)).toEqual([]);
 	});
 });
 
