@@ -19,11 +19,7 @@ export const fetchTrelloBoards = () => apiGet('/api/trello-settings/boards').the
 export const fetchTrelloBoardLists = (boardId) =>
 	apiGet(`/api/trello-settings/boards/${boardId}/lists`).then((res) => res.data);
 
-export const fetchTrelloUserBoards = () =>
-	apiGet('/api/trello-settings/user-boards').then((res) => res.data);
-
-// payload: { boardId, boardName, listId, listName } ou { boardId: null } (remove)
-export const saveTrelloUserBoard = (userId, payload) =>
-	apiPut(`/api/trello-settings/user-boards/${userId}`, payload).then((res) => res.data);
+// O mapeamento usuário→board foi aposentado (boards por setor, 2026-08-11):
+// o card segue o SETOR do chamado — ver sectorsApi.js e a aba Sectors.
 
 export const fetchUsersLite = () => apiGet('/api/users').then((res) => res.data);

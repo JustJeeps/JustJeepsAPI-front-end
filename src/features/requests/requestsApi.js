@@ -56,6 +56,11 @@ export const fetchDeletedRequests = () =>
 export const createTrelloCard = (id) =>
 	apiPost(`/api/requests/${id}/trello-card`).then((res) => res.data);
 
+// Move o card existente para o board do setor ATUAL do chamado ("Sync card
+// to sector board" — retry do auto-move e mapping criado depois).
+export const moveTrelloCard = (id) =>
+	apiPost(`/api/requests/${id}/trello-card/move`).then((res) => res.data);
+
 // Download autenticado: blob via axios (o interceptor injeta o Bearer) e
 // clique num object URL — mesmo padrão do CronJobsDashboard.
 export const downloadAttachment = async (id, attachment) => {

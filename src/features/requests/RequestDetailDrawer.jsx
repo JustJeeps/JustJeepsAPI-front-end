@@ -19,6 +19,7 @@ import { addComment, fetchRequestDetail, updateRequest } from './requestsApi';
 import {
 	COMMENT_REQUIRED_STATUSES,
 	canManageRequest,
+	isSectorAdmin,
 	PRIORITIES,
 	PRIORITY_COLORS,
 	PROJECTS,
@@ -55,8 +56,13 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, isTriage, curren
 	const [draft, setDraft] = useState({ title: '', description: '', links: '' });
 
 	const open = Boolean(requestId);
-	// Autor ou triage: mesma regra do back (lib/requests/permissions.js).
-	const canManage = detail ? canManageRequest(detail, currentUser, isTriage) : false;
+	// Autor, triage ou admin do setor: mesma regra do back
+	// (lib/requests/permissions.js + actorContext).
+	const adminSectorIds = meta?.myRoles?.adminSectorIds || [];
+	const canManage = detail ? canManageRequest(detail, currentUser, isTriage, adminSectorIds) : false;
+	// Mover de setor: triage ou admin do setor de ORIGEM (o atual do chamado).
+	const canMoveSector = detail ? (isTriage || isSectorAdmin(meta, detail.sector?.id)) : false;
+	const sectors = (meta?.sectors || []).filter((sector) => !sector.archivedAt);
 
 	const saveTitle = (value) => {
 		setEditingTitle(false);
@@ -166,6 +172,11 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, isTriage, curren
 				<Space direction="vertical" size={0}>
 					<Text type="secondary">
 						{requestRef(detail.id)}
+						{detail.sector && (
+							<Tag color={detail.sector.color || undefined} style={{ marginLeft: 8 }}>
+								{detail.sector.name}
+							</Tag>
+						)}
 						{detail.archivedAt && <Tag className="requests-drawer__archived-tag">Archived</Tag>}
 					</Text>
 					{editMode ? (
@@ -274,6 +285,22 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, isTriage, curren
 					<Descriptions size="small" column={2} className="requests-drawer__meta">
 						<Descriptions.Item label="Requester">{userLabel(detail.requester)}</Descriptions.Item>
 						<Descriptions.Item label="Assignee">{userLabel(detail.assignee)}</Descriptions.Item>
+						<Descriptions.Item label="Sector">
+							{/* Mover de setor: só triage ou admin do setor ATUAL (regra no
+							    back — canMoveRequest). O card do Trello vai junto. */}
+							<Select
+								size="small"
+								variant="borderless"
+								value={detail.sector?.id}
+								disabled={saving || !canMoveSector}
+								className="requests-drawer__meta-select"
+								onChange={(value) => {
+									const target = sectors.find((sector) => sector.id === value);
+									applyPatch({ sectorId: value }, `Moved to ${target?.name || 'sector'}`);
+								}}
+								options={sectors.map((sector) => ({ value: sector.id, label: sector.name }))}
+							/>
+						</Descriptions.Item>
 						<Descriptions.Item label="Project">
 							<Select
 								size="small"

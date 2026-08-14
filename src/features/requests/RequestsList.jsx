@@ -40,6 +40,24 @@ export const buildGroups = (requests, groupBy, users) => {
 			}))
 			.filter((group) => group.rows.length);
 	}
+	if (groupBy === 'sector') {
+		// Setores vêm do próprio dado (request.sector), na ordem em que aparecem.
+		const seen = new Map();
+		for (const request of requests) {
+			const sector = request.sector;
+			const key = sector ? `sector-${sector.id}` : 'sector-none';
+			if (!seen.has(key)) {
+				seen.set(key, {
+					key,
+					label: sector?.name || 'No sector',
+					color: sector?.color || '#9aa0a6',
+					rows: [],
+				});
+			}
+			seen.get(key).rows.push(request);
+		}
+		return [...seen.values()];
+	}
 	const unassigned = {
 		key: 'unassigned',
 		label: 'Unassigned',

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, Form, Input, Modal, Select, Typography, Upload, message } from 'antd';
 import { InboxOutlined, LinkOutlined } from '@ant-design/icons';
 import { apiErrorMessage } from '../../utils/api';
@@ -8,10 +8,10 @@ import { PRIORITIES, PROJECTS, TYPES, findSimilarRequest, requestRef } from './r
 const { Text } = Typography;
 
 // Modal de criação (layout inspirado no Jira, mantendo o padrão do app):
-// contexto (Project/Type/Priority) compacto no topo, título em destaque,
-// descrição logo abaixo e extras (link, anexos) com peso visual menor.
+// contexto (Sector/Project/Type/Priority) compacto no topo, título em
+// destaque, descrição logo abaixo e extras (link, anexos) com peso menor.
 // Um chamado por assunto (RF01) — a nota vive no rodapé, sem alerta gritando.
-const NewRequestModal = ({ open, onClose, meta, existingRequests, onCreated }) => {
+const NewRequestModal = ({ open, onClose, meta, defaultSectorId, existingRequests, onCreated }) => {
 	const [form] = Form.useForm();
 	const [submitting, setSubmitting] = useState(false);
 	const [fileList, setFileList] = useState([]);
@@ -19,6 +19,13 @@ const NewRequestModal = ({ open, onClose, meta, existingRequests, onCreated }) =
 	const title = Form.useWatch('title', form);
 	const similar = findSimilarRequest(title, existingRequests || []);
 	const storageEnabled = Boolean(meta?.attachments?.enabled);
+
+	// Setor: obrigatório. Default = tab de setor ativo na página, senão General.
+	const sectors = (meta?.sectors || []).filter((sector) => !sector.archivedAt);
+	const fallbackSectorId = sectors.find((sector) => sector.slug === 'general')?.id ?? sectors[0]?.id;
+	useEffect(() => {
+		if (open) form.setFieldsValue({ sectorId: defaultSectorId ?? fallbackSectorId });
+	}, [open, defaultSectorId, fallbackSectorId, form]);
 
 	const handleClose = () => {
 		form.resetFields();
@@ -35,6 +42,7 @@ const NewRequestModal = ({ open, onClose, meta, existingRequests, onCreated }) =
 				project: values.project,
 				type: values.type,
 				priority: values.priority,
+				sectorId: values.sectorId,
 				links: values.link?.trim() ? [values.link.trim()] : [],
 			});
 
@@ -78,6 +86,12 @@ const NewRequestModal = ({ open, onClose, meta, existingRequests, onCreated }) =
 		>
 			<Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ priority: 'Normal' }} requiredMark={false}>
 				<div className="requests-new__context">
+					<Form.Item name="sectorId" rules={[{ required: true, message: 'Sector is required' }]} className="requests-new__col">
+						<Select
+							placeholder="Sector *"
+							options={sectors.map((sector) => ({ value: sector.id, label: sector.name }))}
+						/>
+					</Form.Item>
 					<Form.Item name="project" rules={[{ required: true, message: 'Project is required' }]} className="requests-new__col">
 						<Select placeholder="Project *" options={PROJECTS.map((project) => ({ value: project, label: project }))} />
 					</Form.Item>
