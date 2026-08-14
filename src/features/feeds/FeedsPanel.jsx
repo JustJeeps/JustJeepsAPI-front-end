@@ -146,13 +146,21 @@ const FeedRuns = ({ feed }) => {
 // picked is carried forward from the current batch by the server, so the feed
 // always ends up with a complete set without forcing the person to have both
 // files in hand.
-const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
+const UploadFeedModal = ({ feed, directEnabled, apiFallbackMaxBytes, onClose, onUploaded }) => {
 	const [fileList, setFileList] = useState([]);
 	const [note, setNote] = useState('');
 	const [uploading, setUploading] = useState(false);
 	const [progress, setProgress] = useState(0);
 	const [stage, setStage] = useState('');
 	const abortRef = useRef(null);
+
+	// Limite efetivo por arquivo: o caminho ASSINADO (direto ao bucket) usa o
+	// limite próprio do feed (WheelPros/Keystone chegam a 500-600MB); com o
+	// direct upload fora do ar o arquivo passa pela API e o teto do painel
+	// (100MB, disco do container) é quem manda.
+	const sizeLimit = directEnabled
+		? feed.maxUploadBytes
+		: Math.min(feed.maxUploadBytes, apiFallbackMaxBytes || feed.maxUploadBytes);
 
 	// Files of this feed the person did not pick. They are NOT a blocker: the
 	// server carries each one forward from the current batch, so one file can be
@@ -174,8 +182,8 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 	// travel all the way to the server before being rejected.
 	const rejected = useMemo(() => fileList.filter((file) => {
 		const size = (file.originFileObj || file).size;
-		return !feed.files.includes(file.name) || (Number.isFinite(size) && size > feed.maxUploadBytes);
-	}), [feed, fileList]);
+		return !feed.files.includes(file.name) || (Number.isFinite(size) && size > sizeLimit);
+	}), [feed, fileList, sizeLimit]);
 
 	const handleSelection = ({ fileList: nextList }) => {
 		// Keeping only the last N silently threw away files the person had just
@@ -210,6 +218,13 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 		// While the bucket CORS is not configured, the browser cannot talk directly
 		// to Spaces. Instead of failing, it falls back to sending through the API.
 		const uploadThroughApi = async () => {
+			// Fail fast: com o direct upload fora do ar, um arquivo acima do teto
+			// da API seria recusado só DEPOIS de trafegar inteiro.
+			const cap = apiFallbackMaxBytes || Infinity;
+			const tooBig = files.find((file) => file.size > cap);
+			if (tooBig) {
+				throw new Error(`${tooBig.name} is ${formatBytes(tooBig.size)} — direct upload to storage is offline and the API path tops out at ${formatBytes(cap)}. Try again when storage is back.`);
+			}
 			setStage('Sending through the server');
 			setProgress(0);
 			const result = await uploadFeedFiles(feed.feed, files, note.trim(), setProgress);
@@ -290,7 +305,10 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 				{feed.files.length > 1 && feed.currentBatch
 					? ' You can send just one of them; the other stays as it is.'
 					: ''}
-				{' '}Max {formatBytes(feed.maxUploadBytes)} per file. Bigger files go through the CLI.
+				{' '}Max {formatBytes(sizeLimit)} per file.
+				{!directEnabled && sizeLimit < feed.maxUploadBytes
+					? ' Direct upload to storage is offline, so the lower API limit applies.'
+					: ''}
 			</Text>
 			<Upload.Dragger
 				multiple={feed.files.length > 1}
@@ -311,7 +329,7 @@ const UploadFeedModal = ({ feed, directEnabled, onClose, onUploaded }) => {
 					message={rejected.map((file) => {
 						const size = (file.originFileObj || file).size;
 						return feed.files.includes(file.name)
-							? `${file.name} is ${formatBytes(size)}, over the ${formatBytes(feed.maxUploadBytes)} limit for this feed`
+							? `${file.name} is ${formatBytes(size)}, over the ${formatBytes(sizeLimit)} limit for this feed`
 							: `${file.name} is not a file this feed expects`;
 					}).join('. ')}
 				/>
@@ -843,6 +861,7 @@ const FeedsPanel = () => {
 				<UploadFeedModal
 					feed={uploadFeed}
 					directEnabled={Boolean(data?.directUpload?.enabled)}
+					apiFallbackMaxBytes={Number(data?.directUpload?.apiFallbackMaxBytes) || undefined}
 					onClose={() => setUploadFeed(null)}
 					onUploaded={load}
 				/>
