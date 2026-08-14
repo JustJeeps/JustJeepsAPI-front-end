@@ -8,6 +8,7 @@ import {
 	PRIORITY_COLORS,
 	PROJECTS,
 	STATUS_COLORS,
+	assignableUsers,
 	formatDate,
 	relativeTime,
 	requestRef,
@@ -77,7 +78,7 @@ export const buildGroups = (requests, groupBy, users) => {
 
 // Lista agrupada e colapsável. Edição inline de priority e assignees para
 // qualquer usuário — o back valida de novo (fechar segue restrito a triage).
-const RequestsList = ({ requests, groupBy, users, canManage, isTriage, emptyText, onOpen, onInlinePatch, onRequestAction }) => {
+const RequestsList = ({ requests, groupBy, users, meta, canManage, isTriage, emptyText, onOpen, onInlinePatch, onRequestAction }) => {
 	const groups = useMemo(() => buildGroups(requests, groupBy, users), [requests, groupBy, users]);
 
 	const columns = [
@@ -114,7 +115,8 @@ const RequestsList = ({ requests, groupBy, users, canManage, isTriage, emptyText
 			width: 170,
 			// Qualquer usuário pode atribuir (decisão de 2026-08-03); fechar
 			// chamado continua só com triage. Multi-assignee: o primeiro da
-			// lista é o primário (board do Trello, auto-status).
+			// lista é o primário (board do Trello, auto-status). Opções só de
+			// MEMBROS do setor do chamado (2026-08-14; o back valida de verdade).
 			render: (_, record) => {
 				return (
 					<Select
@@ -134,7 +136,7 @@ const RequestsList = ({ requests, groupBy, users, canManage, isTriage, emptyText
 								values.length ? 'Assignees updated' : 'Request unassigned'
 							)
 						}
-						options={users.map((user) => ({ value: user.id, label: userLabel(user) }))}
+						options={assignableUsers(users, meta, record).map((user) => ({ value: user.id, label: userLabel(user) }))}
 					/>
 				);
 			},

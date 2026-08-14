@@ -281,6 +281,7 @@ const RequestsPage = () => {
 					requests={visibleRequests}
 					groupBy={filters.groupBy}
 					users={users}
+					meta={meta}
 					emptyText={emptyListText}
 					canManage={canManage}
 					isTriage={isTriage}

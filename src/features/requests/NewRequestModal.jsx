@@ -1,16 +1,50 @@
 import { useEffect, useState } from 'react';
-import { Button, Form, Input, Modal, Select, Typography, Upload, message } from 'antd';
+import { Button, Form, Input, Modal, Segmented, Select, Tag, Typography, Upload, message } from 'antd';
 import { InboxOutlined, LinkOutlined } from '@ant-design/icons';
 import { apiErrorMessage } from '../../utils/api';
 import { createRequest, uploadAttachments } from './requestsApi';
-import { PRIORITIES, PROJECTS, TYPES, findSimilarRequest, requestRef } from './requestsConstants';
+import { PRIORITIES, PRIORITY_COLORS, PROJECTS, TYPES, findSimilarRequest, requestRef } from './requestsConstants';
 
 const { Text } = Typography;
 
-// Modal de criação (layout inspirado no Jira, mantendo o padrão do app):
-// contexto (Sector/Project/Type/Priority) compacto no topo, título em
-// destaque, descrição logo abaixo e extras (link, anexos) com peso menor.
-// Um chamado por assunto (RF01) — a nota vive no rodapé, sem alerta gritando.
+// Chips de setor (value/onChange injetados pelo Form.Item): mesmo vocabulário
+// visual dos tabs de setor da página — dot colorido + nome. Com muitos
+// setores o campo degrada para Select (chips não escalam horizontalmente).
+const SectorChipsField = ({ value, onChange, sectors }) => {
+	if (sectors.length > 6) {
+		return (
+			<Select
+				value={value}
+				onChange={onChange}
+				placeholder="Sector"
+				options={sectors.map((sector) => ({ value: sector.id, label: sector.name }))}
+			/>
+		);
+	}
+	return (
+		<div className="requests-new__chips">
+			{sectors.map((sector) => (
+				<Tag.CheckableTag
+					key={sector.id}
+					checked={value === sector.id}
+					onChange={() => onChange(sector.id)}
+					className="requests-new__chip"
+				>
+					<span
+						className="requests-new__chip-dot"
+						style={{ background: sector.color || '#94a3b8' }}
+					/>
+					{sector.name}
+				</Tag.CheckableTag>
+			))}
+		</div>
+	);
+};
+
+// Modal de criação, na ordem em que a pessoa pensa: O QUE aconteceu (título
+// em destaque + descrição) → PARA ONDE vai (setor em chips coloridos, projeto,
+// tipo, prioridade) → extras (link, anexos) com peso visual menor. Mantém a
+// identidade do app (AntD + cores vigentes). Um chamado por assunto (RF01).
 const NewRequestModal = ({ open, onClose, meta, defaultSectorId, existingRequests, onCreated }) => {
 	const [form] = Form.useForm();
 	const [submitting, setSubmitting] = useState(false);
@@ -72,6 +106,7 @@ const NewRequestModal = ({ open, onClose, meta, defaultSectorId, existingRequest
 			title="New Request"
 			onCancel={handleClose}
 			width={700}
+			destroyOnHidden
 			footer={(
 				<div className="requests-new__footer">
 					<Text type="secondary" className="requests-new__footer-note">
@@ -85,30 +120,13 @@ const NewRequestModal = ({ open, onClose, meta, defaultSectorId, existingRequest
 			)}
 		>
 			<Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ priority: 'Normal' }} requiredMark={false}>
-				<div className="requests-new__context">
-					<Form.Item name="sectorId" rules={[{ required: true, message: 'Sector is required' }]} className="requests-new__col">
-						<Select
-							placeholder="Sector *"
-							options={sectors.map((sector) => ({ value: sector.id, label: sector.name }))}
-						/>
-					</Form.Item>
-					<Form.Item name="project" rules={[{ required: true, message: 'Project is required' }]} className="requests-new__col">
-						<Select placeholder="Project *" options={PROJECTS.map((project) => ({ value: project, label: project }))} />
-					</Form.Item>
-					<Form.Item name="type" rules={[{ required: true, message: 'Type is required' }]} className="requests-new__col">
-						<Select placeholder="Type *" options={TYPES.map((type) => ({ value: type, label: type }))} />
-					</Form.Item>
-					<Form.Item name="priority" className="requests-new__col">
-						<Select options={PRIORITIES.map((priority) => ({ value: priority, label: `Priority: ${priority}` }))} />
-					</Form.Item>
-				</div>
-
 				<Form.Item
 					name="title"
 					rules={[{ required: true, message: 'Title is required' }]}
 					className="requests-new__title-item"
 				>
 					<Input
+						autoFocus
 						variant="borderless"
 						className="requests-new__title-input"
 						placeholder="Summarize the issue in one line"
@@ -123,8 +141,36 @@ const NewRequestModal = ({ open, onClose, meta, defaultSectorId, existingRequest
 
 				<Form.Item name="description" rules={[{ required: true, message: 'Description is required' }]}>
 					<Input.TextArea
-						autoSize={{ minRows: 5, maxRows: 12 }}
+						autoSize={{ minRows: 4, maxRows: 12 }}
 						placeholder="Steps to reproduce · expected vs actual · relevant order/SKU"
+					/>
+				</Form.Item>
+
+				<div className="requests-new__section-label">Send to</div>
+				<Form.Item name="sectorId" rules={[{ required: true, message: 'Sector is required' }]} className="requests-new__sector-item">
+					<SectorChipsField sectors={sectors} />
+				</Form.Item>
+
+				<div className="requests-new__context">
+					<Form.Item name="project" label="Project" rules={[{ required: true, message: 'Project is required' }]}>
+						<Select placeholder="Select…" options={PROJECTS.map((project) => ({ value: project, label: project }))} />
+					</Form.Item>
+					<Form.Item name="type" label="Type" rules={[{ required: true, message: 'Type is required' }]}>
+						<Select placeholder="Select…" options={TYPES.map((type) => ({ value: type, label: type }))} />
+					</Form.Item>
+				</div>
+
+				<Form.Item name="priority" label="Priority" className="requests-new__priority-item">
+					<Segmented
+						options={PRIORITIES.map((priority) => ({
+							value: priority,
+							label: (
+								<span>
+									<span className="requests-new__chip-dot" style={{ background: PRIORITY_COLORS[priority] }} />
+									{priority}
+								</span>
+							),
+						}))}
 					/>
 				</Form.Item>
 

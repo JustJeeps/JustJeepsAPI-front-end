@@ -18,6 +18,7 @@ import { apiErrorMessage } from '../../utils/api';
 import { addComment, fetchRequestDetail, updateRequest } from './requestsApi';
 import {
 	COMMENT_REQUIRED_STATUSES,
+	assignableUsers,
 	canManageRequest,
 	isSectorAdmin,
 	PRIORITIES,
@@ -211,47 +212,60 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, isTriage, curren
 
 			{!loading && detail && (
 				<div className="requests-drawer">
-					<Space wrap className="requests-drawer__controls">
-						<Select
-							value={detail.status}
-							onChange={handleStatusChange}
-							disabled={saving}
-							style={{ minWidth: 210 }}
-							options={STATUS_NAMES.map((name) => ({
-								value: name,
-								label: <Tag color={STATUS_COLORS[name]}>{name}</Tag>,
-							}))}
-						/>
-						<Select
-							mode="multiple"
-							placeholder="Unassigned"
-							maxTagCount="responsive"
-							value={(detail.assignees || []).map((entry) => entry.user_id ?? entry.user?.id)}
-							onChange={(values) =>
-								applyPatch(
-									{ assigneeIds: values },
-									values.length ? 'Assignees updated' : 'Request unassigned'
-								)
-							}
-							disabled={saving}
-							style={{ minWidth: 220 }}
-							options={users.map((user) => ({ value: user.id, label: userLabel(user) }))}
-						/>
-						<Select
-							value={detail.priority}
-							onChange={(value) => applyPatch({ priority: value }, `Priority set to ${value}`)}
-							disabled={saving}
-							style={{ minWidth: 130 }}
-							options={PRIORITIES.map((name) => ({
-								value: name,
-								label: (
-									<span>
-										<span className="requests-list__priority-dot" style={{ background: PRIORITY_COLORS[name] }} />
-										{name}
-									</span>
-								),
-							}))}
-						/>
+					<Space wrap align="end" className="requests-drawer__controls">
+						{/* Labels sobre os controles: sem eles a linha era três selects
+						    anônimos e o de assignee passava por filtro de busca. */}
+						<div className="requests-drawer__control">
+							<Text type="secondary" className="requests-drawer__control-label">Status</Text>
+							<Select
+								value={detail.status}
+								onChange={handleStatusChange}
+								disabled={saving}
+								style={{ minWidth: 185 }}
+								options={STATUS_NAMES.map((name) => ({
+									value: name,
+									label: <Tag color={STATUS_COLORS[name]}>{name}</Tag>,
+								}))}
+							/>
+						</div>
+						<div className="requests-drawer__control">
+							<Text type="secondary" className="requests-drawer__control-label">
+								Assignees — {detail.sector?.name || 'sector'} members
+							</Text>
+							<Select
+								mode="multiple"
+								placeholder="Unassigned"
+								maxTagCount="responsive"
+								value={(detail.assignees || []).map((entry) => entry.user_id ?? entry.user?.id)}
+								onChange={(values) =>
+									applyPatch(
+										{ assigneeIds: values },
+										values.length ? 'Assignees updated' : 'Request unassigned'
+									)
+								}
+								disabled={saving}
+								style={{ minWidth: 205 }}
+								options={assignableUsers(users, meta, detail).map((user) => ({ value: user.id, label: userLabel(user) }))}
+							/>
+						</div>
+						<div className="requests-drawer__control">
+							<Text type="secondary" className="requests-drawer__control-label">Priority</Text>
+							<Select
+								value={detail.priority}
+								onChange={(value) => applyPatch({ priority: value }, `Priority set to ${value}`)}
+								disabled={saving}
+								style={{ minWidth: 130 }}
+								options={PRIORITIES.map((name) => ({
+									value: name,
+									label: (
+										<span>
+											<span className="requests-list__priority-dot" style={{ background: PRIORITY_COLORS[name] }} />
+											{name}
+										</span>
+									),
+								}))}
+							/>
+						</div>
 						{editMode ? (
 							<>
 								<Button type="primary" loading={saving} onClick={saveEdit}>Save</Button>

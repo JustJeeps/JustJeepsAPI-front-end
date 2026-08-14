@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isSectorAdmin, matchesSector, canManageRequest } from '../requestsConstants';
+import { isSectorAdmin, matchesSector, canManageRequest, assignableUsers } from '../requestsConstants';
 import { sectorTabsFor } from '../RequestsSectorTabs';
 
 // Boards por setor (2026-08-11): predicados puros espelhando o back
@@ -75,6 +75,32 @@ describe('sectorTabsFor (visibilidade por membership, 2026-08-12)', () => {
 
 	it('meta ausente nao estoura', () => {
 		expect(sectorTabsFor(null, false)).toEqual([]);
+	});
+});
+
+describe('assignableUsers (assignment por membros do setor, 2026-08-14)', () => {
+	const allUsers = [{ id: 1 }, { id: 2 }, { id: 9 }];
+	const metaWithMembers = {
+		sectors: [
+			{ id: 3, name: 'TI', slug: 'ti', memberIds: [1, 2] },
+			{ id: 1, name: 'General', slug: 'general', memberIds: [1, 2, 9] },
+		],
+	};
+
+	it('filtra pelas opcoes do setor do chamado', () => {
+		const req = { sector: { id: 3 }, assignees: [] };
+		expect(assignableUsers(allUsers, metaWithMembers, req).map((u) => u.id)).toEqual([1, 2]);
+	});
+
+	it('assignee atual fora do setor continua na lista (grandfathered)', () => {
+		const req = { sector: { id: 3 }, assignees: [{ user_id: 9 }] };
+		expect(assignableUsers(allUsers, metaWithMembers, req).map((u) => u.id)).toEqual([1, 2, 9]);
+	});
+
+	it('sem memberIds no meta (payload antigo em transito), nao filtra', () => {
+		const req = { sector: { id: 3 }, assignees: [] };
+		const oldMeta = { sectors: [{ id: 3, name: 'TI', slug: 'ti' }] };
+		expect(assignableUsers(allUsers, oldMeta, req).length).toBe(3);
 	});
 });
 

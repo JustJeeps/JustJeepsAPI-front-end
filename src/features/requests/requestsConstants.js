@@ -41,6 +41,18 @@ export const matchesSector = (request, sectorId) => {
 	return request.sector?.id === sectorId;
 };
 
+// Assignment por setor (2026-08-14): o select de assignee só oferece MEMBROS
+// do setor do chamado (meta.sectors[].memberIds) + os assignees atuais
+// (grandfathered — chamado movido mantém o responsável). Espelho cosmético:
+// o back valida de verdade (409 ASSIGNEE_NOT_IN_SECTOR). Sem memberIds no
+// meta (payload antigo em trânsito de deploy), não filtra.
+export const assignableUsers = (users, meta, request) => {
+	const sector = (meta?.sectors || []).find((entry) => entry.id === request?.sector?.id);
+	if (!sector?.memberIds) return users;
+	const current = new Set((request.assignees || []).map((entry) => entry.user_id ?? entry.user?.id));
+	return users.filter((user) => sector.memberIds.includes(user.id) || current.has(user.id));
+};
+
 // Eixo de ciclo de vida do chamado (ativo / arquivado / deletado). Explícito
 // para os eixos não se cruzarem: na lixeira a lista já vem só de deletados,
 // então não se filtra por arquivado de novo — senão um chamado arquivado E
