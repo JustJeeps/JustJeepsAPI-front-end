@@ -355,6 +355,8 @@ const RequestsPage = () => {
 				open={newOpen}
 				onClose={() => setNewOpen(false)}
 				meta={meta}
+				users={users}
+				isTriage={isTriage}
 				defaultSectorId={sectorId}
 				existingRequests={requests}
 				onCreated={async (created) => {

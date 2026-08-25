@@ -53,6 +53,26 @@ export const assignableUsers = (users, meta, request) => {
 	return users.filter((user) => sector.memberIds.includes(user.id) || current.has(user.id));
 };
 
+// Onde o usuário pode ABRIR chamado (2026-08-21): triage em qualquer setor
+// ativo; não-triage só no General (catch-all) ou em setor do qual é membro.
+// Espelho cosmético — o back decide de verdade (409 SECTOR_NOT_MEMBER).
+export const creatableSectors = (meta, isTriage) => {
+	const active = (meta?.sectors || []).filter((sector) => !sector.archivedAt);
+	if (isTriage) return active;
+	const memberIds = meta?.myRoles?.memberSectorIds || [];
+	return active.filter((sector) => sector.slug === 'general' || memberIds.includes(sector.id));
+};
+
+// Troca de setor no modal de criação: mantém na seleção só quem é membro do
+// novo setor (as opções do select já mudaram; id invisível garantiria um 409
+// no POST). Sem memberIds no meta, não poda — espelho de assignableUsers.
+export const pruneAssigneeSelection = (selectedIds, meta, sectorId) => {
+	const ids = selectedIds || [];
+	const sector = (meta?.sectors || []).find((entry) => entry.id === sectorId);
+	if (!sector?.memberIds) return ids;
+	return ids.filter((id) => sector.memberIds.includes(id));
+};
+
 // Eixo de ciclo de vida do chamado (ativo / arquivado / deletado). Explícito
 // para os eixos não se cruzarem: na lixeira a lista já vem só de deletados,
 // então não se filtra por arquivado de novo — senão um chamado arquivado E
@@ -96,21 +116,28 @@ export const PRIORITY_COLORS = {
 	Low: '#a3a3a3',
 };
 
+// Listas revisadas em 2026-08-21 (espelho de config/requests.js no back).
+// Na UI o campo `project` aparece como "System / Area" e `type` como
+// "Request Type"; chamados antigos mantem os valores anteriores.
 export const PROJECTS = [
-	'Just Jeeps — US Website',
-	'Just Jeeps — CA Website',
+	'Just Jeeps — Canadian Website',
+	'Just Jeeps — U.S. Website',
+	'Just Jeeps — Both Websites',
+	'Magento Backend',
 	'Pricing Tool',
-	'Magento / Backend',
+	'PO Tool',
+	'Helpdesk Ticket System',
 	'Integrations',
-	'Internal / Other',
+	'Other',
 ];
 
 export const TYPES = [
-	'Website Issue',
-	'Product / Data Issue',
-	'Improvement / Suggestion',
-	'Investigation / Test',
-	'Access / Configuration',
+	'Fix an Issue / Something Not Working',
+	'Product Information / Image / Fitment Correction',
+	'Pricing Update',
+	'Change / Improvement Request',
+	'Investigation / Testing',
+	'Access / Settings Change',
 	'Other',
 ];
 

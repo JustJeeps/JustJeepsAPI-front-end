@@ -281,8 +281,24 @@
 }
 
 .requests-new {
-	// Roteamento em duas colunas (Project/Type) com labels visíveis — labels
-	// pequenos e secundários, no padrão do resto do app.
+	// Todos os campos com label pequeno e secundário, uniforme (Summary,
+	// Description, Assignees, Project, Type, Priority, Related link) — o
+	// contraste dos campos vem da borda padrão do AntD sobre o modal branco.
+	&__form {
+		.ant-form-item-label > label {
+			font-size: 12px;
+			color: #8c8c8c;
+		}
+	}
+
+	// Instrução curta do formulário (draft revisado com a Tess, 2026-08-21).
+	&__intro {
+		display: block;
+		font-size: 12px;
+		margin-bottom: 12px;
+	}
+
+	// Roteamento em duas colunas (Project/Type).
 	&__context {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
@@ -290,11 +306,6 @@
 
 		.ant-form-item {
 			margin-bottom: 10px;
-		}
-
-		.ant-form-item-label > label {
-			font-size: 12px;
-			color: #8c8c8c;
 		}
 	}
 
@@ -331,32 +342,10 @@
 
 	&__priority-item {
 		margin-bottom: 12px;
-
-		.ant-form-item-label > label {
-			font-size: 12px;
-			color: #8c8c8c;
-		}
 	}
 
 	&__title-item {
 		margin-bottom: 4px;
-
-		.ant-form-item-explain {
-			padding-left: 0;
-		}
-	}
-
-	&__title-input {
-		font-size: 20px;
-		font-weight: 600;
-		padding: 6px 0;
-		border-bottom: 1px solid #f0f0f0;
-		border-radius: 0;
-
-		&:focus,
-		&:focus-within {
-			border-bottom-color: #1890ff;
-		}
 	}
 
 	&__similar {
@@ -367,10 +356,6 @@
 
 	&__link {
 		margin-bottom: 10px;
-
-		.ant-input-affix-wrapper {
-			padding-left: 0;
-		}
 	}
 
 	&__link-icon {

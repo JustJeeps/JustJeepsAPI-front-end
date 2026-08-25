@@ -49,7 +49,7 @@ const RequestsFilterBar = ({ filters, onChange, users, resultLabel }) => {
 						options={[
 							{ value: 'status', label: 'Group by: Status' },
 							{ value: 'sector', label: 'Group by: Sector' },
-							{ value: 'project', label: 'Group by: Project' },
+							{ value: 'project', label: 'Group by: System / Area' },
 							{ value: 'assignee', label: 'Group by: Assignee' },
 						]}
 					/>
@@ -65,7 +65,7 @@ const RequestsFilterBar = ({ filters, onChange, users, resultLabel }) => {
 				<Col xs={12} md={3}>
 					<Select
 						allowClear
-						placeholder="Project"
+						placeholder="System / Area"
 						value={filters.project}
 						onChange={(value) => set('project', value ?? null)}
 						style={{ width: '100%' }}
@@ -75,7 +75,7 @@ const RequestsFilterBar = ({ filters, onChange, users, resultLabel }) => {
 				<Col xs={12} md={3}>
 					<Select
 						allowClear
-						placeholder="Type"
+						placeholder="Request Type"
 						value={filters.type}
 						onChange={(value) => set('type', value ?? null)}
 						style={{ width: '100%' }}

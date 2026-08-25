@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { isSectorAdmin, matchesSector, canManageRequest, assignableUsers } from '../requestsConstants';
+import {
+	isSectorAdmin,
+	matchesSector,
+	canManageRequest,
+	assignableUsers,
+	creatableSectors,
+	pruneAssigneeSelection,
+} from '../requestsConstants';
 import { sectorTabsFor } from '../RequestsSectorTabs';
 
 // Boards por setor (2026-08-11): predicados puros espelhando o back
@@ -101,6 +108,62 @@ describe('assignableUsers (assignment por membros do setor, 2026-08-14)', () => 
 		const req = { sector: { id: 3 }, assignees: [] };
 		const oldMeta = { sectors: [{ id: 3, name: 'TI', slug: 'ti' }] };
 		expect(assignableUsers(allUsers, oldMeta, req).length).toBe(3);
+	});
+});
+
+describe('creatableSectors (onde o usuario pode abrir chamado, 2026-08-21)', () => {
+	const wideMeta = {
+		sectors: [
+			{ id: 1, name: 'General', slug: 'general' },
+			{ id: 3, name: 'TI', slug: 'ti' },
+			{ id: 4, name: 'Vendas', slug: 'vendas' },
+			{ id: 5, name: 'Antigo', slug: 'antigo', archivedAt: '2026-08-01' },
+		],
+		myRoles: { adminSectorIds: [], memberSectorIds: [3] },
+	};
+
+	it('triage abre em qualquer setor ativo (arquivado fica de fora)', () => {
+		expect(creatableSectors(wideMeta, true).map((s) => s.id)).toEqual([1, 3, 4]);
+	});
+
+	it('nao-triage abre so no General ou em setor do qual e membro', () => {
+		expect(creatableSectors(wideMeta, false).map((s) => s.id)).toEqual([1, 3]);
+	});
+
+	it('nao-triage sem membership nenhum fica so com o General', () => {
+		const meta = { ...wideMeta, myRoles: { adminSectorIds: [], memberSectorIds: [] } };
+		expect(creatableSectors(meta, false).map((s) => s.id)).toEqual([1]);
+	});
+
+	it('meta ausente nao estoura', () => {
+		expect(creatableSectors(null, false)).toEqual([]);
+	});
+});
+
+describe('pruneAssigneeSelection (troca de setor no modal de criacao)', () => {
+	const metaWithMembers = {
+		sectors: [
+			{ id: 3, name: 'TI', slug: 'ti', memberIds: [1, 2] },
+			{ id: 1, name: 'General', slug: 'general', memberIds: [1, 2, 9] },
+		],
+	};
+
+	it('mantem quem e membro do novo setor', () => {
+		expect(pruneAssigneeSelection([1, 2], metaWithMembers, 3)).toEqual([1, 2]);
+	});
+
+	it('remove quem nao e membro do novo setor', () => {
+		expect(pruneAssigneeSelection([1, 9], metaWithMembers, 3)).toEqual([1]);
+	});
+
+	it('sem memberIds no meta (payload antigo em transito), nao poda', () => {
+		const oldMeta = { sectors: [{ id: 3, name: 'TI', slug: 'ti' }] };
+		expect(pruneAssigneeSelection([1, 9], oldMeta, 3)).toEqual([1, 9]);
+	});
+
+	it('selecao vazia ou ausente vira lista vazia', () => {
+		expect(pruneAssigneeSelection([], metaWithMembers, 3)).toEqual([]);
+		expect(pruneAssigneeSelection(undefined, metaWithMembers, 3)).toEqual([]);
 	});
 });
 

@@ -3,7 +3,18 @@ import { Button, Form, Input, Modal, Segmented, Select, Tag, Typography, Upload,
 import { InboxOutlined, LinkOutlined } from '@ant-design/icons';
 import { apiErrorMessage } from '../../utils/api';
 import { createRequest, uploadAttachments } from './requestsApi';
-import { PRIORITIES, PRIORITY_COLORS, PROJECTS, TYPES, findSimilarRequest, requestRef } from './requestsConstants';
+import {
+	PRIORITIES,
+	PRIORITY_COLORS,
+	PROJECTS,
+	TYPES,
+	assignableUsers,
+	creatableSectors,
+	findSimilarRequest,
+	pruneAssigneeSelection,
+	requestRef,
+	userLabel,
+} from './requestsConstants';
 
 const { Text } = Typography;
 
@@ -41,11 +52,12 @@ const SectorChipsField = ({ value, onChange, sectors }) => {
 	);
 };
 
-// Modal de criação, na ordem em que a pessoa pensa: O QUE aconteceu (título
-// em destaque + descrição) → PARA ONDE vai (setor em chips coloridos, projeto,
-// tipo, prioridade) → extras (link, anexos) com peso visual menor. Mantém a
-// identidade do app (AntD + cores vigentes). Um chamado por assunto (RF01).
-const NewRequestModal = ({ open, onClose, meta, defaultSectorId, existingRequests, onCreated }) => {
+// Modal de criação, na ordem em que a pessoa pensa: O QUE aconteceu (summary
+// + descrição) → PARA ONDE vai (setor em chips coloridos, responsáveis,
+// projeto, tipo, prioridade) → extras (link, anexos). Campos outlined com
+// label sobre o fundo branco do modal — contraste vem da borda padrão do
+// AntD, sem headline borderless. Um chamado por assunto (RF01).
+const NewRequestModal = ({ open, onClose, meta, users = [], isTriage = false, defaultSectorId, existingRequests, onCreated }) => {
 	const [form] = Form.useForm();
 	const [submitting, setSubmitting] = useState(false);
 	const [fileList, setFileList] = useState([]);
@@ -54,12 +66,25 @@ const NewRequestModal = ({ open, onClose, meta, defaultSectorId, existingRequest
 	const similar = findSimilarRequest(title, existingRequests || []);
 	const storageEnabled = Boolean(meta?.attachments?.enabled);
 
-	// Setor: obrigatório. Default = tab de setor ativo na página, senão General.
-	const sectors = (meta?.sectors || []).filter((sector) => !sector.archivedAt);
+	// Setor: obrigatório. Não-triage só vê General + setores dos quais é membro
+	// (o back valida de verdade). Default = tab ativo na página, senão General.
+	const sectors = creatableSectors(meta, isTriage);
 	const fallbackSectorId = sectors.find((sector) => sector.slug === 'general')?.id ?? sectors[0]?.id;
 	useEffect(() => {
 		if (open) form.setFieldsValue({ sectorId: defaultSectorId ?? fallbackSectorId });
 	}, [open, defaultSectorId, fallbackSectorId, form]);
+
+	// Assignees (opcional, primeiro = primário): só membros do setor escolhido —
+	// mesma regra do drawer, com request sintético (chamado ainda não existe).
+	// Trocar de setor poda a seleção inválida em silêncio: as opções do select
+	// já mudaram, e id invisível garantiria um 409 no POST (o back decide).
+	const sectorIdValue = Form.useWatch('sectorId', form);
+	const assigneeOptions = assignableUsers(users, meta, { sector: { id: sectorIdValue }, assignees: [] });
+	useEffect(() => {
+		const selected = form.getFieldValue('assigneeIds') || [];
+		const pruned = pruneAssigneeSelection(selected, meta, sectorIdValue);
+		if (pruned.length !== selected.length) form.setFieldsValue({ assigneeIds: pruned });
+	}, [sectorIdValue, meta, form]);
 
 	const handleClose = () => {
 		form.resetFields();
@@ -78,6 +103,7 @@ const NewRequestModal = ({ open, onClose, meta, defaultSectorId, existingRequest
 				priority: values.priority,
 				sectorId: values.sectorId,
 				links: values.link?.trim() ? [values.link.trim()] : [],
+				...(values.assigneeIds?.length ? { assigneeIds: values.assigneeIds } : {}),
 			});
 
 			if (fileList.length && storageEnabled) {
@@ -119,16 +145,25 @@ const NewRequestModal = ({ open, onClose, meta, defaultSectorId, existingRequest
 				</div>
 			)}
 		>
-			<Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ priority: 'Normal' }} requiredMark={false}>
+			<Form
+				form={form}
+				layout="vertical"
+				onFinish={handleSubmit}
+				initialValues={{ priority: 'Normal' }}
+				requiredMark={false}
+				className="requests-new__form"
+			>
+				<Text type="secondary" className="requests-new__intro">
+					Use this form to report an issue or request a change related to website, tools or internal systems.
+				</Text>
 				<Form.Item
 					name="title"
-					rules={[{ required: true, message: 'Title is required' }]}
+					label="Summary"
+					rules={[{ required: true, message: 'Summary is required' }]}
 					className="requests-new__title-item"
 				>
 					<Input
 						autoFocus
-						variant="borderless"
-						className="requests-new__title-input"
 						placeholder="Summarize the issue in one line"
 						maxLength={300}
 					/>
@@ -139,7 +174,7 @@ const NewRequestModal = ({ open, onClose, meta, defaultSectorId, existingRequest
 					</Text>
 				)}
 
-				<Form.Item name="description" rules={[{ required: true, message: 'Description is required' }]}>
+				<Form.Item name="description" label="Description" rules={[{ required: true, message: 'Description is required' }]}>
 					<Input.TextArea
 						autoSize={{ minRows: 4, maxRows: 12 }}
 						placeholder="Steps to reproduce · expected vs actual · relevant order/SKU"
@@ -151,11 +186,20 @@ const NewRequestModal = ({ open, onClose, meta, defaultSectorId, existingRequest
 					<SectorChipsField sectors={sectors} />
 				</Form.Item>
 
+				<Form.Item name="assigneeIds" label="Assignees (optional) — first is primary">
+					<Select
+						mode="multiple"
+						placeholder="Unassigned"
+						maxTagCount="responsive"
+						options={assigneeOptions.map((user) => ({ value: user.id, label: userLabel(user) }))}
+					/>
+				</Form.Item>
+
 				<div className="requests-new__context">
-					<Form.Item name="project" label="Project" rules={[{ required: true, message: 'Project is required' }]}>
+					<Form.Item name="project" label="System / Area" rules={[{ required: true, message: 'System / Area is required' }]}>
 						<Select placeholder="Select…" options={PROJECTS.map((project) => ({ value: project, label: project }))} />
 					</Form.Item>
-					<Form.Item name="type" label="Type" rules={[{ required: true, message: 'Type is required' }]}>
+					<Form.Item name="type" label="Request Type" rules={[{ required: true, message: 'Request type is required' }]}>
 						<Select placeholder="Select…" options={TYPES.map((type) => ({ value: type, label: type }))} />
 					</Form.Item>
 				</div>
@@ -174,11 +218,10 @@ const NewRequestModal = ({ open, onClose, meta, defaultSectorId, existingRequest
 					/>
 				</Form.Item>
 
-				<Form.Item name="link" className="requests-new__link">
+				<Form.Item name="link" label="Related link (optional)" className="requests-new__link">
 					<Input
 						prefix={<LinkOutlined className="requests-new__link-icon" />}
-						variant="borderless"
-						placeholder="Related link (optional)"
+						placeholder="https://…"
 					/>
 				</Form.Item>
 

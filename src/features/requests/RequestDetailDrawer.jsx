@@ -315,25 +315,25 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, isTriage, curren
 								options={sectors.map((sector) => ({ value: sector.id, label: sector.name }))}
 							/>
 						</Descriptions.Item>
-						<Descriptions.Item label="Project">
+						<Descriptions.Item label="System / Area">
 							<Select
 								size="small"
 								variant="borderless"
 								value={detail.project}
 								disabled={saving}
 								className="requests-drawer__meta-select"
-								onChange={(value) => applyPatch({ project: value }, 'Project updated')}
+								onChange={(value) => applyPatch({ project: value }, 'System / Area updated')}
 								options={PROJECTS.map((project) => ({ value: project, label: project }))}
 							/>
 						</Descriptions.Item>
-						<Descriptions.Item label="Type">
+						<Descriptions.Item label="Request Type">
 							<Select
 								size="small"
 								variant="borderless"
 								value={detail.type}
 								disabled={saving}
 								className="requests-drawer__meta-select"
-								onChange={(value) => applyPatch({ type: value }, 'Type updated')}
+								onChange={(value) => applyPatch({ type: value }, 'Request type updated')}
 								options={TYPES.map((type) => ({ value: type, label: type }))}
 							/>
 						</Descriptions.Item>
