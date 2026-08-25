@@ -9,6 +9,7 @@ import { fetchTrelloSettings } from './settingsApi';
 import TrelloCredentialsCard from './TrelloCredentialsCard';
 import SectorsPanel from './SectorsPanel';
 import FeedsPanel from '../feeds/FeedsPanel';
+import ReviewsPanel from '../reviews/ReviewsPanel';
 import '../feeds/feeds.scss';
 import './settings.scss';
 
@@ -88,7 +89,7 @@ const SettingsPage = () => {
 	);
 
 	const requestedTab = searchParams.get('tab');
-	const defaultTab = ['imports', 'sectors', 'trello'].includes(requestedTab) ? requestedTab : 'trello';
+	const defaultTab = ['imports', 'sectors', 'trello', 'reviews'].includes(requestedTab) ? requestedTab : 'trello';
 
 	return (
 		<div className="settings-page">
@@ -108,6 +109,8 @@ const SettingsPage = () => {
 					{ key: 'trello', label: 'Trello', children: trelloTab },
 					{ key: 'sectors', label: 'Sectors', children: sectorsTab },
 					{ key: 'imports', label: 'Imports', children: <FeedsPanel /> },
+					// Reviews: o gate mora no painel (GET /api/reviews/meta decide).
+					{ key: 'reviews', label: 'Reviews', children: <ReviewsPanel /> },
 				]}
 			/>
 		</div>
