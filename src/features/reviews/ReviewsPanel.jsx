@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Button, Modal, Progress, Result, Spin, Table, Tag, Tooltip, Typography, Upload, message } from 'antd';
-import { CloudUploadOutlined, InboxOutlined, ReloadOutlined, SyncOutlined } from '@ant-design/icons';
+import { CloudUploadOutlined, CopyOutlined, InboxOutlined, ReloadOutlined, SyncOutlined } from '@ant-design/icons';
 import { apiErrorMessage } from '../../utils/api';
 import {
 	fetchReviewsMeta,
@@ -8,6 +8,7 @@ import {
 	uploadReviewFile,
 	startFileSync,
 	retryFailedRows,
+	fetchFileErrors,
 } from './reviewsApi';
 import {
 	ROW_STATUS_META,
@@ -16,6 +17,7 @@ import {
 	pollDelayFor,
 	formatDateTime,
 	formatBytes,
+	formatErrorReport,
 } from './reviewsConstants';
 import './reviews.scss';
 
@@ -169,6 +171,18 @@ const ReviewsPanel = () => {
 		}
 	};
 
+	// Busca TODOS os erros do arquivo (não a amostra) e copia como texto
+	// simples, colável em Trello/e-mail para o time corrigir os SKUs.
+	const handleCopyErrors = async (file) => {
+		try {
+			const errors = await fetchFileErrors(file.id);
+			await navigator.clipboard.writeText(formatErrorReport(errors));
+			message.success('Error log copied to the clipboard');
+		} catch (error) {
+			message.error(apiErrorMessage(error, 'Could not copy the error log'));
+		}
+	};
+
 	const columns = [
 		{
 			title: 'File',
@@ -222,6 +236,13 @@ const ReviewsPanel = () => {
 				const summary = summarizeFileCounts(file);
 				return (
 					<span className="reviews-panel__actions">
+						{(summary.hasFailures || file.invalidRowCount > 0) && (
+							<Tooltip title="Copy every failed and invalid row as plain text">
+								<Button size="small" icon={<CopyOutlined />} onClick={() => handleCopyErrors(file)}>
+									Copy errors
+								</Button>
+							</Tooltip>
+						)}
 						{summary.hasFailures && (
 							<Button size="small" onClick={() => handleRetryFailed(file)} disabled={data.running}>
 								Retry failed

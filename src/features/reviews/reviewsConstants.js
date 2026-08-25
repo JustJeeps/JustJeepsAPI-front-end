@@ -50,6 +50,30 @@ export const formatDateTime = (value) => {
 	});
 };
 
+// Relatório em texto simples para o botão "Copy errors": colável em
+// Trello/e-mail sem formatação. Linguagem simples, uma linha por erro.
+export const formatErrorReport = (errors) => {
+	const lines = [`Review import errors - ${errors?.fileName || 'unknown file'}`];
+	const failed = errors?.failed || [];
+	if (failed.length) {
+		lines.push('', `Failed rows (${failed.length}):`);
+		for (const row of failed) {
+			lines.push(`row ${row.rowNumber} | ${row.sku} | ${row.nickname} | ${row.error || 'unknown error'}`);
+		}
+	}
+	const invalid = errors?.invalidSample || [];
+	if (invalid.length) {
+		const total = errors?.invalidRowCount || invalid.length;
+		const suffix = total > invalid.length ? ` (showing first ${invalid.length} of ${total})` : '';
+		lines.push('', `Invalid rows skipped at parse (${total})${suffix}:`);
+		for (const row of invalid) {
+			lines.push(`row ${row.rowNumber} | ${row.error}`);
+		}
+	}
+	if (failed.length === 0 && invalid.length === 0) lines.push('', 'No errors.');
+	return lines.join('\n');
+};
+
 export const formatBytes = (bytes) => {
 	const size = Number(bytes) || 0;
 	if (size >= 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)}MB`;

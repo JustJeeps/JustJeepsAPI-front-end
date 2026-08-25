@@ -5,6 +5,7 @@ import {
 	summarizeFileCounts,
 	pollDelayFor,
 	formatBytes,
+	formatErrorReport,
 } from '../reviewsConstants';
 
 const META = { allowedExtensions: ['.xlsx', '.csv'], maxUploadBytes: 10 * 1024 * 1024 };
@@ -60,5 +61,36 @@ describe('pollDelayFor / status meta / formatBytes', () => {
 	it('formatBytes legivel', () => {
 		expect(formatBytes(1394986)).toBe('1.3MB');
 		expect(formatBytes(2048)).toBe('2KB');
+	});
+});
+
+describe('formatErrorReport', () => {
+	it('monta o relatorio com failed e invalidas, uma linha por erro', () => {
+		const report = formatErrorReport({
+			fileName: 'reviews.xlsx',
+			failed: [{ rowNumber: 9071, sku: 'BAR-J103215', nickname: 'TylerH', error: 'PRODUCT_NOT_FOUND (sku does not exist in Magento)' }],
+			invalidSample: [{ rowNumber: 7932, error: 'invalid text (detail)' }],
+			invalidRowCount: 1,
+		});
+		expect(report).toContain('Review import errors - reviews.xlsx');
+		expect(report).toContain('Failed rows (1):');
+		expect(report).toContain('row 9071 | BAR-J103215 | TylerH | PRODUCT_NOT_FOUND');
+		expect(report).toContain('Invalid rows skipped at parse (1):');
+		expect(report).toContain('row 7932 | invalid text (detail)');
+	});
+
+	it('indica quando a amostra de invalidas esta truncada', () => {
+		const report = formatErrorReport({
+			fileName: 'a.csv',
+			failed: [],
+			invalidSample: [{ rowNumber: 1, error: 'x' }],
+			invalidRowCount: 250,
+		});
+		expect(report).toContain('(showing first 1 of 250)');
+	});
+
+	it('sem erros nao estoura', () => {
+		expect(formatErrorReport({ fileName: 'a.csv', failed: [], invalidSample: [] })).toContain('No errors.');
+		expect(formatErrorReport(null)).toContain('unknown file');
 	});
 });

@@ -23,6 +23,8 @@ export const startFileSync = async (fileId) => (await apiPost(`/api/reviews/file
 
 export const retryFailedRows = async (fileId) => (await apiPost(`/api/reviews/files/${fileId}/retry-failed`)).data;
 
+export const fetchFileErrors = async (fileId) => (await apiGet(`/api/reviews/files/${fileId}/errors`)).data;
+
 // Historico de runs do sync (feed fora do registry de feeds; o back esconde
 // para quem nao esta na allowlist).
 export const fetchReviewRuns = async (limit = 10) =>
