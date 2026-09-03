@@ -20,6 +20,7 @@ import {
 	COMMENT_REQUIRED_STATUSES,
 	assignableUsers,
 	canManageRequest,
+	canManageFollowers,
 	isSectorAdmin,
 	PRIORITIES,
 	PRIORITY_COLORS,
@@ -43,7 +44,7 @@ const { Text, Title, Paragraph } = Typography;
 
 // Drawer de detalhe: meta + transições inline + comentários + activity +
 // anexos. Toda mutação vai pro PATCH/POST e o estado local é o retorno da API.
-const RequestDetailDrawer = ({ requestId, onClose, users, meta, isTriage, currentUser, onChanged, onRequestAction }) => {
+const RequestDetailDrawer = ({ requestId, onClose, users, meta, canAssignAssignees = false, isTriage, currentUser, onChanged, onRequestAction }) => {
 	const [detail, setDetail] = useState(null);
 	const [loading, setLoading] = useState(false);
 	const [saving, setSaving] = useState(false);
@@ -61,6 +62,7 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, isTriage, curren
 	// (lib/requests/permissions.js + actorContext).
 	const adminSectorIds = meta?.myRoles?.adminSectorIds || [];
 	const canManage = detail ? canManageRequest(detail, currentUser, isTriage, adminSectorIds) : false;
+	const canEditFollowers = detail ? canManageFollowers(detail, currentUser) : false;
 	// Mover de setor: triage ou admin do setor de ORIGEM (o atual do chamado).
 	const canMoveSector = detail ? (isTriage || isSectorAdmin(meta, detail.sector?.id)) : false;
 	const sectors = (meta?.sectors || []).filter((sector) => !sector.archivedAt);
@@ -243,9 +245,29 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, isTriage, curren
 										values.length ? 'Assignees updated' : 'Request unassigned'
 									)
 								}
-								disabled={saving}
+								disabled={saving || !canAssignAssignees}
 								style={{ minWidth: 205 }}
 								options={assignableUsers(users, meta, detail).map((user) => ({ value: user.id, label: userLabel(user) }))}
+							/>
+						</div>
+						<div className="requests-drawer__control">
+							<Text type="secondary" className="requests-drawer__control-label">
+								Followers — chosen by requester/assignee
+							</Text>
+							<Select
+								mode="multiple"
+								placeholder="No followers"
+								maxTagCount="responsive"
+								value={(detail.followers || []).map((entry) => entry.user_id ?? entry.user?.id)}
+								onChange={(values) =>
+									applyPatch(
+										{ followerIds: values },
+										values.length ? 'Followers updated' : 'Followers cleared'
+									)
+								}
+								disabled={saving || !canEditFollowers}
+								style={{ minWidth: 235 }}
+								options={users.map((user) => ({ value: user.id, label: userLabel(user) }))}
 							/>
 						</div>
 						<div className="requests-drawer__control">

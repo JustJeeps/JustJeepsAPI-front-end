@@ -29,6 +29,12 @@ export const canManageRequest = (request, currentUser, isTriage, adminSectorIds 
 	return Boolean(request.sector?.id) && adminSectorIds.includes(request.sector.id);
 };
 
+export const canManageFollowers = (request, currentUser) => {
+	if (!request || !currentUser) return false;
+	if (request.requester?.id === currentUser.id) return true;
+	return (request.assignees || []).some((entry) => (entry.user_id ?? entry.user?.id) === currentUser.id);
+};
+
 // Boards por setor (2026-08-11): o back manda (meta.myRoles vem de
 // GET /api/requests/meta); estes predicados só escondem/mostram UI.
 export const isSectorAdmin = (meta, sectorId) =>

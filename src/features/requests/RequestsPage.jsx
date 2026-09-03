@@ -27,6 +27,20 @@ import './requests.scss';
 
 const { Title, Text } = Typography;
 
+const EXCLUDED_REQUEST_USER_NAMES = new Set([
+	'alice johnson',
+	'david brown',
+	'jane smith',
+	'john doe',
+]);
+
+const normalizeName = (value) => String(value || '').trim().toLowerCase();
+
+const isExcludedRequestUser = (user) => {
+	const fullName = normalizeName([user?.firstname, user?.lastname].filter(Boolean).join(' '));
+	return EXCLUDED_REQUEST_USER_NAMES.has(fullName);
+};
+
 // Página principal de Requests: orquestra dados (lista, usuários, meta) e
 // estado de UI (abas, modo lista/board, filtros, view, drawer, modal).
 // Filtros/busca/KPIs são client-side — a API devolve a lista completa.
@@ -54,6 +68,7 @@ const RequestsPage = () => {
 
 	const normalizedUsername = (user?.username || '').toLowerCase();
 	const isTriage = Boolean(meta?.triageUsers?.includes(normalizedUsername));
+	const canAssignAssignees = Boolean(meta?.permissions?.canAssignAssignees);
 	const adminSectorIds = useMemo(() => meta?.myRoles?.adminSectorIds || [], [meta]);
 
 	const loadRequests = useCallback(async () => {
@@ -79,7 +94,7 @@ const RequestsPage = () => {
 						fetchUsers(),
 					]);
 					setRequests(requestsData);
-					setUsers(usersData);
+					setUsers(usersData.filter((entry) => !isExcludedRequestUser(entry)));
 				}
 				setError(null);
 			} catch (loadError) {
@@ -282,6 +297,7 @@ const RequestsPage = () => {
 					groupBy={filters.groupBy}
 					users={users}
 					meta={meta}
+					canAssignAssignees={canAssignAssignees}
 					emptyText={emptyListText}
 					canManage={canManage}
 					isTriage={isTriage}
@@ -345,6 +361,7 @@ const RequestsPage = () => {
 				onClose={() => setSelectedId(null)}
 				users={users}
 				meta={meta}
+				canAssignAssignees={canAssignAssignees}
 				isTriage={isTriage}
 				currentUser={user}
 				onRequestAction={handleRequestAction}
@@ -356,6 +373,7 @@ const RequestsPage = () => {
 				onClose={() => setNewOpen(false)}
 				meta={meta}
 				users={users}
+				canAssignAssignees={canAssignAssignees}
 				isTriage={isTriage}
 				defaultSectorId={sectorId}
 				existingRequests={requests}

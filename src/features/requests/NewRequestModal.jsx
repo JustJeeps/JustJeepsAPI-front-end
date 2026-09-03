@@ -57,7 +57,7 @@ const SectorChipsField = ({ value, onChange, sectors }) => {
 // projeto, tipo, prioridade) → extras (link, anexos). Campos outlined com
 // label sobre o fundo branco do modal — contraste vem da borda padrão do
 // AntD, sem headline borderless. Um chamado por assunto (RF01).
-const NewRequestModal = ({ open, onClose, meta, users = [], isTriage = false, defaultSectorId, existingRequests, onCreated }) => {
+const NewRequestModal = ({ open, onClose, meta, users = [], canAssignAssignees = false, isTriage = false, defaultSectorId, existingRequests, onCreated }) => {
 	const [form] = Form.useForm();
 	const [submitting, setSubmitting] = useState(false);
 	const [fileList, setFileList] = useState([]);
@@ -190,6 +190,7 @@ const NewRequestModal = ({ open, onClose, meta, users = [], isTriage = false, de
 					<Select
 						mode="multiple"
 						placeholder="Unassigned"
+						disabled={!canAssignAssignees}
 						maxTagCount="responsive"
 						options={assigneeOptions.map((user) => ({ value: user.id, label: userLabel(user) }))}
 					/>

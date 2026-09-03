@@ -76,9 +76,9 @@ export const buildGroups = (requests, groupBy, users) => {
 	return [unassigned, ...byUser].filter((group) => group.rows.length || group.key === 'unassigned');
 };
 
-// Lista agrupada e colapsável. Edição inline de priority e assignees para
-// qualquer usuário — o back valida de novo (fechar segue restrito a triage).
-const RequestsList = ({ requests, groupBy, users, meta, canManage, isTriage, emptyText, onOpen, onInlinePatch, onRequestAction }) => {
+// Lista agrupada e colapsável. Priority segue editável; assignee obedece a
+// permissão específica retornada por /api/requests/meta.
+const RequestsList = ({ requests, groupBy, users, meta, canAssignAssignees, canManage, isTriage, emptyText, onOpen, onInlinePatch, onRequestAction }) => {
 	const groups = useMemo(() => buildGroups(requests, groupBy, users), [requests, groupBy, users]);
 
 	const columns = [
@@ -113,9 +113,8 @@ const RequestsList = ({ requests, groupBy, users, meta, canManage, isTriage, emp
 			title: 'Assignee',
 			key: 'assignee',
 			width: 170,
-			// Qualquer usuário pode atribuir (decisão de 2026-08-03); fechar
-			// chamado continua só com triage. Multi-assignee: o primeiro da
-			// lista é o primário (board do Trello, auto-status). Opções só de
+			// Multi-assignee: o primeiro da lista é o primário (board do Trello,
+			// auto-status). Opções só de
 			// MEMBROS do setor do chamado (2026-08-14; o back valida de verdade).
 			render: (_, record) => {
 				return (
@@ -125,7 +124,7 @@ const RequestsList = ({ requests, groupBy, users, meta, canManage, isTriage, emp
 						variant="borderless"
 						placeholder="Unassigned"
 						maxTagCount="responsive"
-						disabled={Boolean(record.deletedAt)}
+						disabled={Boolean(record.deletedAt) || !canAssignAssignees}
 						value={(record.assignees || []).map((entry) => entry.user_id ?? entry.user?.id)}
 						style={{ width: '100%' }}
 						onClick={(event) => event.stopPropagation()}
