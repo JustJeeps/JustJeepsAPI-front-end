@@ -17,7 +17,7 @@ import { canManageRequest, matchesLifecycle, matchesSector, requestRef } from '.
 import RequestsFilterBar, { EMPTY_FILTERS, matchesFilters } from './RequestsFilterBar';
 import RequestsList from './RequestsList';
 import RequestsBoard from './RequestsBoard';
-import RequestsKpiCards from './RequestsKpiCards';
+import RequestsKpiCards, { REQUESTS_TOTAL_FILTER } from './RequestsKpiCards';
 import RequestsSectorTabs from './RequestsSectorTabs';
 import RequestsViewChips, { matchesView } from './RequestsViewChips';
 import { WorkflowTab, GuidelinesTab } from './RequestsInfoTabs';
@@ -35,6 +35,7 @@ const EXCLUDED_REQUEST_USER_NAMES = new Set([
 ]);
 
 const normalizeName = (value) => String(value || '').trim().toLowerCase();
+const REQUESTS_TOTAL_STATUSES = ['New Request', 'Estimation', 'Assigned'];
 
 const isExcludedRequestUser = (user) => {
 	const fullName = normalizeName([user?.firstname, user?.lastname].filter(Boolean).join(' '));
@@ -136,7 +137,10 @@ const RequestsPage = () => {
 				matchesLifecycle(request, view) &&
 				matchesFilters(request, filters) &&
 				matchesView(request, view, user?.id) &&
-				(!statusFilter || request.status === statusFilter)
+				(!statusFilter
+					|| (statusFilter === REQUESTS_TOTAL_FILTER
+						? REQUESTS_TOTAL_STATUSES.includes(request.status)
+						: request.status === statusFilter))
 		),
 		[requests, deletedRequests, filters, view, statusFilter, user, sectorId]
 	);
@@ -272,6 +276,9 @@ const RequestsPage = () => {
 				onToggleView={toggleView}
 				onToggleStatus={toggleStatusFilter}
 			/>
+			<Text type="secondary" className="requests-page__kpi-hint">
+				New requests total includes New Request, Estimation, and Assigned.
+			</Text>
 
 			<RequestsFilterBar
 				filters={filters}

@@ -94,14 +94,10 @@ const RequestsList = ({ requests, groupBy, users, meta, canAssignAssignees, canM
 			ellipsis: true,
 			render: (title, record) => (
 				<span className="requests-list__title" onClick={() => onOpen(record.id)}>
-					{/* The group is the lane, so the exact status still has to be
-					    readable: three statuses share the Requests lane. */}
-					<Tooltip title={record.status}>
-						<span
-							className="requests-list__status-dot"
-							style={{ background: STATUS_COLORS[record.status] || '#ccc' }}
-						/>
-					</Tooltip>
+					{/* Status as a visible tag: avoids relying on dot color + hover. */}
+					<Tag className="requests-list__status-tag" color={STATUS_COLORS[record.status] || 'default'}>
+						{record.status}
+					</Tag>
 					{title}
 					{record.archivedAt && <Tag className="requests-list__state-tag">Archived</Tag>}
 				</span>
