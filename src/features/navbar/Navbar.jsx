@@ -86,7 +86,7 @@ const Navbar = () => {
 							</NavLink>
 						</li>
 						{/* Only show Purchaser Report for allowed users */}
-						{/* {user && ALLOWED_USERS.includes((user.username || user.name || '').toLowerCase()) && (
+						{user && ALLOWED_USERS.includes((user.username || user.name || '').toLowerCase()) && (
 						  <li className='nav-item'>
 						    <NavLink
 						      className={({ isActive }) => `nav-link jj-nav-link${isActive ? ' active' : ''}`}
@@ -95,7 +95,7 @@ const Navbar = () => {
 						      Purchaser Report
 						    </NavLink>
 						  </li>
-						)} */}
+						)}git st
 						<li className='nav-item'>
 							<NavLink
 								className={({ isActive }) => `nav-link jj-nav-link${isActive ? ' active' : ''}`}
