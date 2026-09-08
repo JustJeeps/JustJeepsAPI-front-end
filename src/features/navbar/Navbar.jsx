@@ -95,7 +95,7 @@ const Navbar = () => {
 						      Purchaser Report
 						    </NavLink>
 						  </li>
-						)}git st
+						)}
 						<li className='nav-item'>
 							<NavLink
 								className={({ isActive }) => `nav-link jj-nav-link${isActive ? ' active' : ''}`}
