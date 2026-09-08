@@ -19,9 +19,8 @@
 
 .navbar {
 	background-color: $yellow-500;
-	padding: 45px;
+	padding: 20px 28px;
 	font-family: 'Source Sans Pro', sans-serif;
-	font-family: 'Space Mono', monospace;
 	// Used to be xx-large: with one more menu item (Vendor Feeds) the links wrapped
 	// to a second line and the navbar pushed the content down.
 	font-size: 1rem;
@@ -36,6 +35,38 @@
 .navbar .nav-link {
 	font-size: 16px !important;
 	white-space: nowrap;
+}
+
+.navbar .jj-navbar-brand {
+	margin-right: 26px;
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.navbar .jj-navbar-brand img {
+	height: 56px;
+	width: auto;
+}
+
+@media (max-width: 992px) {
+	.navbar .jj-navbar-brand img {
+		height: 44px;
+	}
+}
+
+.navbar .jj-nav-link {
+	font-family: 'Source Sans Pro', sans-serif;
+	font-size: 16px;
+	font-weight: 700;
+	letter-spacing: 0.2px;
+	padding: 8px 14px;
+	margin: 0 4px;
+	border-bottom: 2px solid transparent;
+	transition: border-color 0.15s ease;
+}
+
+.navbar .jj-nav-link.active {
+	border-bottom-color: currentColor;
 }
 
 nav svg {
@@ -114,13 +145,8 @@ nav .nav-settings-gear {
 
 
 .nav-item {
-	//modern font family
-	font-family: 'Source Sans Pro', sans-serif;
-	font-family: 'Space Mono', monospace;
-	//increase font size
-	font-size: 80px;
-	padding: auto;
-
+	font-size: inherit;
+	padding: 0;
 }
 // Error boundary: respiro para a mensagem não colar na navbar fixa.
 .error-boundary {

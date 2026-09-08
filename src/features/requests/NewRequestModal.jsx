@@ -52,7 +52,7 @@ const SectorChipsField = ({ value, onChange, sectors }) => {
 	);
 };
 
-// Modal de criação, na ordem em que a pessoa pensa: O QUE aconteceu (summary
+// Modal de criação, na ordem em que a pessoa pensa: O QUE aconteceu (request
 // + descrição) → PARA ONDE vai (setor em chips coloridos, responsáveis,
 // projeto, tipo, prioridade) → extras (link, anexos). Campos outlined com
 // label sobre o fundo branco do modal — contraste vem da borda padrão do
@@ -158,13 +158,13 @@ const NewRequestModal = ({ open, onClose, meta, users = [], canAssignAssignees =
 				</Text>
 				<Form.Item
 					name="title"
-					label="Summary"
-					rules={[{ required: true, message: 'Summary is required' }]}
+					label="Request title"
+					rules={[{ required: true, message: 'Request title is required' }]}
 					className="requests-new__title-item"
 				>
 					<Input
 						autoFocus
-						placeholder="Summarize the issue in one line"
+						placeholder="Short title for this request"
 						maxLength={300}
 					/>
 				</Form.Item>

@@ -293,7 +293,13 @@
 	&__form {
 		.ant-form-item-label > label {
 			font-size: 12px;
-			color: #8c8c8c;
+			color: #5f6368;
+		}
+
+		.ant-input::placeholder,
+		.ant-input-textarea textarea::placeholder,
+		.ant-select-selection-placeholder {
+			color: #8a8f98;
 		}
 	}
 
@@ -301,6 +307,7 @@
 	&__intro {
 		display: block;
 		font-size: 12px;
+		color: #5f6368;
 		margin-bottom: 12px;
 	}
 
@@ -318,7 +325,7 @@
 	// Rótulo de seção ("Send to"): mesmo peso dos section-titles do drawer.
 	&__section-label {
 		font-size: 12px;
-		color: #8c8c8c;
+		color: #5f6368;
 		margin: 4px 0 6px;
 	}
 
@@ -357,6 +364,7 @@
 	&__similar {
 		display: block;
 		font-size: 12px;
+		color: #5f6368;
 		margin: -2px 0 10px;
 	}
 
@@ -365,7 +373,7 @@
 	}
 
 	&__link-icon {
-		color: #8c8c8c;
+		color: #5f6368;
 	}
 
 	&__dragger {
@@ -386,6 +394,7 @@
 		&-note {
 			margin-right: auto;
 			font-size: 12px;
+			color: #5f6368;
 		}
 	}
 }
@@ -411,14 +420,14 @@
 
 	&__label {
 		text-transform: uppercase;
-		font-size: 10px;
+		font-size: 12px;
 		letter-spacing: 0.8px;
 		color: #5f6368;
 		font-weight: 600;
 	}
 
 	&__value {
-		font-size: 24px;
+		font-size: 30px;
 		font-weight: 700;
 		margin-top: 2px;
 	}
@@ -435,7 +444,7 @@
 
 .requests-page__kpi-hint {
 	display: block;
-	font-size: 12px;
+	font-size: 13px;
 	margin: -6px 0 12px;
 }
 
@@ -446,7 +455,7 @@
 
 	&__label {
 		text-transform: uppercase;
-		font-size: 10px;
+		font-size: 11px;
 		letter-spacing: 0.8px;
 		margin-right: 4px;
 	}

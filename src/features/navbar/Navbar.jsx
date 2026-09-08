@@ -1,7 +1,7 @@
 import { Login, Logout } from '../../icons';
 import { SettingOutlined, UserOutlined } from '@ant-design/icons';
 import { Avatar, Space, Button, Dropdown } from 'antd';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import logo_jeeps from './logo_jeeps.png';
 import { useAuth } from '../../context/AuthContext';
@@ -61,7 +61,7 @@ const Navbar = () => {
 	return (
 		<nav className='navbar navbar-expand-lg'>
 			<div className='container'>
-				<Link className='nav-link active fs-5 mx-4' to='/'>
+				<Link className='navbar-brand jj-navbar-brand' to='/'>
 					<img src={logo_jeeps} alt='logo'/>
 				</Link>
 				<button
@@ -78,61 +78,60 @@ const Navbar = () => {
 				<div className='collapse navbar-collapse' id='navbarSupportedContent'>
 					<ul className='navbar-nav me-auto mb-2 mb-lg-0'>
 						<li className='nav-item'>
-							<Link
-								className='nav-link active fs-5 mx-4'
-								aria-current='page'
+							<NavLink
+								className={({ isActive }) => `nav-link jj-nav-link${isActive ? ' active' : ''}`}
 								to='/orders'
 							>
 								Orders
-							</Link>
+							</NavLink>
 						</li>
 						{/* Only show Purchaser Report for allowed users */}
 						{user && ALLOWED_USERS.includes((user.username || user.name || '').toLowerCase()) && (
 						  <li className='nav-item'>
-						    <Link
-						      className='nav-link active fs-5 mx-4'
+						    <NavLink
+						      className={({ isActive }) => `nav-link jj-nav-link${isActive ? ' active' : ''}`}
 						      to='/purchaser-report'
 						    >
 						      Purchaser Report
-						    </Link>
+						    </NavLink>
 						  </li>
 						)}
 						<li className='nav-item'>
-							<Link
-								className='aria-current nav-link active fs-5 mx-4'
+							<NavLink
+								className={({ isActive }) => `nav-link jj-nav-link${isActive ? ' active' : ''}`}
 								to='/items'
 							>
 								Search by SKU or Brand
-							</Link>
+							</NavLink>
 						</li>
 						{user && (
 							<li className='nav-item'>
-								<Link
-									className='aria-current nav-link active fs-5 mx-4'
+								<NavLink
+									className={({ isActive }) => `nav-link jj-nav-link${isActive ? ' active' : ''}`}
 									to='/quickbooks-customer-lookup'
 								>
 									QuickBooks Customer Lookup
-								</Link>
+								</NavLink>
 							</li>
 						)}
 						{user && requestsEnabled && (
 							<li className='nav-item'>
-								<Link
-									className='aria-current nav-link active fs-5 mx-4'
+								<NavLink
+									className={({ isActive }) => `nav-link jj-nav-link${isActive ? ' active' : ''}`}
 									to='/requests'
 								>
 									Requests
-								</Link>
+								</NavLink>
 							</li>
 						)}
 						{user && CRON_JOBS_ALLOWED_USERS.includes(normalizedUsername) && (
 							<li className='nav-item'>
-								<Link
-									className='aria-current nav-link active fs-5 mx-4'
+								<NavLink
+									className={({ isActive }) => `nav-link jj-nav-link${isActive ? ' active' : ''}`}
 									to='/cron-jobs'
 								>
 									Cron Jobs
-								</Link>
+								</NavLink>
 							</li>
 						)}
 					</ul>
