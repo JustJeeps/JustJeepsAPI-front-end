@@ -23,7 +23,7 @@ const RequestCommentGateModal = ({ gate, saving, onChange, onOk, onCancel }) => 
 			placeholder={
 				gate?.status === 'Completed'
 					? 'What was done and where it was deployed'
-					: 'Why is this blocked / waiting'
+					: 'Why is this on hold / waiting'
 			}
 			value={gate?.comment || ''}
 			onChange={(event) => onChange(event.target.value)}

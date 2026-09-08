@@ -40,7 +40,7 @@ describe('grouping by status', () => {
 	it('keeps an empty section visible, so the flow reads the same as the board', () => {
 		const groups = buildGroups([request(1, 'Completed')], 'status', []);
 
-		expect(groups.find((group) => group.label === 'Blocked').rows).toEqual([]);
+		expect(groups.find((group) => group.label === 'On hold').rows).toEqual([]);
 		expect(groups.find((group) => group.label === 'Done').rows).toHaveLength(1);
 	});
 });
