@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import {
 	Alert,
 	Button,
-	Descriptions,
 	Drawer,
 	Input,
 	Select,
@@ -214,16 +213,16 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, canAssignAssigne
 
 			{!loading && detail && (
 				<div className="requests-drawer">
-					<Space wrap align="end" className="requests-drawer__controls">
-						{/* Labels sobre os controles: sem eles a linha era três selects
-						    anônimos e o de assignee passava por filtro de busca. */}
+					<div className="requests-drawer__controls">
+						<div className="requests-drawer__controls-grid">
+						{/* Top controls in a simpler grid to avoid a crowded toolbar feel. */}
 						<div className="requests-drawer__control">
 							<Text type="secondary" className="requests-drawer__control-label">Status</Text>
 							<Select
 								value={detail.status}
 								onChange={handleStatusChange}
 								disabled={saving}
-								style={{ minWidth: 185 }}
+								style={{ width: '100%' }}
 								options={STATUS_NAMES.map((name) => ({
 									value: name,
 									label: <Tag color={STATUS_COLORS[name]}>{name}</Tag>,
@@ -232,7 +231,7 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, canAssignAssigne
 						</div>
 						<div className="requests-drawer__control">
 							<Text type="secondary" className="requests-drawer__control-label">
-								Assignees — {detail.sector?.name || 'sector'} members
+								Assignees
 							</Text>
 							<Select
 								mode="multiple"
@@ -246,13 +245,13 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, canAssignAssigne
 									)
 								}
 								disabled={saving || !canAssignAssignees}
-								style={{ minWidth: 205 }}
+									style={{ width: '100%' }}
 								options={assignableUsers(users, meta, detail).map((user) => ({ value: user.id, label: userLabel(user) }))}
 							/>
 						</div>
 						<div className="requests-drawer__control">
 							<Text type="secondary" className="requests-drawer__control-label">
-								Followers — chosen by requester/assignee
+								Followers
 							</Text>
 							<Select
 								mode="multiple"
@@ -266,7 +265,7 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, canAssignAssigne
 									)
 								}
 								disabled={saving || !canEditFollowers}
-								style={{ minWidth: 235 }}
+									style={{ width: '100%' }}
 								options={users.map((user) => ({ value: user.id, label: userLabel(user) }))}
 							/>
 						</div>
@@ -276,7 +275,7 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, canAssignAssigne
 								value={detail.priority}
 								onChange={(value) => applyPatch({ priority: value }, `Priority set to ${value}`)}
 								disabled={saving}
-								style={{ minWidth: 130 }}
+								style={{ width: '100%' }}
 								options={PRIORITIES.map((name) => ({
 									value: name,
 									label: (
@@ -288,6 +287,8 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, canAssignAssigne
 								}))}
 							/>
 						</div>
+						</div>
+						<div className="requests-drawer__controls-actions">
 						{editMode ? (
 							<>
 								<Button type="primary" loading={saving} onClick={saveEdit}>Save</Button>
@@ -307,7 +308,8 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, canAssignAssigne
 							onAction={onRequestAction}
 							size="middle"
 						/>
-					</Space>
+						</div>
+					</div>
 
 					{!isTriage && (
 						<Alert
@@ -318,50 +320,62 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, canAssignAssigne
 						/>
 					)}
 
-					<Descriptions size="small" column={2} className="requests-drawer__meta">
-						<Descriptions.Item label="Requester">{userLabel(detail.requester)}</Descriptions.Item>
-						<Descriptions.Item label="Assignee">{userLabel(detail.assignee)}</Descriptions.Item>
-						<Descriptions.Item label="Sector">
+					<div className="requests-drawer__meta-grid">
+						<div className="requests-drawer__meta-item">
+							<Text type="secondary" className="requests-drawer__meta-label">Requester</Text>
+							<Text className="requests-drawer__meta-value">{userLabel(detail.requester)}</Text>
+						</div>
+						<div className="requests-drawer__meta-item">
+							<Text type="secondary" className="requests-drawer__meta-label">Assignee</Text>
+							<Text className="requests-drawer__meta-value">{userLabel(detail.assignee)}</Text>
+						</div>
+						<div className="requests-drawer__meta-item">
+							<Text type="secondary" className="requests-drawer__meta-label">Sector</Text>
 							{/* Mover de setor: só triage ou admin do setor ATUAL (regra no
 							    back — canMoveRequest). O card do Trello vai junto. */}
 							<Select
 								size="small"
-								variant="borderless"
 								value={detail.sector?.id}
 								disabled={saving || !canMoveSector}
-								className="requests-drawer__meta-select"
+								className="requests-drawer__meta-input"
 								onChange={(value) => {
 									const target = sectors.find((sector) => sector.id === value);
 									applyPatch({ sectorId: value }, `Moved to ${target?.name || 'sector'}`);
 								}}
 								options={sectors.map((sector) => ({ value: sector.id, label: sector.name }))}
 							/>
-						</Descriptions.Item>
-						<Descriptions.Item label="System / Area">
+						</div>
+						<div className="requests-drawer__meta-item">
+							<Text type="secondary" className="requests-drawer__meta-label">System / Area</Text>
 							<Select
 								size="small"
-								variant="borderless"
 								value={detail.project}
 								disabled={saving}
-								className="requests-drawer__meta-select"
+								className="requests-drawer__meta-input"
 								onChange={(value) => applyPatch({ project: value }, 'System / Area updated')}
 								options={PROJECTS.map((project) => ({ value: project, label: project }))}
 							/>
-						</Descriptions.Item>
-						<Descriptions.Item label="Request Type">
+						</div>
+						<div className="requests-drawer__meta-item">
+							<Text type="secondary" className="requests-drawer__meta-label">Request Type</Text>
 							<Select
 								size="small"
-								variant="borderless"
 								value={detail.type}
 								disabled={saving}
-								className="requests-drawer__meta-select"
+								className="requests-drawer__meta-input"
 								onChange={(value) => applyPatch({ type: value }, 'Request type updated')}
 								options={TYPES.map((type) => ({ value: type, label: type }))}
 							/>
-						</Descriptions.Item>
-						<Descriptions.Item label="Created">{formatDate(detail.createdAt)}</Descriptions.Item>
-						<Descriptions.Item label="Updated">{relativeTime(detail.updatedAt)}</Descriptions.Item>
-					</Descriptions>
+						</div>
+						<div className="requests-drawer__meta-item">
+							<Text type="secondary" className="requests-drawer__meta-label">Created</Text>
+							<Text className="requests-drawer__meta-value">{formatDate(detail.createdAt)}</Text>
+						</div>
+						<div className="requests-drawer__meta-item">
+							<Text type="secondary" className="requests-drawer__meta-label">Updated</Text>
+							<Text className="requests-drawer__meta-value">{relativeTime(detail.updatedAt)}</Text>
+						</div>
+					</div>
 
 					<div className="requests-drawer__section">
 						<Text type="secondary" className="requests-drawer__section-title">Description</Text>

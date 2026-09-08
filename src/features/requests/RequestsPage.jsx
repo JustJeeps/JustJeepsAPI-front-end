@@ -333,7 +333,7 @@ const RequestsPage = () => {
 			<div className="requests-page__header">
 				<div>
 					<Text type="secondary" className="requests-page__eyebrow">Pricing Tool / Internal</Text>
-					<Title level={3} className="requests-page__title">Requests</Title>
+					<Title level={3} className="requests-page__title">Tickets</Title>
 				</div>
 				<Space>
 					<Segmented

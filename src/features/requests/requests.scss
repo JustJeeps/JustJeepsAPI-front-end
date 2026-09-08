@@ -133,6 +133,8 @@
 }
 
 .requests-drawer {
+	color: #1f2937;
+
 	&__archived-tag {
 		margin-left: 8px;
 		font-size: 10px;
@@ -148,6 +150,25 @@
 
 	&__controls {
 		margin-bottom: 12px;
+		padding: 10px;
+		border: 1px solid #f0f0f0;
+		border-radius: 8px;
+		background: #fcfcfc;
+	}
+
+	&__controls-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 10px;
+		align-items: end;
+	}
+
+	&__controls-actions {
+		display: flex;
+		justify-content: flex-end;
+		align-items: center;
+		gap: 8px;
+		margin-top: 10px;
 	}
 
 	// Controle rotulado (Status / Assignees / Priority): o label pequeno acima
@@ -155,13 +176,15 @@
 	&__control {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: 4px;
 	}
 
 	&__control-label {
 		font-size: 11px;
 		text-transform: uppercase;
 		letter-spacing: 0.4px;
+		color: #6b7280 !important;
+		font-weight: 600;
 	}
 
 	&__triage-note {
@@ -172,10 +195,40 @@
 		margin-bottom: 8px;
 	}
 
-	// Selects inline de Project/Type dentro do Descriptions (edição no lugar)
-	&__meta-select {
-		min-width: 190px;
-		margin: -4px 0 -4px -8px;
+	&__meta-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 10px 14px;
+		margin-bottom: 10px;
+		padding: 10px;
+		border: 1px solid #f0f0f0;
+		border-radius: 8px;
+		background: #fff;
+	}
+
+	&__meta-item {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	&__meta-label {
+		font-size: 11px;
+		text-transform: uppercase;
+		letter-spacing: 0.4px;
+		color: #6b7280 !important;
+		font-weight: 600;
+	}
+
+	&__meta-value {
+		line-height: 1.35;
+		word-break: break-word;
+		color: #111827;
+		font-weight: 500;
+	}
+
+	&__meta-input {
+		width: 100%;
 	}
 
 	&__section {
@@ -187,12 +240,51 @@
 			font-size: 11px;
 			letter-spacing: 1px;
 			margin-bottom: 6px;
+			color: #6b7280 !important;
+			font-weight: 600;
 		}
 	}
 
 	&__description {
 		white-space: pre-line;
 		margin-bottom: 0 !important;
+		color: #111827;
+		line-height: 1.55;
+	}
+
+	.ant-typography,
+	.ant-typography-secondary {
+		color: inherit;
+	}
+
+	.ant-tabs-tab {
+		color: #4b5563;
+	}
+
+	.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+		color: #111827;
+		font-weight: 600;
+	}
+
+	@media (max-width: 1200px) {
+		&__controls-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+
+	@media (max-width: 700px) {
+		&__controls-grid {
+			grid-template-columns: 1fr;
+		}
+
+		&__meta-grid {
+			grid-template-columns: 1fr;
+		}
+
+		&__controls-actions {
+			justify-content: flex-start;
+			flex-wrap: wrap;
+		}
 	}
 }
 
