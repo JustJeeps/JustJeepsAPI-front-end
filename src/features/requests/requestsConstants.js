@@ -101,7 +101,7 @@ export const isAging = (request) =>
 // alvo depende de ter assignee (Assigned) ou não (New Request).
 export const BOARD_LANES = [
 	{ key: 'requests', name: 'Requests', color: '#a855f7', statuses: ['New Request', 'Estimation', 'Assigned'] },
-	{ key: 'doing', name: 'Doing', color: '#10a35a', statuses: ['Work in Progress'], dropStatus: 'Work in Progress' },
+	{ key: 'doing', name: 'In progress', color: '#10a35a', statuses: ['Work in Progress'], dropStatus: 'Work in Progress' },
 	{ key: 'blocked', name: 'On hold', color: '#ef4444', statuses: ['Awaiting Client Response', 'On Hold'], dropStatus: 'On Hold' },
 	{ key: 'done', name: 'Done', color: '#2563eb', statuses: DONE_STATUSES, dropStatus: 'Completed' },
 ];

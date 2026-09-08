@@ -69,8 +69,9 @@
 	}
 
 	&__title {
-		display: inline-flex;
-		align-items: center;
+		display: flex;
+		align-items: flex-start;
+		flex-wrap: wrap;
 		gap: 8px;
 		font-weight: 500;
 		cursor: pointer;
@@ -79,6 +80,13 @@
 			color: #1565c0;
 			text-decoration: underline;
 		}
+	}
+
+	&__title-text {
+		white-space: normal;
+		word-break: break-word;
+		line-height: 1.35;
+		min-width: 0;
 	}
 
 	&__status-dot {
@@ -101,6 +109,13 @@
 		border-radius: 50%;
 		display: inline-block;
 		margin-right: 6px;
+	}
+
+	&__cell-wrap {
+		display: inline-block;
+		white-space: normal;
+		word-break: break-word;
+		line-height: 1.35;
 	}
 
 

@@ -4,7 +4,7 @@ import { BOARD_LANES, COMMENT_REQUIRED_STATUSES } from './requestsConstants';
 import RequestsBoardColumn from './RequestsBoardColumn';
 import RequestCommentGateModal from './RequestCommentGateModal';
 
-// Modo Board (kanban): 4 lanes fixas (Requests / Doing / Blocked / Done)
+// Modo Board (kanban): 4 lanes fixas (Requests / In progress / On hold / Done)
 // agregando os 8 status internos. O board é o dono da regra de transição:
 // tanto soltar um card numa lane quanto escolher no Select do card passam por
 // aqui, e os status que exigem comentário abrem o gate antes do PATCH.

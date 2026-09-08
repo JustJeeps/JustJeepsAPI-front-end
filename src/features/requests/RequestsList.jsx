@@ -91,20 +91,30 @@ const RequestsList = ({ requests, groupBy, users, meta, canAssignAssignees, canM
 		{
 			title: 'Name',
 			dataIndex: 'title',
-			ellipsis: true,
 			render: (title, record) => (
 				<span className="requests-list__title" onClick={() => onOpen(record.id)}>
 					{/* Status as a visible tag: avoids relying on dot color + hover. */}
 					<Tag className="requests-list__status-tag" color={STATUS_COLORS[record.status] || 'default'}>
 						{record.status}
 					</Tag>
-					{title}
+					<span className="requests-list__title-text">{title}</span>
 					{record.archivedAt && <Tag className="requests-list__state-tag">Archived</Tag>}
 				</span>
 			),
 		},
-		{ title: 'Project', dataIndex: 'project', width: 180, ellipsis: true },
-		{ title: 'Type', dataIndex: 'type', width: 160, ellipsis: true, responsive: ['lg'] },
+		{
+			title: 'Project',
+			dataIndex: 'project',
+			width: 220,
+			render: (value) => <span className="requests-list__cell-wrap">{value}</span>,
+		},
+		{
+			title: 'Type',
+			dataIndex: 'type',
+			width: 210,
+			responsive: ['lg'],
+			render: (value) => <span className="requests-list__cell-wrap">{value}</span>,
+		},
 		{
 			title: 'Assignee',
 			key: 'assignee',
@@ -170,6 +180,13 @@ const RequestsList = ({ requests, groupBy, users, meta, canAssignAssignees, canM
 					<Text type="secondary">{formatDate(value)}</Text>
 				</Tooltip>
 			),
+		},
+		{
+			title: 'Requester',
+			key: 'requester',
+			width: 170,
+			responsive: ['xl'],
+			render: (_, record) => <span className="requests-list__cell-wrap">{userLabel(record.requester)}</span>,
 		},
 		{
 			title: 'Activity',

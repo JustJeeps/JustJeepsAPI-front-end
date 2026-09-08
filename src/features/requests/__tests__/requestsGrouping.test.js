@@ -33,7 +33,7 @@ describe('grouping by status', () => {
 
 		expect(groups[0].label).toBe('Requests');
 		expect(groups[0].rows.map((row) => row.id)).toEqual([1, 2, 3]);
-		expect(groups[1].label).toBe('Doing');
+		expect(groups[1].label).toBe('In progress');
 		expect(groups[1].rows.map((row) => row.id)).toEqual([4]);
 	});
 
