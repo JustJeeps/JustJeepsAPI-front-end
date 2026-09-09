@@ -112,6 +112,7 @@ const OrderTable = () => {
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
   const [orderShippingCosts, setOrderShippingCosts] = useState({});
   const [unitCostEdits, setUnitCostEdits] = useState({});
+  const [unitCostSupplierEdits, setUnitCostSupplierEdits] = useState({});
   const [savingUnitCost, setSavingUnitCost] = useState({});
   const [updatingSkuStatusBySku, setUpdatingSkuStatusBySku] = useState({});
   const [cancellingOrders, setCancellingOrders] = useState({});
@@ -1498,6 +1499,11 @@ Thank you!
         delete copy[item.id];
         return copy;
       });
+      setUnitCostSupplierEdits((prev) => {
+        const copy = { ...prev };
+        delete copy[item.id];
+        return copy;
+      });
     } catch (error) {
       console.error("Failed to update unit cost:", error);
       Modal.error({
@@ -1518,10 +1524,18 @@ Thank you!
       ? null
       : parseMoney(draftRaw);
 
-    persistUnitCost(item, nextCost);
+    const hasSupplierDraft = hasOwn(unitCostSupplierEdits, item.id);
+    const nextSupplier = hasSupplierDraft ? unitCostSupplierEdits[item.id] : item?.selected_supplier;
+
+    persistUnitCost(item, nextCost, nextSupplier, hasSupplierDraft);
   };
 
   const handleRemoveUnitCost = (item) => {
+    setUnitCostSupplierEdits((prev) => {
+      const copy = { ...prev };
+      delete copy[item.id];
+      return copy;
+    });
     persistUnitCost(item, null, null, true);
   };
 
@@ -2531,6 +2545,10 @@ console.log("IS ARRAY?", Array.isArray(orders));
         [orderProductId]: normalizedCost,
       };
     });
+    setUnitCostSupplierEdits((prev) => ({
+      ...prev,
+      [orderProductId]: selectedSupplier || null,
+    }));
   }, []);
 
 
@@ -3059,7 +3077,9 @@ console.log("IS ARRAY?", Array.isArray(orders));
             : Number.isFinite(currentStoredCost)
               ? currentStoredCost
               : null;
-          const selectedSupplierName = item?.selected_supplier;
+          const selectedSupplierName = hasOwn(unitCostSupplierEdits, item.id)
+            ? unitCostSupplierEdits[item.id]
+            : item?.selected_supplier;
           const hasDraft = hasOwn(unitCostEdits, item.id);
           const loadingRow = !!savingUnitCost[item.id];
 

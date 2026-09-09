@@ -1,12 +1,14 @@
-import { Table, Tag, Tooltip } from 'antd';
+import { Table, Tag, Tooltip, message } from 'antd';
 import CopyText from '../copyText/CopyText';
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { TrophyFilled } from '@ant-design/icons';
 import { sizeHeight, width } from '@mui/system';
 import { USD_TO_CAD_RATE } from '../../constants/exchangeRate';
 
 
 const ProductTable = props => {
+	const [lastCopiedVendorKey, setLastCopiedVendorKey] = useState(null);
+
 	const getVendorRowMetrics = (vendorProduct) => {
 		const vendorNameLower = (vendorProduct?.vendor?.name || '').toString().toLowerCase();
 		const baseCostUsd = Number(vendorProduct?.vendor_cost_usd);
@@ -112,6 +114,10 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 	const handleVendorCostCopy = vendorProduct => {
 		const selectedCost = getSelectedCostByOrder(vendorProduct);
 		if (!Number.isFinite(selectedCost)) return;
+
+		const vendorKey = `${vendorProduct?.id || vendorProduct?.vendor_id || 'unknown'}:${vendorProduct?.vendor_sku || ''}`;
+		setLastCopiedVendorKey(vendorKey);
+		message.success(`Copied ${vendorProduct?.vendor?.name || 'vendor'} cost to Unit Cost`, 1.5);
 
 		if (typeof props.onVendorCostSelect === 'function') {
 			props.onVendorCostSelect(
@@ -634,6 +640,8 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
       const vendorName = vendorProduct.vendor.name;
       const vendorSKU = vendorProduct.vendor_sku?.trim();
       const productSKU = vendorProduct.product_sku?.trim();
+		const copiedVendorKey = `${vendorProduct?.id || vendorProduct?.vendor_id || 'unknown'}:${vendorProduct?.vendor_sku || ''}`;
+		const isJustCopied = copiedVendorKey === lastCopiedVendorKey;
       const vendorNameLower = vendorName.toLowerCase();
 				const baseCostUsd = Number(vendorProduct.vendor_cost_usd);
 				const shippingSurchargeUsd = Number(vendorProduct.quadratec_shipping_surcharge_usd);
@@ -732,9 +740,9 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
             justifyContent: 'space-between',
             gap: '8px',
             padding: '4px 8px',
-            backgroundColor: isBestVendor ? '#f6ffed' : 'transparent',
+						backgroundColor: isJustCopied ? '#e6f4ff' : isBestVendor ? '#f6ffed' : 'transparent',
             borderRadius: '4px',
-            border: isBestVendor ? '1px solid #b7eb8f' : '1px solid #f0f0f0',
+						border: isJustCopied ? '1px solid #91caff' : isBestVendor ? '1px solid #b7eb8f' : '1px solid #f0f0f0',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -757,6 +765,13 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 									<span style={{ whiteSpace: 'nowrap', fontSize: '14px', fontWeight: 700, color: '#1890ff' }}>
 									${vendorProduct.vendor_cost.toFixed(2)} / ${(vendorProduct.vendor_cost / USD_TO_CAD_RATE).toFixed(2)}
 									</span>
+									{isJustCopied && (
+										<div style={{ marginTop: '2px' }}>
+											<Tag color='blue' style={{ margin: 0, fontSize: '11px', padding: '0 6px' }}>
+												Selected for Unit Cost
+											</Tag>
+										</div>
+									)}
 									{hasQuadratecCostBreakdown && (
 										<div style={{ marginTop: '2px', color: '#595959', fontSize: '11px', lineHeight: 1.35 }}>
 											<div>Orig: ${baseCostUsd.toFixed(2)} USD</div>
