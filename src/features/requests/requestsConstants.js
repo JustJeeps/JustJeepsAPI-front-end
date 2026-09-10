@@ -29,9 +29,11 @@ export const canManageRequest = (request, currentUser, isTriage, adminSectorIds 
 	return Boolean(request.sector?.id) && adminSectorIds.includes(request.sector.id);
 };
 
-export const canManageFollowers = (request, currentUser) => {
+export const canManageFollowers = (request, currentUser, isTriage = false) => {
 	if (!request || !currentUser) return false;
+	if (Boolean(isTriage)) return true;
 	if (request.requester?.id === currentUser.id) return true;
+	if (request.assignee?.id === currentUser.id) return true;
 	return (request.assignees || []).some((entry) => (entry.user_id ?? entry.user?.id) === currentUser.id);
 };
 

@@ -61,7 +61,7 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, canAssignAssigne
 	// (lib/requests/permissions.js + actorContext).
 	const adminSectorIds = meta?.myRoles?.adminSectorIds || [];
 	const canManage = detail ? canManageRequest(detail, currentUser, isTriage, adminSectorIds) : false;
-	const canEditFollowers = detail ? canManageFollowers(detail, currentUser) : false;
+	const canEditFollowers = detail ? canManageFollowers(detail, currentUser, isTriage) : false;
 	// Mover de setor: triage ou admin do setor de ORIGEM (o atual do chamado).
 	const canMoveSector = detail ? (isTriage || isSectorAdmin(meta, detail.sector?.id)) : false;
 	const sectors = (meta?.sectors || []).filter((sector) => !sector.archivedAt);
