@@ -32,6 +32,7 @@ import { FilterOutlined, ClearOutlined, ReloadOutlined } from "@ant-design/icons
 import Highlighter from "react-highlight-words";
 import { Edit, Trash, Save, Reload } from "../../icons";
 import Popup from "./Popup";
+import OpenOrdersFlag from "./OpenOrdersFlag";
 import TableTop from "../tabletop/TableTop";
 import "./order.scss";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
@@ -2144,6 +2145,10 @@ Thank you!
               }}>
                 {record.customer_firstname} {record.customer_lastname?.charAt(0)}.
               </span>
+              <OpenOrdersFlag
+                order={record}
+                onSelectCustomer={(email) => handleFilterChange('search', email)}
+              />
             </div>
 
             {/* Bottom Row: Metrics Grid */}
