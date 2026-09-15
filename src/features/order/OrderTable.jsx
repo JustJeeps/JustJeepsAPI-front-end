@@ -33,6 +33,7 @@ import Highlighter from "react-highlight-words";
 import { Edit, Trash, Save, Reload } from "../../icons";
 import Popup from "./Popup";
 import OpenOrdersFlag from "./OpenOrdersFlag";
+import { DEFAULT_ORDER_FILTERS, customerSearchFilters } from "./orderFilters";
 import TableTop from "../tabletop/TableTop";
 import "./order.scss";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
@@ -83,16 +84,7 @@ const OrderTable = () => {
   });
 
   // Filter states
-  const [filters, setFilters] = useState({
-    filterMode: 'order', // 'order' or 'items'
-    starStatus: '',
-    search: '',
-    poStatus: '',
-    region: '',
-    vendor: '', // vendor filter (only for items mode)
-    dateFilter: '', // 'today', 'yesterday', 'last7days', or ''
-    exclude: '', // Exclude keywords for global search
-  });
+  const [filters, setFilters] = useState({ ...DEFAULT_ORDER_FILTERS });
 
   // Vendors list for dropdown
   const [vendors, setVendors] = useState([]);
@@ -1111,16 +1103,7 @@ Thank you!
 
   // Clear all filters
   const handleClearFilters = () => {
-    setFilters({
-      filterMode: 'order',
-      starStatus: '',
-      search: '',
-      poStatus: '',
-      region: '',
-      vendor: '',
-      dateFilter: '',
-      exclude: '',
-    });
+    setFilters({ ...DEFAULT_ORDER_FILTERS });
   };
 
   //seed orders (job-based: poll the tiny status endpoint, refresh the table once at the end)
@@ -2147,7 +2130,7 @@ Thank you!
               </span>
               <OpenOrdersFlag
                 order={record}
-                onSelectCustomer={(email) => handleFilterChange('search', email)}
+                onSelectCustomer={(email) => setFilters(customerSearchFilters(email))}
               />
             </div>
 
