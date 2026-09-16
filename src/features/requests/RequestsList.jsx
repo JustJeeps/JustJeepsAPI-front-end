@@ -252,6 +252,10 @@ const RequestsList = ({ requests, groupBy, users, meta, canAssignAssignees, canM
 			<Table
 				size="small"
 				rowKey="id"
+				// Fixed layout: with auto layout the responsive assignee select measures
+				// the cell, hides a name, the cell shrinks, it measures again and the
+				// whole list flickers (seen in prod on 2026-09-16 after ellipsis was removed).
+				tableLayout="fixed"
 				columns={columns}
 				dataSource={group.rows}
 				pagination={false}
