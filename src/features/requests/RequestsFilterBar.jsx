@@ -1,5 +1,6 @@
-import { Button, Card, Col, Input, Row, Select, Typography } from 'antd';
-import { ClearOutlined } from '@ant-design/icons';
+import { Button, Card, Col, Input, Row, Select, Space, Typography } from 'antd';
+import { ClearOutlined, UserOutlined } from '@ant-design/icons';
+import { isAssignedToMe, toggleAssignedToMe } from './requestsFilterStorage';
 import { PRIORITIES, PROJECTS, TYPES, requestRef, userLabel } from './requestsConstants';
 
 const { Text } = Typography;
@@ -35,7 +36,7 @@ export const matchesFilters = (request, filters) => {
 };
 
 // Barra de filtros no padrão do app (Card cinza + Row/Col + Selects allowClear).
-const RequestsFilterBar = ({ filters, onChange, users, resultLabel }) => {
+const RequestsFilterBar = ({ filters, onChange, users, resultLabel, currentUserId = null }) => {
 	const set = (key, value) => onChange({ ...filters, [key]: value });
 
 	return (
@@ -54,7 +55,7 @@ const RequestsFilterBar = ({ filters, onChange, users, resultLabel }) => {
 						]}
 					/>
 				</Col>
-				<Col xs={24} md={6}>
+				<Col xs={24} md={4}>
 					<Input.Search
 						allowClear
 						placeholder="Search requests..."
@@ -105,13 +106,24 @@ const RequestsFilterBar = ({ filters, onChange, users, resultLabel }) => {
 						]}
 					/>
 				</Col>
-				<Col xs={12} md={2}>
-					<Button
-						icon={<ClearOutlined />}
-						onClick={() => onChange({ ...EMPTY_FILTERS, groupBy: filters.groupBy })}
-					>
-						Clear
-					</Button>
+				<Col xs={24} md={4}>
+					<Space wrap>
+						{/* One click puts the signed-in user in the Assignee filter; again clears it. */}
+						<Button
+							icon={<UserOutlined />}
+							type={isAssignedToMe(filters, currentUserId) ? 'primary' : 'default'}
+							disabled={currentUserId == null}
+							onClick={() => onChange(toggleAssignedToMe(filters, currentUserId))}
+						>
+							Assigned to me
+						</Button>
+						<Button
+							icon={<ClearOutlined />}
+							onClick={() => onChange({ ...EMPTY_FILTERS, groupBy: filters.groupBy })}
+						>
+							Clear
+						</Button>
+					</Space>
 				</Col>
 			</Row>
 			<div className="requests-filter-bar__result">

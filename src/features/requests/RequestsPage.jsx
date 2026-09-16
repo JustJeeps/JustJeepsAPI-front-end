@@ -3,6 +3,7 @@ import { Alert, Button, Result, Segmented, Space, Spin, Tabs, Typography, messag
 import { AppstoreOutlined, BarsOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { loadStoredFilters, saveStoredFilters } from './requestsFilterStorage';
 import { apiErrorMessage } from '../../utils/api';
 import {
 	deleteRequest,
@@ -58,6 +59,20 @@ const RequestsPage = () => {
 	const [tab, setTab] = useState('requests');
 	const [mode, setMode] = useState('list');
 	const [filters, setFilters] = useState(EMPTY_FILTERS);
+	// Filters remembered per browser and per user (2026-09-16). Loaded once the
+	// user is known; saved on every change after that, so a fresh page never
+	// overwrites what was stored with the empty defaults.
+	const [filtersLoadedFor, setFiltersLoadedFor] = useState(null);
+	useEffect(() => {
+		if (user?.id == null || filtersLoadedFor === user.id) return;
+		const stored = loadStoredFilters(typeof window !== 'undefined' ? window.localStorage : null, user.id);
+		if (stored) setFilters(stored);
+		setFiltersLoadedFor(user.id);
+	}, [user?.id, filtersLoadedFor]);
+	useEffect(() => {
+		if (filtersLoadedFor == null) return;
+		saveStoredFilters(typeof window !== 'undefined' ? window.localStorage : null, filtersLoadedFor, filters);
+	}, [filters, filtersLoadedFor]);
 	const [view, setView] = useState(null); // mine | unassigned | open | aging | archived
 	const [statusFilter, setStatusFilter] = useState(null); // vindo dos KPIs
 	const [selectedId, setSelectedId] = useState(null);
@@ -284,6 +299,7 @@ const RequestsPage = () => {
 				filters={filters}
 				onChange={setFilters}
 				users={users}
+				currentUserId={user?.id ?? null}
 				resultLabel={view === 'deleted'
 					? `${visibleRequests.length} deleted request${visibleRequests.length === 1 ? '' : 's'}`
 					: `${visibleRequests.length} of ${activeRequests.length} requests`}
