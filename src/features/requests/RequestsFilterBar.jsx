@@ -55,7 +55,7 @@ const RequestsFilterBar = ({ filters, onChange, users, resultLabel, currentUserI
 						]}
 					/>
 				</Col>
-				<Col xs={24} md={4}>
+				<Col xs={24} flex="1 1 200px">
 					<Input.Search
 						allowClear
 						placeholder="Search requests..."
@@ -106,8 +106,9 @@ const RequestsFilterBar = ({ filters, onChange, users, resultLabel, currentUserI
 						]}
 					/>
 				</Col>
-				<Col xs={24} md={4}>
-					<Space wrap>
+				{/* Content-sized so the two buttons never wrap under each other. */}
+				<Col xs={24} flex="none">
+					<Space>
 						{/* One click puts the signed-in user in the Assignee filter; again clears it. */}
 						<Button
 							icon={<UserOutlined />}
