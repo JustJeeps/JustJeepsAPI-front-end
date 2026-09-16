@@ -86,7 +86,7 @@ function App() {
 					</ProtectedRoute>
 				} />
 				<Route path='/cron-jobs' element={
-					<ProtectedRoute allowedUsers={['tess']}>
+					<ProtectedRoute allowedUsers={['tess', 'ricardo']}>
 						<CronJobsDashboard />
 					</ProtectedRoute>
 				} />
