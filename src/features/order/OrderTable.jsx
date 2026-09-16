@@ -33,6 +33,7 @@ import Highlighter from "react-highlight-words";
 import { Edit, Trash, Save, Reload } from "../../icons";
 import Popup from "./Popup";
 import OpenOrdersFlag from "./OpenOrdersFlag";
+import StatusDivergenceFlag from "./StatusDivergenceFlag";
 import { DEFAULT_ORDER_FILTERS, customerSearchFilters } from "./orderFilters";
 import TableTop from "../tabletop/TableTop";
 import "./order.scss";
@@ -1898,6 +1899,7 @@ Thank you!
             ) : (
               <span title="PO partially set" style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: '#faad14', display: 'inline-block' }} />
             )}
+            <StatusDivergenceFlag order={record} />
           </div>
         );
       }
