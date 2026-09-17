@@ -261,6 +261,8 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 					} else if (competitorName.includes('4wp') || competitorName.includes('4 wheel parts')) {
 						const sku = record.sku?.includes('-') ? record.sku.split('-').slice(1).join('-') : record.sku;
 						link = `https://www.4wheelparts.com/search/?Ntt=${encodeURIComponent(sku)}`;
+					} else if (competitorName.includes('lowriders') && competitorProduct.product_url) {
+						link = competitorProduct.product_url;
 					}
 
 					// Shorten competitor name for display
