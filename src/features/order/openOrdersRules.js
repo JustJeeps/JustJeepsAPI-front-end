@@ -2,8 +2,9 @@
 // OpenOrdersFlag.jsx: on a case-insensitive disk the two names would collide).
 //
 // `open_orders_same_customer` comes from GET /api/orders: every open order
-// (PO not set, Magento status not closed) of the same customer_email, the row
-// itself included when it is open. Missing field (older API) = no flag.
+// (our ship status not done, Magento status ignored) of the same customer
+// (email or phone), the row itself included when it is open. Missing field
+// (older API) = no flag.
 
 const openOrdersOf = (order) =>
   Array.isArray(order?.open_orders_same_customer) ? order.open_orders_same_customer : [];
