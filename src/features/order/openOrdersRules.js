@@ -2,8 +2,8 @@
 // OpenOrdersFlag.jsx: on a case-insensitive disk the two names would collide).
 //
 // `open_orders_same_customer` comes from GET /api/orders: every open order
-// (our ship status not done, Magento status ignored) of the same customer
-// (email or phone), the row itself included when it is open. Missing field
+// (PO contains "not set", the red or yellow icon next to the order number) of
+// the same customer (email or phone), the row itself included when it is open. Missing field
 // (older API) = no flag.
 
 const openOrdersOf = (order) =>
