@@ -8,8 +8,8 @@ const StatusDivergenceFlag = ({ order }) => {
   const text = describeStatusDivergence(order);
   if (!text) return null;
   return (
-    <Tooltip title={text}>
-      <ExclamationCircleOutlined style={{ color: "#cf1322", fontSize: 14 }} aria-label={text} />
+    <Tooltip title={<span style={{ whiteSpace: "pre-line" }}>{text}</span>}>
+      <ExclamationCircleOutlined style={{ color: "#cf1322", fontSize: 14, cursor: "help" }} aria-label={text} />
     </Tooltip>
   );
 };
