@@ -7,6 +7,7 @@ import logo_jeeps from './logo_jeeps.png';
 import { useAuth } from '../../context/AuthContext';
 import LoginModal from '../../components/auth/LoginModal';
 import { fetchRequestsMetaCached } from '../requests/requestsApi';
+import { fetchReplacementsMetaCached } from '../replacements/replacementsApi';
 
 const ALLOWED_USERS = ['tess', 'paula', 'karoline'];
 const CRON_JOBS_ALLOWED_USERS = ['tess'];
@@ -16,6 +17,8 @@ const Navbar = () => {
 	// Rollout gate da feature Requests: o item de menu so aparece para quem o
 	// back liberou (meta.requestsEnabled); a validacao real e nas rotas.
 	const [requestsEnabled, setRequestsEnabled] = useState(false);
+	// Same gate for Product Replacements (meta.enabled from REPLACEMENTS_ALLOWED_USERS).
+	const [replacementsEnabled, setReplacementsEnabled] = useState(false);
 	const normalizedUsername = (user?.username || user?.name || '').toLowerCase();
 
 	useEffect(() => {
@@ -30,6 +33,23 @@ const Navbar = () => {
 			})
 			.catch(() => {});
 		return () => { cancelled = true; };
+	}, [user, normalizedUsername]);
+	useEffect(() => {
+		if (!user) {
+			setReplacementsEnabled(false);
+			return undefined;
+		}
+		let cancelled = false;
+		fetchReplacementsMetaCached(normalizedUsername)
+			.then((meta) => {
+				if (!cancelled) setReplacementsEnabled(Boolean(meta?.enabled));
+			})
+			.catch(() => {
+				if (!cancelled) setReplacementsEnabled(false);
+			});
+		return () => {
+			cancelled = true;
+		};
 	}, [user, normalizedUsername]);
 
 	const handleLogout = async () => {
@@ -121,6 +141,16 @@ const Navbar = () => {
 									to='/requests'
 								>
 									Support Tickets
+								</NavLink>
+							</li>
+						)}
+						{user && replacementsEnabled && (
+							<li className='nav-item'>
+								<NavLink
+									className={({ isActive }) => `nav-link jj-nav-link${isActive ? ' active' : ''}`}
+									to='/replacements'
+								>
+									Replacements
 								</NavLink>
 							</li>
 						)}

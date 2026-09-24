@@ -11,6 +11,7 @@ import CronJobsDashboard from './features/cron/CronJobsDashboard.jsx';
 import QuickBooksCustomerLookup from './features/quickbooks/QuickBooksCustomerLookup.jsx';
 import RequestsPage from './features/requests/RequestsPage.jsx';
 import SettingsPage from './features/settings/SettingsPage.jsx';
+import ReplacementsPage from './features/replacements/ReplacementsPage.jsx';
 import { PoForm } from './features/po/PoForm.jsx';
 import { Items } from './features/items/Items.jsx';
 import { AuthProvider } from "./context/AuthContext";
@@ -100,6 +101,11 @@ function App() {
 				<Route path='/requests' element={
 					<ProtectedRoute>
 						<RequestsPage />
+					</ProtectedRoute>
+				} />
+				<Route path='/replacements' element={
+					<ProtectedRoute>
+						<ReplacementsPage />
 					</ProtectedRoute>
 				} />
 				<Route path='/settings' element={

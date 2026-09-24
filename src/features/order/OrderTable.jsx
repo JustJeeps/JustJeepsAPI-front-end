@@ -26,12 +26,15 @@ import {
   Col,
   Card,
   Segmented,
-  message as antdMessage,
-} from "antd";
+  message as antdMessage } from "antd";
 import { FilterOutlined, ClearOutlined, ReloadOutlined } from "@ant-design/icons";
 import Highlighter from "react-highlight-words";
 import { Edit, Trash, Save, Reload } from "../../icons";
 import Popup from "./Popup";
+import ReplacementIcon from "../replacements/ReplacementIcon";
+import ReplacementLookupDrawer from "../replacements/ReplacementLookupDrawer";
+import { fetchReplacementCounts, fetchReplacementsMetaCached } from "../replacements/replacementsApi";
+import { extractItemSkus, normalizeSkuInput } from "../replacements/replacementsUtils";
 import OpenOrdersFlag from "./OpenOrdersFlag";
 import StatusDivergenceFlag from "./StatusDivergenceFlag";
 import { DEFAULT_ORDER_FILTERS, customerSearchFilters } from "./orderFilters";
@@ -61,6 +64,61 @@ const OrderTable = () => {
   const [editingRow, setEditingRow] = useState(null);
   const [form] = Form.useForm();
   const [open, setOpen] = useState(false);
+  // Product replacements (docs: PRODUCT-REPLACEMENTS.md in the backend).
+  // counts: { [sku]: activeReplacements }, filled when an order is expanded;
+  // the icon next to the magnifier only shows for SKUs present here.
+  const [replacementCounts, setReplacementCounts] = useState({});
+  const [replacementLookupSku, setReplacementLookupSku] = useState(null);
+  // Rollout gate (REPLACEMENTS_ALLOWED_USERS): outside it nothing of the
+  // feature renders or is requested (the API would answer 409).
+  const [replacementsEnabled, setReplacementsEnabled] = useState(false);
+  useEffect(() => {
+    if (!authEnabled || !user) {
+      setReplacementsEnabled(false);
+      return undefined;
+    }
+    let cancelled = false;
+    fetchReplacementsMetaCached((user?.username || user?.name || "").toLowerCase())
+      .then((meta) => { if (!cancelled) setReplacementsEnabled(Boolean(meta?.enabled)); })
+      .catch(() => { if (!cancelled) setReplacementsEnabled(false); });
+    return () => { cancelled = true; };
+  }, [authEnabled, user]);
+  // Replacement badges for an order's items, fetched when the row is expanded.
+  // Known and in-flight SKUs live in a ref (a setState updater must stay pure:
+  // StrictMode runs it twice). A failure never breaks the expansion; it is
+  // reported once so a missing icon is not read as "no replacement", and the
+  // SKUs stay retryable on the next expand.
+  const replacementSkusSeen = useRef(new Set());
+  const loadReplacementCounts = useCallback((record) => {
+    const itemSkus = extractItemSkus(record).filter((sku) => !replacementSkusSeen.current.has(sku));
+    if (!itemSkus.length) return;
+    itemSkus.forEach((sku) => replacementSkusSeen.current.add(sku));
+    fetchReplacementCounts(itemSkus)
+      .then((counts) => {
+        setReplacementCounts((prev) => {
+          const next = { ...prev };
+          for (const sku of itemSkus) next[sku] = counts[sku] || 0;
+          return next;
+        });
+      })
+      .catch((error) => {
+        itemSkus.forEach((sku) => replacementSkusSeen.current.delete(sku));
+        console.error("Failed to load replacement counts", error);
+        antdMessage.warning("Replacement info unavailable for this order. Expand it again to retry.", 4);
+      });
+  }, []);
+  // Refresh / filter change: forget what was fetched (a pair registered
+  // meanwhile must show up) and re-fetch the rows that are still expanded, so
+  // their badges never blink out. The counts already on screen stay until the
+  // new ones arrive.
+  const expandedRowKeysRef = useRef([]);
+  const refreshReplacementCounts = useCallback((ordersData) => {
+    replacementSkusSeen.current = new Set();
+    if (!replacementsEnabled) return;
+    (Array.isArray(ordersData) ? ordersData : [])
+      .filter((order) => expandedRowKeysRef.current.includes(getOrderRowKey(order)))
+      .forEach((order) => loadReplacementCounts(order));
+  }, [loadReplacementCounts, replacementsEnabled]);
   const [placement, setPlacement] = useState("top");
   const [currentSku, setCurrentSku] = useState(null);
   const [currentOrderProductID, setCurrentOrderProductID] = useState(null);
@@ -113,6 +171,9 @@ const OrderTable = () => {
   const [initializingPoOrders, setInitializingPoOrders] = useState({});
   const [textFromDrawer, setTextFromDrawer] = useState("");
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
+  useEffect(() => {
+    expandedRowKeysRef.current = expandedRowKeys;
+  }, [expandedRowKeys]);
   const seedPollRef = useRef(null);
   const [seedProgress, setSeedProgress] = useState(null); // { processed, total | null }
   const lastQueryRef = useRef({ page: 1, pageSize: 250, filters: null });
@@ -1060,6 +1121,7 @@ Thank you!
 
       setOriginalOrders(ordersData);
       setOrders(ordersData);
+      if (!silent) refreshReplacementCounts(ordersData);
       if (ordersData && ordersData.length) {
         console.log('First order from API:', ordersData[0]);
       } else {
@@ -3018,6 +3080,16 @@ console.log("IS ARRAY?", Array.isArray(orders));
                       }}
                     />
                   </Tooltip>
+                  {/* Replacement options: only rendered when the SKU has an
+                      active replacement registered in /replacements. The
+                      `&&` keeps antd Space from adding an empty item (and its
+                      gap) next to the magnifier when there is none. */}
+                  {replacementsEnabled && replacementCounts[normalizeSkuInput(recordSub.sku)] > 0 && (
+                    <ReplacementIcon
+                      count={replacementCounts[normalizeSkuInput(recordSub.sku)]}
+                      onClick={() => setReplacementLookupSku(normalizeSkuInput(recordSub.sku))}
+                    />
+                  )}
                   {/* <Tooltip title="Add to PO">
                     <ShoppingCartOutlined
                       style={{ color: "purple", fontSize: "25px" }}
@@ -4085,6 +4157,9 @@ console.log("IS ARRAY?", Array.isArray(orders));
                 expandedRowKeys,
                 onExpand: (expanded, record) => {
                   const rowKey = getOrderRowKey(record);
+                  // Auth off = the API answers 401 and the interceptor would
+                  // log the user out; the feature is auth-only anyway.
+                  if (expanded && replacementsEnabled) loadReplacementCounts(record);
                   if (expandMode === 'single') {
                     setExpandedRowKeys(expanded ? [rowKey] : []);
                     if (expanded) {
@@ -4161,6 +4236,12 @@ console.log("IS ARRAY?", Array.isArray(orders));
         </div>
         <div id="footer">© 2023, JustJeeps.com, Inc. All Rights Reserved</div>
       </div>
+      {replacementsEnabled && replacementLookupSku && (
+        <ReplacementLookupDrawer
+          sourceSku={replacementLookupSku}
+          onClose={() => setReplacementLookupSku(null)}
+        />
+      )}
       {open && (
         <Popup
           placement={placement}

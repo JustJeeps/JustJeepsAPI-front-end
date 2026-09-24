@@ -56,6 +56,7 @@ All routes except `/login` are wrapped in `ProtectedRoute` (effective when the b
 - `/requests` - Internal tickets (list + kanban board with drag and drop). The author of a request
   and triage users can archive or delete it from the row menu, the card menu or the drawer;
   delete is a soft delete and only triage sees the Deleted view and can restore.
+- `/replacements` - Product replacements (SKU substitutions): register Source SKU -> Replacement SKU pairs with comments. The Orders screen shows a replacement icon next to the magnifier for SKUs that have one and opens a read-only lookup drawer for the replacement SKU (`src/features/replacements/`).
 - `/settings` - Settings hub (gear icon): Trello tab (triage only) + Imports tab (vendor feeds panel). `/feeds` redirects here.
 - `/purchaser-report` - Purchaser report (username allowlist)
 - `/quickbooks-customer-lookup` - QuickBooks customer lookup

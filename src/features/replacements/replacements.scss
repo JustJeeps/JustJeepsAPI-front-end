@@ -1,0 +1,540 @@
+// Styles of the Product Replacement feature. Follows the Requests page
+// (breadcrumb, title, filter card) and reuses the colors already used in the
+// app; nothing here touches existing screens.
+
+.replacements-page {
+	max-width: 1480px;
+	margin: 0 auto;
+	// The app navbar is fixed and tall: explicit clearance at the top (same as
+	// requests.scss / quickbooksCustomerLookup.scss).
+	padding: 190px 20px 60px;
+
+	&--loading {
+		display: flex;
+		justify-content: center;
+		padding-top: 120px;
+	}
+
+	&__header {
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 16px;
+		margin-bottom: 16px;
+	}
+
+	&__eyebrow {
+		text-transform: uppercase;
+		letter-spacing: 1.2px;
+		font-size: 11px;
+	}
+
+	&__title {
+		margin: 2px 0 0 !important;
+	}
+
+	&__subtitle {
+		display: block;
+		margin-top: 4px;
+	}
+
+	&__error {
+		margin-bottom: 12px;
+	}
+
+	&__search {
+		margin-bottom: 14px;
+		background: #fafafa;
+
+		.ant-card-body {
+			display: flex;
+			align-items: center;
+			gap: 16px;
+		}
+	}
+
+	&__search-input {
+		max-width: 560px;
+	}
+
+	&__count {
+		margin-left: auto;
+	}
+
+	&__empty {
+		background: #fff;
+		border: 1px solid #f0f0f0;
+		border-radius: 8px;
+		padding: 40px 16px;
+	}
+}
+
+// One card per original product: the original on the left, its replacements
+// on the right.
+.replacement-group {
+	display: grid;
+	grid-template-columns: 400px 1fr;
+	background: #fff;
+	border: 1px solid #f0f0f0;
+	border-radius: 8px;
+	overflow: hidden;
+	margin-bottom: 16px;
+
+	&__source {
+		background: #fafafa;
+		border-right: 1px solid #f0f0f0;
+		padding: 18px 20px;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	&__count {
+		margin-top: 4px;
+	}
+
+	&__rows {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+	}
+
+	&__row-header,
+	&__row {
+		display: grid;
+		grid-template-columns: 24px minmax(0, 1fr) 300px 190px 120px;
+		gap: 16px;
+		align-items: center;
+		padding: 10px 20px;
+		border-bottom: 1px solid #f0f0f0;
+	}
+
+	&__row-header {
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.5px;
+		text-transform: uppercase;
+		color: #8c8c8c;
+	}
+
+	&__row {
+		padding: 14px 20px;
+	}
+
+	&__arrow {
+		color: #bfbfbf;
+		font-size: 18px;
+	}
+
+	&__comment {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+
+	&__comment-text {
+		white-space: normal;
+		word-break: break-word;
+		line-height: 1.3;
+	}
+
+	&__by {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	&__actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 6px;
+	}
+
+	&__add {
+		padding: 10px 20px;
+	}
+
+	@media (max-width: 1100px) {
+		grid-template-columns: 1fr;
+
+		&__source {
+			border-right: none;
+			border-bottom: 1px solid #f0f0f0;
+		}
+
+		&__row-header {
+			display: none;
+		}
+
+		&__row {
+			grid-template-columns: 1fr;
+		}
+	}
+}
+
+// Product card (image, tag, SKU, name) used by the list, the modal and the
+// lookup drawer. Original = gray tag, Replacement = blue tag.
+.replacement-product {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	min-width: 0;
+
+	&__image {
+		width: 52px;
+		height: 52px;
+		border-radius: 4px;
+		border: 1px solid #d9d9d9;
+		object-fit: contain;
+		background: #fff;
+		flex: none;
+	}
+
+	&--large &__image {
+		width: 72px;
+		height: 72px;
+		border-radius: 6px;
+	}
+
+	&__body {
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+		min-width: 0;
+	}
+
+	&__line {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex-wrap: wrap;
+	}
+
+	&__tag {
+		margin: 0;
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 1px;
+		line-height: 16px;
+	}
+
+	&__sku {
+		font-weight: 700;
+		font-size: 15px;
+	}
+
+	&--large &__sku {
+		font-size: 18px;
+	}
+
+	&__name {
+		white-space: normal;
+		word-break: break-word;
+		line-height: 1.3;
+	}
+
+	&__missing {
+		font-style: italic;
+	}
+
+	&__description {
+		font-size: 12px;
+		line-height: 1.3;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+	}
+
+	&--large &__description {
+		font-size: 13px;
+		-webkit-line-clamp: 3;
+	}
+}
+
+// Creation modal: original on the left, picker on the right, list below.
+.replacement-new {
+	&__columns {
+		display: grid;
+		grid-template-columns: 1fr 48px 1fr;
+		gap: 0;
+		align-items: start;
+	}
+
+	&__column {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	&__arrow {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		height: 40px;
+		margin-top: 62px;
+		color: #8c8c8c;
+		font-size: 24px;
+	}
+
+	&__step {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	&__step-number {
+		width: 22px;
+		height: 22px;
+		border-radius: 11px;
+		color: #fff;
+		font-size: 12px;
+		font-weight: 700;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex: none;
+
+		&--source { background: #1a1a1a; }
+		&--replacement { background: #0958d9; }
+		&--list { background: #8c8c8c; }
+	}
+
+	&__selected {
+		padding: 14px;
+		border: 1px solid #d9d9d9;
+		border-radius: 8px;
+		background: #fafafa;
+
+		&--replacement {
+			border-color: #91caff;
+			background: #f0f7ff;
+		}
+	}
+
+	&__existing {
+		padding: 10px 12px;
+	}
+
+	&__existing-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 13px;
+	}
+
+	&__chips {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		flex-wrap: wrap;
+	}
+
+	&__add {
+		display: flex;
+		justify-content: flex-end;
+	}
+
+	&__list {
+		margin-top: 14px;
+	}
+
+	&__list-row {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 300px 40px;
+		gap: 12px;
+		align-items: center;
+		padding: 8px 12px;
+		border-bottom: 1px solid #f0f0f0;
+
+		&:last-child {
+			border-bottom: none;
+		}
+	}
+
+	&__list-box {
+		border: 1px solid #f0f0f0;
+		border-radius: 8px;
+		overflow: hidden;
+		margin-top: 8px;
+	}
+
+	&__footer-note {
+		margin-right: auto;
+	}
+
+	&__option {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-width: 0;
+	}
+
+	&__option-image {
+		width: 36px;
+		height: 36px;
+		border-radius: 4px;
+		border: 1px solid #d9d9d9;
+		object-fit: contain;
+		background: #fff;
+		flex: none;
+	}
+
+	&__option-body {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		flex: 1;
+	}
+
+	&__option-name {
+		white-space: normal;
+		line-height: 1.25;
+	}
+
+	&__option-side {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		flex: none;
+	}
+}
+
+// Comments list (detail drawer and lookup drawer).
+.replacement-comments {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+
+	&__row {
+		display: flex;
+		align-items: flex-start;
+		gap: 10px;
+	}
+
+	&__body {
+		flex: 1;
+		min-width: 0;
+		white-space: pre-wrap;
+		word-break: break-word;
+		line-height: 1.35;
+	}
+
+	&__meta {
+		white-space: nowrap;
+	}
+
+	&__form {
+		margin-top: 8px;
+	}
+}
+
+// Detail drawer.
+.replacement-detail {
+	&__pair {
+		display: grid;
+		grid-template-columns: 1fr 32px 1fr;
+		gap: 12px;
+		align-items: center;
+		margin-bottom: 16px;
+	}
+
+	&__arrow {
+		text-align: center;
+		color: #8c8c8c;
+		font-size: 20px;
+	}
+
+	&__meta {
+		margin-bottom: 16px;
+	}
+}
+
+// Replacement icon next to the magnifier on the expanded order row.
+.replacement-icon {
+	color: #d46b08;
+	font-size: 28px;
+	cursor: pointer;
+	margin: 0 8px;
+	transition: transform 0.2s;
+
+	&:hover {
+		transform: scale(1.1);
+	}
+}
+
+// Lookup drawer (same placement, width and background as the magnifier drawer).
+.replacement-lookup {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+
+	&__header {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		flex-wrap: wrap;
+	}
+
+	&__title {
+		margin: 0 !important;
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	&__pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
+		padding: 6px 12px;
+		border-radius: 6px;
+		border: 1px solid #d9d9d9;
+		background: #fff;
+
+		&--replacement {
+			border-color: #91caff;
+			background: #f0f7ff;
+		}
+	}
+
+	&__pill-sku {
+		font-weight: 700;
+	}
+
+	&__note {
+		margin-left: auto;
+	}
+
+	&__options {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+
+	&__context {
+		background: #fff;
+		border: 1px solid #91caff;
+		border-radius: 8px;
+		padding: 12px 16px;
+		display: grid;
+		grid-template-columns: 520px minmax(0, 1fr) 260px;
+		gap: 24px;
+		align-items: start;
+	}
+
+	&__context-by {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		text-align: right;
+		gap: 2px;
+	}
+
+	&__table {
+		width: 100%;
+		max-width: 100%;
+		overflow-x: auto;
+	}
+}

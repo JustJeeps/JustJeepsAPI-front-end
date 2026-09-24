@@ -112,6 +112,10 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 	};
 
 	const handleVendorCostCopy = vendorProduct => {
+		// Read-only mode (Replacement Lookup drawer): the table is consulted, never
+		// used to pick a cost, so nothing is written to Unit Cost and no
+		// "Selected for Unit Cost" feedback is shown.
+		if (props.readOnly) return;
 		const selectedCost = getSelectedCostByOrder(vendorProduct);
 		if (!Number.isFinite(selectedCost)) return;
 
@@ -759,6 +763,22 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 						<span style={{ fontSize: '14px', fontWeight: 500 }}>{displayVendorName}</span>
             )}
           </div>
+					{/* Read-only mode (Replacement Lookup): plain text, no clipboard write,
+					    no "Selected for Unit Cost". The magnifier keeps today's CopyText. */}
+					{props.readOnly ? (
+								<div style={{ textAlign: 'right' }}>
+									<span style={{ whiteSpace: 'nowrap', fontSize: '14px', fontWeight: 700, color: '#1890ff' }}>
+									${vendorProduct.vendor_cost.toFixed(2)} / ${(vendorProduct.vendor_cost / USD_TO_CAD_RATE).toFixed(2)}
+									</span>
+									{hasQuadratecCostBreakdown && (
+										<div style={{ marginTop: '2px', color: '#595959', fontSize: '11px', lineHeight: 1.35 }}>
+											<div>Orig: ${baseCostUsd.toFixed(2)} USD</div>
+											<div>Surcharge: ${shippingSurchargeUsd.toFixed(2)} USD</div>
+											<div>Total: ${totalCostUsd.toFixed(2)} USD</div>
+										</div>
+									)}
+								</div>
+					) : (
 					<CopyText
 						text={`CAD$ ${vendorProduct.vendor_cost.toFixed(2)} / USD$ ${(vendorProduct.vendor_cost / USD_TO_CAD_RATE).toFixed(2)}`}
 						onCopy={() => handleVendorCostCopy(vendorProduct)}
@@ -783,6 +803,7 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 									)}
 								</div>
 					</CopyText>
+					)}
         </div>
       );
     });
