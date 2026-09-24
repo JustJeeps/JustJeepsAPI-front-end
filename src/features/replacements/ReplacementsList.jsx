@@ -1,7 +1,7 @@
-import { Button, Popconfirm, Typography } from 'antd';
+import { Button, Popconfirm, Tag, Typography } from 'antd';
 import { ArrowRightOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import ReplacementProductCard from './ReplacementProductCard';
-import { canRemoveReplacement, displayName, formatDateTime, latestComment } from './replacementsUtils';
+import { canRemoveReplacement, displayName, formatDateTime, isNoneMarker, latestComment } from './replacementsUtils';
 
 const { Text } = Typography;
 
@@ -32,7 +32,14 @@ const ReplacementsList = ({ groups = [], user, managers = [], onView, onRemove, 
 						return (
 							<div key={replacement.id} className="replacement-group__row">
 								<ArrowRightOutlined className="replacement-group__arrow" />
-								<ReplacementProductCard sku={replacement.replacement_sku} product={replacement.product} role="replacement" />
+								{isNoneMarker(replacement) ? (
+									<div className="replacement-none">
+										<Tag color="red" className="replacement-none__tag">NO REPLACEMENT</Tag>
+										<Text className="replacement-none__text">{comment ? comment.body : 'No replacement registered'}</Text>
+									</div>
+								) : (
+									<ReplacementProductCard sku={replacement.replacement_sku} product={replacement.product} role="replacement" />
+								)}
 								<div className="replacement-group__comment">
 									{comment ? (
 										<>
@@ -67,9 +74,13 @@ const ReplacementsList = ({ groups = [], user, managers = [], onView, onRemove, 
 						);
 					})}
 					<div className="replacement-group__add">
-						<Button type="link" size="small" icon={<PlusOutlined />} style={{ padding: 0 }} onClick={() => onAddFor(group.source_sku)}>
-							Add another replacement for {group.source_sku}
-						</Button>
+						{group.replacements.some(isNoneMarker) ? (
+							<Text type="secondary">Marked as no replacement. Remove the marker to register a replacement.</Text>
+						) : (
+							<Button type="link" size="small" icon={<PlusOutlined />} style={{ padding: 0 }} onClick={() => onAddFor(group.source_sku)}>
+								Add another replacement for {group.source_sku}
+							</Button>
+						)}
 					</div>
 				</div>
 			</div>

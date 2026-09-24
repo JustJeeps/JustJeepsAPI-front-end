@@ -11,6 +11,9 @@ import {
 	latestComment,
 	stockHint,
 	isSafeHttpUrl,
+	isNoneMarker,
+	replacementBadgeFor,
+	noReplacementTooltip,
 } from '../replacementsUtils';
 
 describe('formatDateTime', () => {
@@ -127,5 +130,29 @@ describe('isSafeHttpUrl', () => {
 		expect(isSafeHttpUrl('javascript:alert(1)')).toBe(false);
 		expect(isSafeHttpUrl('')).toBe(false);
 		expect(isSafeHttpUrl(null)).toBe(false);
+	});
+});
+
+describe('no replacement marker helpers', () => {
+	it('isNoneMarker recognises the marker rows and defaults old rows to pairs', () => {
+		expect(isNoneMarker({ kind: 'none', replacement_sku: null })).toBe(true);
+		expect(isNoneMarker({ kind: 'replacement', replacement_sku: 'B' })).toBe(false);
+		expect(isNoneMarker({ replacement_sku: 'B' })).toBe(false);
+		expect(isNoneMarker(null)).toBe(false);
+	});
+
+	it('replacementBadgeFor picks the marker over the count and nothing when empty', () => {
+		expect(replacementBadgeFor({ replacements: 0, noReplacement: { comment: 'x' } })).toEqual({ kind: 'none', count: 0 });
+		expect(replacementBadgeFor({ replacements: 2, noReplacement: null })).toEqual({ kind: 'replacements', count: 2 });
+		expect(replacementBadgeFor({ replacements: 0, noReplacement: null })).toEqual({ kind: null, count: 0 });
+		expect(replacementBadgeFor(undefined)).toEqual({ kind: null, count: 0 });
+		expect(replacementBadgeFor(3)).toEqual({ kind: 'replacements', count: 3 });
+	});
+
+	it('noReplacementTooltip gives the comment and who registered it', () => {
+		const lines = noReplacementTooltip({ comment: 'Discontinued.', by: 'Paula Pereira', at: '2026-09-24T14:00:00Z' });
+		expect(lines[0]).toBe('Discontinued.');
+		expect(lines[1]).toMatch(/^by Paula Pereira, Sep 24, 2026 /);
+		expect(noReplacementTooltip({ comment: '', by: '', at: null })).toEqual(['No replacement registered', '']);
 	});
 });

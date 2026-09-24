@@ -32,9 +32,10 @@ import Highlighter from "react-highlight-words";
 import { Edit, Trash, Save, Reload } from "../../icons";
 import Popup from "./Popup";
 import ReplacementIcon from "../replacements/ReplacementIcon";
+import NoReplacementIcon from "../replacements/NoReplacementIcon";
 import ReplacementLookupDrawer from "../replacements/ReplacementLookupDrawer";
 import { fetchReplacementCounts, fetchReplacementsMetaCached } from "../replacements/replacementsApi";
-import { extractItemSkus, normalizeSkuInput } from "../replacements/replacementsUtils";
+import { extractItemSkus, normalizeSkuInput, replacementBadgeFor } from "../replacements/replacementsUtils";
 import OpenOrdersFlag from "./OpenOrdersFlag";
 import StatusDivergenceFlag from "./StatusDivergenceFlag";
 import { DEFAULT_ORDER_FILTERS, customerSearchFilters } from "./orderFilters";
@@ -97,7 +98,7 @@ const OrderTable = () => {
       .then((counts) => {
         setReplacementCounts((prev) => {
           const next = { ...prev };
-          for (const sku of itemSkus) next[sku] = counts[sku] || 0;
+          for (const sku of itemSkus) next[sku] = counts[sku] || { replacements: 0, noReplacement: null };
           return next;
         });
       })
@@ -3084,12 +3085,22 @@ console.log("IS ARRAY?", Array.isArray(orders));
                       active replacement registered in /replacements. The
                       `&&` keeps antd Space from adding an empty item (and its
                       gap) next to the magnifier when there is none. */}
-                  {replacementsEnabled && replacementCounts[normalizeSkuInput(recordSub.sku)] > 0 && (
-                    <ReplacementIcon
-                      count={replacementCounts[normalizeSkuInput(recordSub.sku)]}
-                      onClick={() => setReplacementLookupSku(normalizeSkuInput(recordSub.sku))}
-                    />
-                  )}
+                  {replacementsEnabled && (() => {
+                    const entry = replacementCounts[normalizeSkuInput(recordSub.sku)];
+                    const badge = replacementBadgeFor(entry);
+                    // Marked as having no replacement: a red stop icon whose
+                    // tooltip carries the explanation; it opens nothing.
+                    if (badge.kind === "none") return <NoReplacementIcon marker={entry.noReplacement} />;
+                    if (badge.kind === "replacements") {
+                      return (
+                        <ReplacementIcon
+                          count={badge.count}
+                          onClick={() => setReplacementLookupSku(normalizeSkuInput(recordSub.sku))}
+                        />
+                      );
+                    }
+                    return null;
+                  })()}
                   {/* <Tooltip title="Add to PO">
                     <ShoppingCartOutlined
                       style={{ color: "purple", fontSize: "25px" }}

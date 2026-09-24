@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, Input, Modal, Space, Tag, Typography, message } from 'antd';
+import { Alert, Button, Input, Modal, Space, Switch, Tag, Typography, message } from 'antd';
 import { ArrowRightOutlined, CloseOutlined, PlusOutlined } from '@ant-design/icons';
 import ProductPicker from './ProductPicker';
 import ReplacementProductCard from './ReplacementProductCard';
-import { createReplacements, fetchProductPreview, fetchReplacementsForSku } from './replacementsApi';
-import { displayName, replacementErrorMessage, validatePair } from './replacementsUtils';
+import { createNoReplacement, createReplacements, fetchProductPreview, fetchReplacementsForSku } from './replacementsApi';
+import { displayName, isNoneMarker, replacementErrorMessage, validatePair } from './replacementsUtils';
 
 const { Text } = Typography;
 
@@ -31,6 +31,7 @@ const StepLabel = ({ number, kind, title, hint }) => (
 const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku = null }) => {
 	const [source, setSource] = useState(null); // product
 	const [existing, setExisting] = useState([]); // active replacements of the source
+	const [existingMarker, setExistingMarker] = useState(null); // its "no replacement" marker, if any
 	const [candidate, setCandidate] = useState(null); // product picked on the right
 	const [comment, setComment] = useState('');
 	const [pending, setPending] = useState([]); // [{ replacement_sku, product, comment }]
@@ -39,16 +40,21 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 	const [loadingSource, setLoadingSource] = useState(false);
 	const [sourceLoadError, setSourceLoadError] = useState(null);
 	const [existingError, setExistingError] = useState(null);
+	// "This product has no replacement": hides the picker and the list, the
+	// comment becomes the required explanation shown on the Orders screen.
+	const [noReplacement, setNoReplacement] = useState(false);
 
 	const reset = () => {
 		setSource(null);
 		setExisting([]);
+		setExistingMarker(null);
 		setCandidate(null);
 		setComment('');
 		setPending([]);
 		setPairError(null);
 		setSourceLoadError(null);
 		setExistingError(null);
+		setNoReplacement(false);
 	};
 
 	// "Add another replacement for X" opens the modal with the original set.
@@ -75,6 +81,7 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 	useEffect(() => {
 		if (!source?.sku) {
 			setExisting([]);
+			setExistingMarker(null);
 			setExistingError(null);
 			return undefined;
 		}
@@ -82,7 +89,9 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 		fetchReplacementsForSku(source.sku)
 			.then((data) => {
 				if (cancelled) return;
+				// The API keeps the marker apart from the replacement options.
 				setExisting(data?.replacements || []);
+				setExistingMarker(data?.noReplacement || null);
 				setExistingError(null);
 			})
 			.catch((error) => {
@@ -95,6 +104,8 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 			cancelled = true;
 		};
 	}, [source?.sku]);
+
+	const existingPairs = existing.filter((entry) => !isNoneMarker(entry));
 
 	const handleClose = () => {
 		if (saving) return;
@@ -136,7 +147,24 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 
 	const removeFromList = (sku) => setPending((list) => list.filter((entry) => entry.replacement_sku !== sku));
 
+	const handleSaveNoReplacement = async () => {
+		if (!source?.sku || !comment.trim()) return;
+		setSaving(true);
+		try {
+			await createNoReplacement({ source_sku: source.sku, comment: comment.trim() });
+			message.success(`${source.sku} marked as having no replacement`);
+			reset();
+			onCreated?.([]);
+			onClose();
+		} catch (saveError) {
+			message.error(replacementErrorMessage(saveError, 'Failed to save the marker'));
+		} finally {
+			setSaving(false);
+		}
+	};
+
 	const handleSave = async () => {
+		if (noReplacement) return handleSaveNoReplacement();
 		if (!source?.sku || pending.length === 0) return;
 		setSaving(true);
 		try {
@@ -155,7 +183,8 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 		}
 	};
 
-	const canAdd = Boolean(source?.sku && candidate?.sku && !pairError);
+	const canAdd = Boolean(source?.sku && candidate?.sku && !pairError && !existingMarker);
+	const canSaveMarker = Boolean(source?.sku && comment.trim() && existingPairs.length === 0 && !existingMarker);
 
 	return (
 		<Modal
@@ -176,8 +205,14 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 						Saved as {displayName(user)}, with the current date and time.
 					</Text>
 					<Button onClick={handleClose} disabled={saving}>Cancel</Button>
-					<Button type="primary" danger onClick={handleSave} loading={saving} disabled={!source?.sku || pending.length === 0}>
-						{pending.length > 1 ? `Save ${pending.length} replacements` : 'Save replacement'}
+					<Button
+						type="primary"
+						danger
+						onClick={handleSave}
+						loading={saving}
+						disabled={noReplacement ? !canSaveMarker : (!source?.sku || pending.length === 0)}
+					>
+						{noReplacement ? 'Save as no replacement' : (pending.length > 1 ? `Save ${pending.length} replacements` : 'Save replacement')}
 					</Button>
 				</Space>
 			)}
@@ -211,14 +246,26 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 							<Button type="link" size="small" style={{ alignSelf: 'flex-start', padding: 0 }} onClick={() => { setSource(null); setPending([]); setCandidate(null); setPairError(null); }} disabled={pending.length > 0 || saving}>
 								Change original
 							</Button>
-							{existing.length > 0 && (
+							{existingMarker && (
 								<Alert
-									type="warning"
+									type="error"
+									showIcon
 									className="replacement-new__existing"
-									message={`Already registered for this product (${existing.length})`}
+									message="Marked as no replacement"
+									description={`${existingMarker.comment || ''} Remove the marker in the directory before registering a replacement.`.trim()}
+								/>
+							)}
+							{existingPairs.length > 0 && (
+								<Alert
+									type={noReplacement ? 'error' : 'warning'}
+									showIcon={noReplacement}
+									className="replacement-new__existing"
+									message={noReplacement
+										? `Remove the ${existingPairs.length} registered replacement${existingPairs.length === 1 ? '' : 's'} first`
+										: `Already registered for this product (${existingPairs.length})`}
 									description={(
 										<div>
-											{existing.map((entry) => (
+											{existingPairs.map((entry) => (
 												<div key={entry.id} className="replacement-new__existing-row">
 													<Text strong>{entry.replacement_sku}</Text>
 													<Text type="secondary">{entry.product?.name || 'SKU not in catalog'}</Text>
@@ -241,8 +288,20 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 
 				{/* Step 2: replacement */}
 				<div className="replacement-new__column">
-					<StepLabel number={2} kind="replacement" title="Replacement product" hint="search, comment, then Add" />
-					{candidate ? (
+					<div className="replacement-new__step" style={{ justifyContent: 'space-between' }}>
+						<StepLabel number={2} kind="replacement" title={noReplacement ? 'No replacement' : 'Replacement product'} hint={noReplacement ? 'explain why' : 'search, comment, then Add'} />
+						<Space size={6}>
+							<Switch
+								size="small"
+								checked={noReplacement}
+								disabled={!source?.sku || pending.length > 0 || saving}
+								onChange={(checked) => { setNoReplacement(checked); setCandidate(null); setPairError(null); }}
+								aria-label="This product has no replacement"
+							/>
+							<Text style={{ fontSize: 13 }}>This product has no replacement</Text>
+						</Space>
+					</div>
+					{noReplacement ? null : candidate ? (
 						<div className="replacement-new__selected replacement-new__selected--replacement">
 							<ReplacementProductCard sku={candidate.sku} product={candidate} role="replacement" size="large" />
 							<Button type="link" size="small" style={{ padding: 0, marginTop: 6 }} onClick={() => handleCandidate(null)}>Change</Button>
@@ -255,15 +314,18 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 					)}
 					{pairError && <Alert type="error" showIcon message={pairError} />}
 
-					<Text type="secondary" style={{ fontSize: 13 }}>Comment for this replacement (optional)</Text>
+					<Text type="secondary" style={{ fontSize: 13 }}>
+						{noReplacement ? 'Why there is no replacement (required, shown on the Orders screen)' : 'Comment for this replacement (optional)'}
+					</Text>
 					<Input.TextArea
 						rows={2}
 						value={comment}
 						onChange={(event) => setComment(event.target.value)}
-						placeholder="Example: Customer approval is required before replacing this item."
+						placeholder={noReplacement ? 'Example: Discontinued by the manufacturer, no equivalent part.' : 'Example: Customer approval is required before replacing this item.'}
 						maxLength={2000}
 						disabled={!source?.sku}
 					/>
+					{noReplacement ? null : (
 					<div className="replacement-new__chips">
 						{QUICK_COMMENTS.map((text) => (
 							<Tag.CheckableTag key={text} checked={comment === text} onChange={() => setComment(comment === text ? '' : text)}>
@@ -271,15 +333,19 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 							</Tag.CheckableTag>
 						))}
 					</div>
+					)}
+					{noReplacement ? null : (
 					<div className="replacement-new__add">
 						<Button type="primary" icon={<PlusOutlined />} onClick={addToList} disabled={!canAdd}>
 							Add replacement
 						</Button>
 					</div>
+					)}
 				</div>
 			</div>
 
-			{/* Step 3: list to save */}
+			{/* Step 3: list to save (not for a marker) */}
+			{noReplacement ? null : (
 			<div className="replacement-new__list">
 				<StepLabel
 					number={3}
@@ -307,6 +373,7 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 					</div>
 				)}
 			</div>
+			)}
 		</Modal>
 	);
 };

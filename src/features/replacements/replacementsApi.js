@@ -31,6 +31,10 @@ export const fetchReplacements = (search = '') =>
 // { source_sku, replacements: [{ replacement_sku, comment? }] } -> created rows
 export const createReplacements = (payload) => apiPost(BASE, payload).then((res) => res.data);
 
+// Marks a product as having no replacement; the comment is required.
+export const createNoReplacement = ({ source_sku, comment }) =>
+	apiPost(BASE, { source_sku, no_replacement: true, comment }).then((res) => res.data);
+
 export const removeReplacement = (id) => apiDelete(`${BASE}/${id}`).then((res) => res.data);
 
 export const addReplacementComment = (id, body) =>

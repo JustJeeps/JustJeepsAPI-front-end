@@ -93,3 +93,24 @@ export const stockHint = (product) => {
 // Only http(s) links are rendered as anchors (a stored "javascript:" URL
 // would otherwise become a click-to-run link).
 export const isSafeHttpUrl = (url) => /^https?:\/\//i.test(String(url || ''));
+
+// --- "No replacement" marker ------------------------------------------------
+
+// A directory row is a pair or a marker (kind 'none'); old rows are pairs.
+export const isNoneMarker = (row) => Boolean(row) && row.kind === 'none';
+
+// What the Orders cell shows for a SKU, from the counts payload
+// ({ replacements, noReplacement } or, for older payloads, a number).
+export const replacementBadgeFor = (entry) => {
+	if (typeof entry === 'number') return { kind: entry > 0 ? 'replacements' : null, count: entry };
+	if (!entry) return { kind: null, count: 0 };
+	if (entry.noReplacement) return { kind: 'none', count: 0 };
+	const count = Number(entry.replacements) || 0;
+	return { kind: count > 0 ? 'replacements' : null, count };
+};
+
+// Two lines for the tooltip of the "no replacement" icon.
+export const noReplacementTooltip = ({ comment, by, at } = {}) => [
+	String(comment || '').trim() || 'No replacement registered',
+	by ? `by ${by}, ${formatDateTime(at)}` : '',
+];

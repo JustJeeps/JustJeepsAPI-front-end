@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Button, Drawer, Popconfirm, Space, Typography, message } from 'antd';
+import { Button, Drawer, Popconfirm, Space, Tag, Typography, message } from 'antd';
 import { ArrowRightOutlined, DeleteOutlined } from '@ant-design/icons';
 import ReplacementProductCard from './ReplacementProductCard';
 import ReplacementComments from './ReplacementComments';
 import { addReplacementComment, removeReplacement, removeReplacementComment } from './replacementsApi';
-import { canRemoveReplacement, displayName, formatDateTime, replacementErrorMessage } from './replacementsUtils';
+import { canRemoveReplacement, displayName, formatDateTime, isNoneMarker, replacementErrorMessage } from './replacementsUtils';
 
 const { Text } = Typography;
 
@@ -41,7 +41,7 @@ const ReplacementDetailDrawer = ({ open, replacement, sourceProduct, user, manag
 			open={open}
 			onClose={onClose}
 			width={720}
-			title={`Replacement ${replacement.source_sku} to ${replacement.replacement_sku}`}
+			title={isNoneMarker(replacement) ? `${replacement.source_sku} marked as no replacement` : `Replacement ${replacement.source_sku} to ${replacement.replacement_sku}`}
 			extra={canRemoveReplacement({ replacement, user, managers }) && (
 				<Popconfirm
 					title="Remove this replacement?"
@@ -50,14 +50,21 @@ const ReplacementDetailDrawer = ({ open, replacement, sourceProduct, user, manag
 					okButtonProps={{ danger: true }}
 					onConfirm={() => run(async () => { await removeReplacement(replacement.id); onClose(); }, 'Replacement removed')}
 				>
-					<Button danger icon={<DeleteOutlined />} loading={busy}>Remove replacement</Button>
+					<Button danger icon={<DeleteOutlined />} loading={busy}>{isNoneMarker(replacement) ? 'Remove marker' : 'Remove replacement'}</Button>
 				</Popconfirm>
 			)}
 		>
 			<div className="replacement-detail__pair">
 				<ReplacementProductCard sku={replacement.source_sku} product={sourceProduct} role="original" size="large" />
 				<ArrowRightOutlined className="replacement-detail__arrow" />
-				<ReplacementProductCard sku={replacement.replacement_sku} product={replacement.product} role="replacement" size="large" />
+				{isNoneMarker(replacement) ? (
+					<div className="replacement-none">
+						<Tag color="red" className="replacement-none__tag">NO REPLACEMENT</Tag>
+						<Text className="replacement-none__text">{replacement.comments?.[0]?.body || 'No replacement registered'}</Text>
+					</div>
+				) : (
+					<ReplacementProductCard sku={replacement.replacement_sku} product={replacement.product} role="replacement" size="large" />
+				)}
 			</div>
 			<Space direction="vertical" size={0} className="replacement-detail__meta">
 				<Text type="secondary" style={{ fontSize: 13 }}>Associated by</Text>
