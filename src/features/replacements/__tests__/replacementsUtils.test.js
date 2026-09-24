@@ -14,6 +14,7 @@ import {
 	isNoneMarker,
 	replacementBadgeFor,
 	noReplacementTooltip,
+	withSelectedCandidate,
 } from '../replacementsUtils';
 
 describe('formatDateTime', () => {
@@ -154,5 +155,20 @@ describe('no replacement marker helpers', () => {
 		expect(lines[0]).toBe('Discontinued.');
 		expect(lines[1]).toMatch(/^by Paula Pereira, Sep 24, 2026 /);
 		expect(noReplacementTooltip({ comment: '', by: '', at: null })).toEqual(['No replacement registered', '']);
+	});
+});
+
+describe('withSelectedCandidate', () => {
+	const pending = [{ replacement_sku: 'A', product: { sku: 'A' }, comment: 'first' }];
+	it('adds the product selected in step 2 to what will be saved, even without Add', () => {
+		const result = withSelectedCandidate({ pending, candidate: { sku: 'B' }, comment: ' second ', pairError: null });
+		expect(result.map((entry) => entry.replacement_sku)).toEqual(['A', 'B']);
+		expect(result[1]).toEqual({ replacement_sku: 'B', product: { sku: 'B' }, comment: 'second' });
+	});
+	it('leaves the list alone when there is no valid candidate or it is already listed', () => {
+		expect(withSelectedCandidate({ pending, candidate: null, comment: '', pairError: null })).toEqual(pending);
+		expect(withSelectedCandidate({ pending, candidate: { sku: 'B' }, comment: '', pairError: 'A SKU cannot replace itself' })).toEqual(pending);
+		expect(withSelectedCandidate({ pending, candidate: { sku: 'A' }, comment: 'dup', pairError: null })).toEqual(pending);
+		expect(withSelectedCandidate({ pending: [], candidate: { sku: 'B' }, comment: '', pairError: null })).toEqual([{ replacement_sku: 'B', product: { sku: 'B' }, comment: '' }]);
 	});
 });

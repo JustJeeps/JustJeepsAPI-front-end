@@ -114,3 +114,12 @@ export const noReplacementTooltip = ({ comment, by, at } = {}) => [
 	String(comment || '').trim() || 'No replacement registered',
 	by ? `by ${by}, ${formatDateTime(at)}` : '',
 ];
+
+// What the modal saves: the list built with "Add" plus the product still
+// selected in step 2, when it is valid and not listed yet. People pick a
+// second product, skip "Add" and press Save; that product must not be lost.
+export const withSelectedCandidate = ({ pending = [], candidate, comment = '', pairError = null }) => {
+	if (!candidate?.sku || pairError) return pending;
+	if (pending.some((entry) => entry.replacement_sku === candidate.sku)) return pending;
+	return [...pending, { replacement_sku: candidate.sku, product: candidate, comment: String(comment || '').trim() }];
+};

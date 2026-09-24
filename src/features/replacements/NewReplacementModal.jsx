@@ -4,7 +4,7 @@ import { ArrowRightOutlined, CloseOutlined, PlusOutlined } from '@ant-design/ico
 import ProductPicker from './ProductPicker';
 import ReplacementProductCard from './ReplacementProductCard';
 import { createNoReplacement, createReplacements, fetchProductPreview, fetchReplacementsForSku } from './replacementsApi';
-import { displayName, isNoneMarker, replacementErrorMessage, validatePair } from './replacementsUtils';
+import { displayName, isNoneMarker, replacementErrorMessage, validatePair, withSelectedCandidate } from './replacementsUtils';
 
 const { Text } = Typography;
 
@@ -163,14 +163,18 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 		}
 	};
 
+	// The product still selected in step 2 is saved too (no "Add" needed).
+	const toSave = withSelectedCandidate({ pending, candidate, comment, pairError });
+	const selectedNotAdded = toSave.length > pending.length;
+
 	const handleSave = async () => {
 		if (noReplacement) return handleSaveNoReplacement();
-		if (!source?.sku || pending.length === 0) return;
+		if (!source?.sku || toSave.length === 0) return;
 		setSaving(true);
 		try {
 			const created = await createReplacements({
 				source_sku: source.sku,
-				replacements: pending.map((entry) => ({ replacement_sku: entry.replacement_sku, comment: entry.comment || undefined })),
+				replacements: toSave.map((entry) => ({ replacement_sku: entry.replacement_sku, comment: entry.comment || undefined })),
 			});
 			message.success(`${created.length} replacement${created.length === 1 ? '' : 's'} saved for ${source.sku}`);
 			reset();
@@ -210,9 +214,9 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 						danger
 						onClick={handleSave}
 						loading={saving}
-						disabled={noReplacement ? !canSaveMarker : (!source?.sku || pending.length === 0)}
+						disabled={noReplacement ? !canSaveMarker : (!source?.sku || toSave.length === 0)}
 					>
-						{noReplacement ? 'Save as no replacement' : (pending.length > 1 ? `Save ${pending.length} replacements` : 'Save replacement')}
+						{noReplacement ? 'Save as no replacement' : (toSave.length > 1 ? `Save ${toSave.length} replacements` : 'Save replacement')}
 					</Button>
 				</Space>
 			)}
@@ -353,9 +357,17 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 					title={`Replacements to save (${pending.length})`}
 					hint={source?.sku ? `for ${source.sku}. Each one keeps its own comment.` : null}
 				/>
-				{pending.length === 0 ? (
+				{selectedNotAdded && (
+					<Alert
+						type="info"
+						showIcon
+						style={{ marginTop: 8 }}
+						message={`${candidate.sku} selected above will be saved too. Use "Add replacement" only to pick another one.`}
+					/>
+				)}
+				{pending.length === 0 && !selectedNotAdded ? (
 					<Text type="secondary" style={{ display: 'block', marginTop: 8 }}>Nothing added yet.</Text>
-				) : (
+				) : pending.length === 0 ? null : (
 					<div className="replacement-new__list-box">
 						{pending.map((entry) => (
 							<div key={entry.replacement_sku} className="replacement-new__list-row">
