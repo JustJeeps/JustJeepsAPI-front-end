@@ -69,6 +69,34 @@
 	border-bottom-color: currentColor;
 }
 
+// Navbar dropdowns (Products, More). The trigger is a regular jj-nav-link with a
+// caret; the caret has to escape the global `nav svg` sizing rule below.
+.navbar .jj-nav-dropdown {
+	display: inline-flex;
+	align-items: center;
+	cursor: pointer;
+}
+
+.navbar .jj-nav-dropdown .jj-nav-dropdown-caret {
+	margin-left: 6px;
+	font-size: 10px;
+	line-height: 1;
+}
+
+.navbar .jj-nav-dropdown .jj-nav-dropdown-caret svg {
+	width: 10px;
+	height: 10px;
+	margin-right: 0;
+}
+
+// The dropdown panel renders in a portal (outside nav); its links keep the
+// antd menu look, not the global underlined anchor.
+.jj-nav-dropdown-menu .ant-dropdown-menu-item a {
+	text-decoration: none;
+	color: inherit;
+	display: block;
+}
+
 nav svg {
 	width: 40px;
 	$thumbnail-border-radius: var(--#{$prefix}border-radius);

@@ -8,9 +8,9 @@ import { useAuth } from '../../context/AuthContext';
 import LoginModal from '../../components/auth/LoginModal';
 import { fetchRequestsMetaCached } from '../requests/requestsApi';
 import { fetchReplacementsMetaCached } from '../replacements/replacementsApi';
+import { buildNavItems } from './navbarMenu';
+import NavDropdown from './NavDropdown';
 
-const ALLOWED_USERS = ['tess', 'paula', 'karoline'];
-const CRON_JOBS_ALLOWED_USERS = ['tess'];
 const Navbar = () => {
 	const { authEnabled, isAuthenticated, user, logout } = useAuth();
 	const [showLoginModal, setShowLoginModal] = useState(false);
@@ -51,6 +51,9 @@ const Navbar = () => {
 			cancelled = true;
 		};
 	}, [user, normalizedUsername]);
+
+	// Menu structure and allowlists live in navbarMenu.js (pure, tested).
+	const navItems = buildNavItems({ user, requestsEnabled, replacementsEnabled });
 
 	const handleLogout = async () => {
 		await logout();
@@ -97,73 +100,18 @@ const Navbar = () => {
 				</button>
 				<div className='collapse navbar-collapse' id='navbarSupportedContent'>
 					<ul className='navbar-nav me-auto mb-2 mb-lg-0'>
-						<li className='nav-item'>
-							<NavLink
-								className={({ isActive }) => `nav-link jj-nav-link${isActive ? ' active' : ''}`}
-								to='/orders'
-							>
-								Orders
-							</NavLink>
-						</li>
-						{/* Only show Purchaser Report for allowed users */}
-						{user && ALLOWED_USERS.includes((user.username || user.name || '').toLowerCase()) && (
-						  <li className='nav-item'>
-						    <NavLink
-						      className={({ isActive }) => `nav-link jj-nav-link${isActive ? ' active' : ''}`}
-						      to='/purchaser-report'
-						    >
-						      Purchaser Report
-						    </NavLink>
-						  </li>
-						)}
-						<li className='nav-item'>
-							<NavLink
-								className={({ isActive }) => `nav-link jj-nav-link${isActive ? ' active' : ''}`}
-								to='/items'
-							>
-								Search by SKU or Brand
-							</NavLink>
-						</li>
-						{user && (
-							<li className='nav-item'>
+						{navItems.map((item) => (item.children ? (
+							<NavDropdown key={item.key} item={item} />
+						) : (
+							<li className='nav-item' key={item.key}>
 								<NavLink
 									className={({ isActive }) => `nav-link jj-nav-link${isActive ? ' active' : ''}`}
-									to='/quickbooks-customer-lookup'
+									to={item.to}
 								>
-									QuickBooks Customer Lookup
+									{item.label}
 								</NavLink>
 							</li>
-						)}
-						{user && requestsEnabled && (
-							<li className='nav-item'>
-								<NavLink
-									className={({ isActive }) => `nav-link jj-nav-link${isActive ? ' active' : ''}`}
-									to='/requests'
-								>
-									Support Tickets
-								</NavLink>
-							</li>
-						)}
-						{user && replacementsEnabled && (
-							<li className='nav-item'>
-								<NavLink
-									className={({ isActive }) => `nav-link jj-nav-link${isActive ? ' active' : ''}`}
-									to='/replacements'
-								>
-									Replacements
-								</NavLink>
-							</li>
-						)}
-						{user && CRON_JOBS_ALLOWED_USERS.includes(normalizedUsername) && (
-							<li className='nav-item'>
-								<NavLink
-									className={({ isActive }) => `nav-link jj-nav-link${isActive ? ' active' : ''}`}
-									to='/cron-jobs'
-								>
-									Cron Jobs
-								</NavLink>
-							</li>
-						)}
+						)))}
 					</ul>
 					
 					<div className='nav-right'>
