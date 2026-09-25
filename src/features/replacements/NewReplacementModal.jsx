@@ -148,7 +148,19 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 	const removeFromList = (sku) => setPending((list) => list.filter((entry) => entry.replacement_sku !== sku));
 
 	const handleSaveNoReplacement = async () => {
-		if (!source?.sku || !comment.trim()) return;
+		if (!source?.sku) return;
+		if (existingPairs.length > 0) {
+			message.warning(`Remove the registered replacements of ${source.sku} before marking it as having no replacement`);
+			return;
+		}
+		if (existingMarker) {
+			message.warning(`${source.sku} is already marked as having no replacement`);
+			return;
+		}
+		if (!comment.trim()) {
+			message.warning('Write why there is no replacement before saving');
+			return;
+		}
 		setSaving(true);
 		try {
 			await createNoReplacement({ source_sku: source.sku, comment: comment.trim() });
@@ -167,9 +179,15 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 	const toSave = withSelectedCandidate({ pending, candidate, comment, pairError });
 	const selectedNotAdded = toSave.length > pending.length;
 
+	// The button is always enabled once the original is chosen; nothing is
+	// saved until it is clicked, and a click with nothing to save says why.
 	const handleSave = async () => {
 		if (noReplacement) return handleSaveNoReplacement();
-		if (!source?.sku || toSave.length === 0) return;
+		if (!source?.sku) return;
+		if (toSave.length === 0) {
+			message.warning(pairError || 'Pick a replacement product first');
+			return;
+		}
 		setSaving(true);
 		try {
 			const created = await createReplacements({
@@ -188,7 +206,6 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 	};
 
 	const canAdd = Boolean(source?.sku && candidate?.sku && !pairError && !existingMarker);
-	const canSaveMarker = Boolean(source?.sku && comment.trim() && existingPairs.length === 0 && !existingMarker);
 
 	return (
 		<Modal
@@ -214,7 +231,7 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 						danger
 						onClick={handleSave}
 						loading={saving}
-						disabled={noReplacement ? !canSaveMarker : (!source?.sku || toSave.length === 0)}
+						disabled={!source?.sku}
 					>
 						{noReplacement ? 'Save as no replacement' : (toSave.length > 1 ? `Save ${toSave.length} replacements` : 'Save replacement')}
 					</Button>
