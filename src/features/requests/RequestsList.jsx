@@ -3,16 +3,18 @@ import { Collapse, Empty, Select, Table, Tag, Tooltip, Typography } from 'antd';
 import RequestActionsMenu from './RequestActionsMenu';
 import { MessageOutlined, PaperClipOutlined } from '@ant-design/icons';
 import {
+	assignableUsers,
 	BOARD_LANES,
+	formatDate,
 	PRIORITIES,
 	PRIORITY_COLORS,
 	PROJECTS,
-	STATUS_COLORS,
-	assignableUsers,
-	formatDate,
 	relativeTime,
 	requestRef,
+	STATUS_COLORS,
+	USER_SELECT_SEARCH,
 	userLabel,
+	userOption,
 } from './requestsConstants';
 
 const { Text } = Typography;
@@ -141,7 +143,8 @@ const RequestsList = ({ requests, groupBy, users, meta, canAssignAssignees, canM
 								values.length ? 'Assignees updated' : 'Request unassigned'
 							)
 						}
-						options={assignableUsers(users, meta, record).map((user) => ({ value: user.id, label: userLabel(user) }))}
+						{...USER_SELECT_SEARCH}
+						options={assignableUsers(users, meta, record).map(userOption)}
 					/>
 				);
 			},

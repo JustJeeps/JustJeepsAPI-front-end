@@ -1,7 +1,7 @@
 import { Button, Card, Col, Input, Row, Select, Space, Typography } from 'antd';
 import { ClearOutlined, UserOutlined } from '@ant-design/icons';
 import { isAssignedToMe, toggleAssignedToMe } from './requestsFilterStorage';
-import { PRIORITIES, PROJECTS, TYPES, requestRef, userLabel } from './requestsConstants';
+import { PRIORITIES, PROJECTS, requestRef, TYPES, USER_SELECT_SEARCH, userOption } from './requestsConstants';
 
 const { Text } = Typography;
 
@@ -100,9 +100,10 @@ const RequestsFilterBar = ({ filters, onChange, users, resultLabel, currentUserI
 						value={filters.assignee}
 						onChange={(value) => set('assignee', value ?? null)}
 						style={{ width: '100%' }}
+						{...USER_SELECT_SEARCH}
 						options={[
 							{ value: 'unassigned', label: 'Unassigned' },
-							...users.map((user) => ({ value: String(user.id), label: userLabel(user) })),
+							...users.map((user) => ({ ...userOption(user), value: String(user.id) })),
 						]}
 					/>
 				</Col>

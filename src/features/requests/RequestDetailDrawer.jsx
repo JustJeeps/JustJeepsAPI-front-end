@@ -16,21 +16,23 @@ import { EditOutlined, InboxOutlined } from '@ant-design/icons';
 import { apiErrorMessage } from '../../utils/api';
 import { addComment, fetchRequestDetail, updateRequest } from './requestsApi';
 import {
-	COMMENT_REQUIRED_STATUSES,
 	assignableUsers,
-	canManageRequest,
 	canManageFollowers,
+	canManageRequest,
+	COMMENT_REQUIRED_STATUSES,
+	formatDate,
 	isSectorAdmin,
 	PRIORITIES,
 	PRIORITY_COLORS,
 	PROJECTS,
+	relativeTime,
+	requestRef,
 	STATUS_COLORS,
 	STATUS_NAMES,
 	TYPES,
-	formatDate,
-	relativeTime,
-	requestRef,
+	USER_SELECT_SEARCH,
 	userLabel,
+	userOption,
 } from './requestsConstants';
 import RequestComments from './RequestComments';
 import RequestActivityLog from './RequestActivityLog';
@@ -246,7 +248,8 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, canAssignAssigne
 								}
 								disabled={saving || !canAssignAssignees}
 									style={{ width: '100%' }}
-								options={assignableUsers(users, meta, detail).map((user) => ({ value: user.id, label: userLabel(user) }))}
+								{...USER_SELECT_SEARCH}
+								options={assignableUsers(users, meta, detail).map(userOption)}
 							/>
 						</div>
 						<div className="requests-drawer__control">
@@ -266,7 +269,8 @@ const RequestDetailDrawer = ({ requestId, onClose, users, meta, canAssignAssigne
 								}
 								disabled={saving || !canEditFollowers}
 									style={{ width: '100%' }}
-								options={users.map((user) => ({ value: user.id, label: userLabel(user) }))}
+								{...USER_SELECT_SEARCH}
+								options={users.map(userOption)}
 							/>
 						</div>
 						<div className="requests-drawer__control">

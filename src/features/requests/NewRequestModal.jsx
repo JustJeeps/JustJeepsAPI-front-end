@@ -4,16 +4,17 @@ import { InboxOutlined, LinkOutlined } from '@ant-design/icons';
 import { apiErrorMessage } from '../../utils/api';
 import { createRequest, uploadAttachments } from './requestsApi';
 import {
-	PRIORITIES,
-	PRIORITY_COLORS,
-	PROJECTS,
-	TYPES,
 	assignableUsers,
 	creatableSectors,
 	findSimilarRequest,
+	PRIORITIES,
+	PRIORITY_COLORS,
+	PROJECTS,
 	pruneAssigneeSelection,
 	requestRef,
-	userLabel,
+	TYPES,
+	USER_SELECT_SEARCH,
+	userOption,
 } from './requestsConstants';
 
 const { Text } = Typography;
@@ -192,7 +193,8 @@ const NewRequestModal = ({ open, onClose, meta, users = [], canAssignAssignees =
 						placeholder="Unassigned"
 						disabled={!canAssignAssignees}
 						maxTagCount="responsive"
-						options={assigneeOptions.map((user) => ({ value: user.id, label: userLabel(user) }))}
+						{...USER_SELECT_SEARCH}
+						options={assigneeOptions.map(userOption)}
 					/>
 				</Form.Item>
 

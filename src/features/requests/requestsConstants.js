@@ -157,6 +157,33 @@ export const userLabel = (user) => {
 	return name || user.username || user.email;
 };
 
+// Search inside the user selects (assignees, followers, assignee filter).
+// antd searches the option VALUE by default, and our values are user ids, so a
+// name never matched (REQ-36). Options carry a normalized `search` text and the
+// selects use matchesUserOption through USER_SELECT_SEARCH.
+const foldText = (value) => String(value || '')
+	.normalize('NFD')
+	.replace(/[\u0300-\u036f]/g, '')
+	.toLowerCase()
+	.trim();
+
+export const userSearchText = (user) => {
+	if (!user) return '';
+	const name = [user.firstname, user.lastname].filter(Boolean).join(' ');
+	return [name, user.username, user.email].map(foldText).filter(Boolean).join(' ');
+};
+
+export const userOption = (user) => ({ value: user.id, label: userLabel(user), search: userSearchText(user) });
+
+export const matchesUserOption = (input, option) => {
+	const words = foldText(input).split(/\s+/).filter(Boolean);
+	if (words.length === 0) return true;
+	const haystack = option?.search ?? foldText(typeof option?.label === 'string' ? option.label : '');
+	return words.every((word) => haystack.includes(word));
+};
+
+export const USER_SELECT_SEARCH = { showSearch: true, filterOption: matchesUserOption };
+
 export const userInitials = (user) => {
 	if (!user) return '—';
 	const first = (user.firstname || user.username || '?')[0] || '?';
