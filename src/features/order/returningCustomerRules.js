@@ -3,7 +3,6 @@
 // lib/orders/returningCustomer.js in the back-end): best QuickBooks customer
 // found by e-mail or phone that has paid before, scored on four fields. The
 // front only colors and describes it. Missing field (older API) = no icon.
-// Owner rule (2026-09-29): no icon unless the e-mail or the phone is equal.
 //
 // Kept apart from ReturningCustomerFlag.jsx on purpose: a helper .js and a
 // component .jsx with the same basename break the build on this disk.
@@ -11,29 +10,38 @@
 const FIELD_LABELS = { email: 'E-mail', phone: 'Phone', name: 'Name', address: 'Address' };
 const FIELD_ORDER = ['email', 'phone', 'name', 'address'];
 
-// antd blue 4 to 7: only a full match gets the strong blue, a partial one
-// fades step by step (Ricardo found blue 8 too dark for 75%).
+// Levels asked by the purchasing team (2026-09-29). Green = at least two of
+// e-mail, phone and name equal (same green as the "PO assigned" check);
+// yellow = one of e-mail or phone equal, or name plus address. Anything
+// else is not a match and shows nothing. The API sends `level`; older
+// payloads without it get the same rule computed from `fields`.
 export const RETURNING_CUSTOMER_COLORS = {
-	25: '#69b1ff',
-	50: '#4096ff',
-	75: '#1677ff',
-	100: '#0958d9',
+	green: '#52c41a',
+	yellow: '#faad14',
+};
+
+const isMatch = (fields, field) => fields?.[field] === 'match';
+
+export const getReturningCustomerLevel = (flag) => {
+	if (flag?.level === 'green' || flag?.level === 'yellow') return flag.level;
+	const fields = flag?.fields;
+	if (!fields) return null;
+	const identityMatches = ['email', 'phone', 'name'].filter((field) => isMatch(fields, field)).length;
+	if (identityMatches >= 2) return 'green';
+	if (isMatch(fields, 'email') || isMatch(fields, 'phone')) return 'yellow';
+	if (isMatch(fields, 'name') && isMatch(fields, 'address')) return 'yellow';
+	return null;
 };
 
 export const getReturningCustomer = (order) => {
 	const flag = order?.returning_customer;
 	if (!flag || typeof flag !== 'object') return null;
 	if (!flag.customer_code) return null;
-	if (!(Number(flag.percent) >= 25)) return null;
-	if (!(flag.fields?.email === 'match' || flag.fields?.phone === 'match')) return null;
+	if (!getReturningCustomerLevel(flag)) return null;
 	return flag;
 };
 
-export const getReturningCustomerColor = (percent) => {
-	const steps = Object.keys(RETURNING_CUSTOMER_COLORS).map(Number).sort((a, b) => a - b);
-	const step = steps.filter((value) => value <= Number(percent)).pop() ?? steps[0];
-	return RETURNING_CUSTOMER_COLORS[step];
-};
+export const getReturningCustomerColor = (flag) => RETURNING_CUSTOMER_COLORS[getReturningCustomerLevel(flag)] || RETURNING_CUSTOMER_COLORS.yellow;
 
 const missingSide = (value) => {
 	const orderHas = Boolean(value?.order);

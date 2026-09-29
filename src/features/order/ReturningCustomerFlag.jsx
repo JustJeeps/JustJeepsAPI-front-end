@@ -7,9 +7,9 @@ import {
   getReturningCustomerColor,
 } from "./returningCustomerRules";
 
-// Blue check next to the customer name when the customer already paid in
-// QuickBooks. The shade follows the match percentage; the tooltip says what
-// differs. Clicking opens the QuickBooks lookup on that customer in a new
+// Check next to the customer name when the customer already paid in
+// QuickBooks: green for a strong match, yellow for a partial one; the tooltip
+// says the percentage and what differs. Clicking opens the QuickBooks lookup on that customer in a new
 // tab, and the click must not expand the order row.
 const ReturningCustomerFlag = ({ order }) => {
   const flag = getReturningCustomer(order);
@@ -26,7 +26,7 @@ const ReturningCustomerFlag = ({ order }) => {
         onClick={(event) => event.stopPropagation()}
         style={{ display: "inline-flex", lineHeight: 0 }}
       >
-        <CheckCircleFilled style={{ color: getReturningCustomerColor(flag.percent), fontSize: 14, cursor: "pointer" }} />
+        <CheckCircleFilled style={{ color: getReturningCustomerColor(flag), fontSize: 14, cursor: "pointer" }} />
       </a>
     </Tooltip>
   );

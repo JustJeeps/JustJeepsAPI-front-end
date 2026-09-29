@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	RETURNING_CUSTOMER_COLORS,
 	getReturningCustomer,
+	getReturningCustomerLevel,
 	getReturningCustomerColor,
 	describeReturningCustomer,
 	buildLookupUrl,
@@ -11,6 +12,7 @@ const flag = (overrides = {}) => ({
 	customer_code: 'LAVOIEM',
 	customer_name: 'Marc Lavoie',
 	percent: 75,
+	level: 'green',
 	fields: { email: 'match', phone: 'different', name: 'match', address: 'missing' },
 	values: {
 		email: { order: 'marc.l@example.com', quickbooks: 'marc.l@example.com' },
@@ -29,40 +31,55 @@ describe('getReturningCustomer', () => {
 		expect(getReturningCustomer({ returning_customer: flag() })).toEqual(flag());
 	});
 
-	it('is null for an older API, a null field, a missing code or a percent under 25', () => {
+	it('is null for an older API, a null field or a missing code', () => {
 		expect(getReturningCustomer({})).toBeNull();
 		expect(getReturningCustomer({ returning_customer: null })).toBeNull();
 		expect(getReturningCustomer({ returning_customer: flag({ customer_code: '' }) })).toBeNull();
-		expect(getReturningCustomer({ returning_customer: flag({ percent: 0 }) })).toBeNull();
 		expect(getReturningCustomer(null)).toBeNull();
 	});
 
-	it('is null when neither the e-mail nor the phone matches, even with name and address equal', () => {
-		const nameAndAddressOnly = flag({ percent: 50, fields: { email: 'different', phone: 'different', name: 'match', address: 'match' } });
-		expect(getReturningCustomer({ returning_customer: nameAndAddressOnly })).toBeNull();
-		const missingIdentity = flag({ percent: 50, fields: { email: 'missing', phone: 'missing', name: 'match', address: 'match' } });
-		expect(getReturningCustomer({ returning_customer: missingIdentity })).toBeNull();
-		expect(getReturningCustomer({ returning_customer: flag({ fields: undefined }) })).toBeNull();
+	it('is null when the fields give no level, even if the API forgot to say so', () => {
+		const nameOnly = flag({ level: undefined, percent: 25, fields: { email: 'different', phone: 'different', name: 'match', address: 'missing' } });
+		expect(getReturningCustomer({ returning_customer: nameOnly })).toBeNull();
+		expect(getReturningCustomer({ returning_customer: flag({ level: undefined, fields: undefined }) })).toBeNull();
+	});
+});
+
+describe('getReturningCustomerLevel', () => {
+	const withFields = (fields) => ({ fields });
+
+	it('trusts the level sent by the API', () => {
+		expect(getReturningCustomerLevel({ level: 'yellow', fields: { email: 'match', phone: 'match', name: 'match', address: 'match' } })).toBe('yellow');
 	});
 
-	it('keeps the flag when only the phone matches', () => {
-		const phoneOnly = flag({ percent: 25, fields: { email: 'different', phone: 'match', name: 'different', address: 'missing' } });
-		expect(getReturningCustomer({ returning_customer: phoneOnly })).toEqual(phoneOnly);
+	it('is green with two of e-mail, phone and name', () => {
+		expect(getReturningCustomerLevel(withFields({ email: 'match', phone: 'match', name: 'different', address: 'different' }))).toBe('green');
+		expect(getReturningCustomerLevel(withFields({ email: 'match', phone: 'missing', name: 'match', address: 'missing' }))).toBe('green');
+		expect(getReturningCustomerLevel(withFields({ email: 'different', phone: 'match', name: 'match', address: 'match' }))).toBe('green');
+	});
+
+	it('is yellow with one identifier or with name plus address', () => {
+		expect(getReturningCustomerLevel(withFields({ email: 'match', phone: 'different', name: 'different', address: 'match' }))).toBe('yellow');
+		expect(getReturningCustomerLevel(withFields({ email: 'missing', phone: 'match', name: 'different', address: 'missing' }))).toBe('yellow');
+		expect(getReturningCustomerLevel(withFields({ email: 'different', phone: 'different', name: 'match', address: 'match' }))).toBe('yellow');
+	});
+
+	it('is null for name alone, address alone or nothing', () => {
+		expect(getReturningCustomerLevel(withFields({ email: 'different', phone: 'different', name: 'match', address: 'different' }))).toBeNull();
+		expect(getReturningCustomerLevel(withFields({ email: 'missing', phone: 'missing', name: 'missing', address: 'match' }))).toBeNull();
+		expect(getReturningCustomerLevel(null)).toBeNull();
 	});
 });
 
 describe('getReturningCustomerColor', () => {
-	it('uses four blue shades, stronger as the match grows', () => {
-		expect(getReturningCustomerColor(25)).toBe(RETURNING_CUSTOMER_COLORS[25]);
-		expect(getReturningCustomerColor(50)).toBe(RETURNING_CUSTOMER_COLORS[50]);
-		expect(getReturningCustomerColor(75)).toBe(RETURNING_CUSTOMER_COLORS[75]);
-		expect(getReturningCustomerColor(100)).toBe(RETURNING_CUSTOMER_COLORS[100]);
+	it('is green for a strong match and yellow for a partial one', () => {
+		expect(getReturningCustomerColor(flag())).toBe(RETURNING_CUSTOMER_COLORS.green);
+		expect(getReturningCustomerColor(flag({ level: 'yellow' }))).toBe(RETURNING_CUSTOMER_COLORS.yellow);
+		expect(getReturningCustomerColor(flag({ level: undefined, fields: { email: 'match', phone: 'different', name: 'different', address: 'missing' } }))).toBe(RETURNING_CUSTOMER_COLORS.yellow);
 	});
 
-	it('rounds down to the nearest step', () => {
-		expect(getReturningCustomerColor(60)).toBe(RETURNING_CUSTOMER_COLORS[50]);
-		expect(getReturningCustomerColor(99)).toBe(RETURNING_CUSTOMER_COLORS[75]);
-		expect(getReturningCustomerColor(10)).toBe(RETURNING_CUSTOMER_COLORS[25]);
+	it('uses the same green as the PO assigned check', () => {
+		expect(RETURNING_CUSTOMER_COLORS.green).toBe('#52c41a');
 	});
 });
 
