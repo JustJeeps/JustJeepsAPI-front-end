@@ -36,6 +36,19 @@ describe('getReturningCustomer', () => {
 		expect(getReturningCustomer({ returning_customer: flag({ percent: 0 }) })).toBeNull();
 		expect(getReturningCustomer(null)).toBeNull();
 	});
+
+	it('is null when neither the e-mail nor the phone matches, even with name and address equal', () => {
+		const nameAndAddressOnly = flag({ percent: 50, fields: { email: 'different', phone: 'different', name: 'match', address: 'match' } });
+		expect(getReturningCustomer({ returning_customer: nameAndAddressOnly })).toBeNull();
+		const missingIdentity = flag({ percent: 50, fields: { email: 'missing', phone: 'missing', name: 'match', address: 'match' } });
+		expect(getReturningCustomer({ returning_customer: missingIdentity })).toBeNull();
+		expect(getReturningCustomer({ returning_customer: flag({ fields: undefined }) })).toBeNull();
+	});
+
+	it('keeps the flag when only the phone matches', () => {
+		const phoneOnly = flag({ percent: 25, fields: { email: 'different', phone: 'match', name: 'different', address: 'missing' } });
+		expect(getReturningCustomer({ returning_customer: phoneOnly })).toEqual(phoneOnly);
+	});
 });
 
 describe('getReturningCustomerColor', () => {

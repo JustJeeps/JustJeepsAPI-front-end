@@ -3,6 +3,7 @@
 // lib/orders/returningCustomer.js in the back-end): best QuickBooks customer
 // found by e-mail or phone that has paid before, scored on four fields. The
 // front only colors and describes it. Missing field (older API) = no icon.
+// Owner rule (2026-09-29): no icon unless the e-mail or the phone is equal.
 //
 // Kept apart from ReturningCustomerFlag.jsx on purpose: a helper .js and a
 // component .jsx with the same basename break the build on this disk.
@@ -24,6 +25,7 @@ export const getReturningCustomer = (order) => {
 	if (!flag || typeof flag !== 'object') return null;
 	if (!flag.customer_code) return null;
 	if (!(Number(flag.percent) >= 25)) return null;
+	if (!(flag.fields?.email === 'match' || flag.fields?.phone === 'match')) return null;
 	return flag;
 };
 
