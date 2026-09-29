@@ -10,12 +10,13 @@
 const FIELD_LABELS = { email: 'E-mail', phone: 'Phone', name: 'Name', address: 'Address' };
 const FIELD_ORDER = ['email', 'phone', 'name', 'address'];
 
-// antd blue 6 to 9: the lightest still reads on the expanded-row background.
+// antd blue 4 to 7: only a full match gets the strong blue, a partial one
+// fades step by step (Ricardo found blue 8 too dark for 75%).
 export const RETURNING_CUSTOMER_COLORS = {
-	25: '#1677ff',
-	50: '#0958d9',
-	75: '#003eb3',
-	100: '#002c8c',
+	25: '#69b1ff',
+	50: '#4096ff',
+	75: '#1677ff',
+	100: '#0958d9',
 };
 
 export const getReturningCustomer = (order) => {
