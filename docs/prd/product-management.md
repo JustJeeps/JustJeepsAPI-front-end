@@ -119,7 +119,7 @@ JustJeeps needs an efficient way for operations staff to:
 | Keystone | `https://wwwsc.ekeystone.com/Search/Detail?pid={keystone_code}` |
 | Tire Discounter | `https://www.tdgaccess.ca/Catalog/Search/1?search={vendor_sku}` |
 | WheelPros | `https://dl.wheelpros.com/ca_en/ymm/search/?q={vendor_sku}` |
-| Rough Country | `https://www.roughcountry.com/search/{vendor_sku}` |
+| Rough Country | `https://www.roughcountry.ca/search/{vendor_sku}` (Canadian site since 2026-09-29; every vendor URL lives in `src/constants/vendorLinks.js`) |
 | CTP | `https://www.ctpdistributors.com/search-parts?find={searchable_sku}` |
 | CURT | Brand-specific URLs (Luverne, Aries, CURT, UWS) |
 | Turn14 | `https://turn14.com/search/index.php?vmmPart={vendor_sku}` |

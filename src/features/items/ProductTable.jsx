@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { TrophyFilled } from '@ant-design/icons';
 import { sizeHeight, width } from '@mui/system';
 import { USD_TO_CAD_RATE } from '../../constants/exchangeRate';
+import { vendorLinks } from '../../constants/vendorLinks';
 
 
 const ProductTable = props => {
@@ -440,15 +441,13 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 								if (/^BES\d{7}$/.test(keystoneCode)) {
 									formattedCode = `${keystoneCode.slice(0, -2)}-${keystoneCode.slice(-2)}`;
 								}
-								return `https://wwwsc.ekeystone.com/Search/Detail?pid=${encodeURIComponent(formattedCode)}`;
+								return vendorLinks.keystoneDetail(formattedCode);
 							}
-							return 'https://wwwsc.ekeystone.com/';
+							return vendorLinks.home('keystone');
 						}
 						case 'meyer': {
 							const vendorSku = getVendorSku('meyer');
-							return vendorSku
-								? `https://online.meyerdistributing.com/parts/details/${encodeURIComponent(vendorSku)}`
-								: 'https://online.meyerdistributing.com/';
+							return vendorLinks.meyerPart(vendorSku) || vendorLinks.home('meyer');
 						}
 						case 'quadratec': {
 							const normalizedProductSku = productSku?.trim();
@@ -457,38 +456,26 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 								: normalizedProductSku?.includes('-')
 									? normalizedProductSku.split('-').slice(1).join('-')
 									: normalizedProductSku || sku;
-							return quadCode
-								? `https://www.quadratecwholesale.com/catalogsearch/result/?q=${encodeURIComponent(quadCode)}`
-								: 'https://www.quadratecwholesale.com/';
+							return vendorLinks.quadratecSearch(quadCode) || vendorLinks.home('quadratec');
 						}
 						case 'ctp': {
 							const vendorSku = getVendorSku('ctp distributors') || getVendorSku('ctp');
-							return vendorSku
-								? `https://www.ctpdistributors.com/search-parts?find=${encodeURIComponent(vendorSku)}`
-								: 'https://www.ctpdistributors.com/';
+							return vendorLinks.ctpSearch(vendorSku) || vendorLinks.home('ctp');
 						}
 						case 'grandwest':
-							return searchableSku || sku
-								? `https://www.grandwestauto.com/search?keywords=${encodeURIComponent(searchableSku || sku)}`
-								: 'https://www.grandwestauto.com/';
+							return vendorLinks.grandwestSearch(searchableSku || sku) || vendorLinks.home('grandwest');
 						case 't14': {
 							const vendorSku = getVendorSku('t14') || getVendorSku('turn14');
-							return vendorSku
-								? `https://turn14.com/search/index.php?vmmPart=${encodeURIComponent(vendorSku)}`
-								: 'https://turn14.com/';
+							return vendorLinks.turn14Search(vendorSku) || vendorLinks.home('turn14');
 						}
 						case 'apg': {
 							const vendorSku = getVendorSku('apg');
-							return vendorSku
-								? `https://apgwholesale.com/pages/search-results-page?q=${encodeURIComponent(vendorSku)}`
-								: 'https://apgwholesale.com/';
+							return vendorLinks.apgSearch(vendorSku) || vendorLinks.home('apg');
 						}
 						case 'amazon': {
 							const vendorSku = getVendorSku('amazon');
 							const searchTerm = vendorSku || searchableSku || sku || '';
-							return searchTerm
-								? `https://www.amazon.ca/s?k=${encodeURIComponent(searchTerm)}`
-								: 'https://www.amazon.ca/';
+							return vendorLinks.amazonSearch(searchTerm) || vendorLinks.home('amazon');
 						}
 						default:
 							return null;
@@ -543,58 +530,6 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 				);
 			},
 		},
-
-// {
-//   title: 'Vendor Name',
-//   dataIndex: null,
-//   key: 'vendor_id',
-//   width: '10%',
-//   render: (_, record) =>
-//     record.vendorProducts.map(vendorProduct => {
-//       const vendorName = vendorProduct.vendor.name;
-//       const vendorSKU = vendorProduct.vendor_sku?.trim();
-//       const productSKU = vendorProduct.product_sku?.trim();
-//       const vendorNameLower = vendorName.toLowerCase();
-
-//       let link = null;
-
-//       if (vendorNameLower === 'meyer') {
-//         link = `https://online.meyerdistributing.com/parts/details/${vendorSKU}`;
-//       } else if (vendorNameLower === 'omix') {
-//         link = `https://omixdealer.com/product-detail/${vendorSKU}`;
-//       } else if (vendorNameLower === 'quadratec') {
-//         const quadCode = productSKU?.includes('-')
-//           ? productSKU.split('-').slice(1).join('-')
-//           : productSKU;
-//         link = `https://www.quadratecwholesale.com/catalogsearch/result/?q=${quadCode}`;
-//       } else if (vendorNameLower === 'tire discounter') {
-//         link = `https://www.tdgaccess.ca/Catalog/Search/1?search=${vendorSKU}`;
-//       } else if (vendorNameLower === 'keystone') {
-//         const keystoneCode = record.keystone_code_site?.trim();
-//         if (keystoneCode) {
-//           let formattedCode = keystoneCode;
-//           // If it starts with BES and ends in two digits, insert hyphen before last 2 digits
-//           if (/^BES\d{7}$/.test(keystoneCode)) {
-//             formattedCode = `${keystoneCode.slice(0, -2)}-${keystoneCode.slice(-2)}`;
-//           }
-//           link = `https://wwwsc.ekeystone.com/Search/Detail?pid=${formattedCode}`;
-//         }
-				
-//       }
-
-//       return (
-//         <div key={vendorProduct.id}>
-//           {link ? (
-//             <a href={link} target="_blank" rel="noopener noreferrer">
-//               {vendorName}
-//             </a>
-//           ) : (
-//             <span>{vendorName}</span>
-//           )}
-//         </div>
-//       );
-//     }),
-// },
 
 {
   title: 'Vendor / Cost',
@@ -672,9 +607,9 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
       let link = null;
 
       if (vendorNameLower === 'meyer') {
-        link = `https://online.meyerdistributing.com/parts/details/${vendorSKU}`;
+        link = vendorLinks.meyerPart(vendorSKU);
       } else if (vendorNameLower === 'omix') {
-        link = `https://omixdealer.com/product-detail/${vendorSKU}`;
+        link = vendorLinks.omixProduct(vendorSKU);
       } else if (vendorNameLower === 'quadratec') {
 				const normalizedProductSku = productSKU?.trim();
 				const quadCode = /^PS-/i.test(normalizedProductSku || '')
@@ -682,9 +617,9 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 					: normalizedProductSku?.includes('-')
 						? normalizedProductSku.split('-').slice(1).join('-')
 						: normalizedProductSku;
-        link = `https://www.quadratecwholesale.com/catalogsearch/result/?q=${quadCode}`;
+        link = vendorLinks.quadratecSearch(quadCode);
       } else if (vendorNameLower === 'tire discounter') {
-        link = `https://www.tdgaccess.ca/Catalog/Search/1?search=${vendorSKU}`;
+        link = vendorLinks.tireDiscounterSearch(vendorSKU);
       } else if (vendorNameLower === 'keystone') {
         const keystoneCode = record.keystone_code_site?.trim();
         if (keystoneCode) {
@@ -692,47 +627,37 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
           if (/^BES\d{7}$/.test(keystoneCode)) {
             formattedCode = `${keystoneCode.slice(0, -2)}-${keystoneCode.slice(-2)}`;
           }
-          link = `https://wwwsc.ekeystone.com/Search/Detail?pid=${formattedCode}`;
+          link = vendorLinks.keystoneDetail(formattedCode);
         }
       } else if (vendorNameLower === 'wheelpros') {
-        link = `https://dl.wheelpros.com/ca_en/ymm/search/?api-type=products&p=1&pageSize=24&q=${vendorSKU}&inventorylocations=AL`;
+        link = vendorLinks.wheelProsSearch(vendorSKU);
       } else if (vendorNameLower === 'rough country' || vendorNameLower === 'roughcountry') {
-        link = vendorSKU
-          ? `https://www.roughcountry.com/search/${encodeURIComponent(vendorSKU)}`
-          : null;
+        link = vendorLinks.roughCountrySearch(vendorSKU);
       } else if (vendorNameLower === 'curt') {
         const brandNameLower = record.brand_name?.toLowerCase();
         const searchableSku = record.searchable_sku?.trim();
         if (searchableSku) {
           if (brandNameLower === 'luverne truck equipment' || brandNameLower === 'luverne truck equipment inc' || brandNameLower === 'luverne') {
-            link = `https://www.luvernetruck.com/part/${encodeURIComponent(searchableSku)}`;
+            link = vendorLinks.luvernePart(searchableSku);
           } else if (brandNameLower === 'aries automotive') {
-            link = `https://www.ariesautomotive.com/part/${encodeURIComponent(searchableSku)}`;
+            link = vendorLinks.ariesPart(searchableSku);
           } else if (brandNameLower === 'curt manufacturing') {
-            link = `https://www.curtmfg.com/part/${encodeURIComponent(searchableSku)}`;
+            link = vendorLinks.curtPart(searchableSku);
           } else if (brandNameLower === 'uws storage' || brandNameLower === 'uws storage solutions') {
-            link = `https://www.uwsta.com/part/${encodeURIComponent(searchableSku)}`;
+            link = vendorLinks.uwsPart(searchableSku);
           }
         }
       } else if (vendorNameLower === 'ctp' || vendorNameLower === 'ctp distributors') {
         const searchableSku = record.searchable_sku?.trim();
-        link = searchableSku
-          ? `https://www.ctpdistributors.com/search-parts?find=${encodeURIComponent(searchableSku)}`
-          : null;
+        link = vendorLinks.ctpSearch(searchableSku);
       } else if (vendorNameLower === 't14' || vendorNameLower === 'turn14') {
-        link = vendorSKU
-          ? `https://turn14.com/search/index.php?vmmPart=${encodeURIComponent(vendorSKU)}`
-          : null;
+        link = vendorLinks.turn14Search(vendorSKU);
 				} else if (vendorNameLower === 'apg' || vendorNameLower === 'premier performance') {
 					const vendorSku = vendorSKU || searchableSku || sku;
-					link = vendorSku
-						? `https://apgwholesale.com/pages/search-results-page?q=${encodeURIComponent(vendorSku)}`
-						: 'https://apgwholesale.com/';
+					link = vendorLinks.apgSearch(vendorSku) || vendorLinks.home('apg');
       } else if (vendorNameLower === 'metalcloak') {
         const metalCloakCode = vendorSKU?.replace(/^MTK-/, '');
-        link = metalCloakCode
-          ? `https://jobber.metalcloak.com/catalogsearch/result/?q=${encodeURIComponent(metalCloakCode)}`
-          : null;
+        link = vendorLinks.metalcloakSearch(metalCloakCode);
       }
 
       return (
