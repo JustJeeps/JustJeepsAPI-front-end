@@ -38,6 +38,7 @@ import { fetchReplacementCounts, fetchReplacementsMetaCached } from "../replacem
 import { extractItemSkus, normalizeSkuInput, replacementBadgeFor } from "../replacements/replacementsUtils";
 import OpenOrdersFlag from "./OpenOrdersFlag";
 import StatusDivergenceFlag from "./StatusDivergenceFlag";
+import ReturningCustomerFlag from "./ReturningCustomerFlag";
 import { DEFAULT_ORDER_FILTERS, customerSearchFilters } from "./orderFilters";
 import TableTop from "../tabletop/TableTop";
 import "./order.scss";
@@ -2197,6 +2198,7 @@ Thank you!
                 order={record}
                 onSelectCustomer={(email) => setFilters(customerSearchFilters(email))}
               />
+              <ReturningCustomerFlag order={record} />
             </div>
 
             {/* Bottom Row: Metrics Grid */}

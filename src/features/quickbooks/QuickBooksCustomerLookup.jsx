@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { useSearchParams } from 'react-router-dom';
 import { Alert, Button, Card, Col, Input, Row, Select, Space, Spin, Statistic, Table, Tag, Tooltip, Typography } from 'antd';
 import { EyeOutlined, InfoCircleOutlined, SearchOutlined } from '@ant-design/icons';
 import './quickbooksCustomerLookup.scss';
@@ -128,8 +129,15 @@ function buildHistoryBadges(record = {}) {
 }
 
 export default function QuickBooksCustomerLookup() {
-  const [query, setQuery] = useState('');
-  const [searchField, setSearchField] = useState('all');
+  // The Orders screen links here with ?q=<customer code>&field=code (returning
+  // customer flag); seeding the state is enough, the debounced search effect
+  // below runs on mount.
+  const [searchParams] = useSearchParams();
+  const [query, setQuery] = useState(() => searchParams.get('q') || '');
+  const [searchField, setSearchField] = useState(() => {
+    const requested = searchParams.get('field');
+    return SEARCH_FIELDS.some((field) => field.value === requested) ? requested : 'all';
+  });
   const [showAllCustomers, setShowAllCustomers] = useState(false);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 40, total: 0 });
   const [searchLoading, setSearchLoading] = useState(false);
