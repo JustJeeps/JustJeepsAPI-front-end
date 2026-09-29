@@ -78,3 +78,41 @@ export const describeReturningCustomer = (flag) => {
 
 export const buildLookupUrl = (flag) =>
 	`/quickbooks-customer-lookup?q=${encodeURIComponent(flag.customer_code)}&field=code`;
+
+const LEVEL_LABELS = { green: 'Strong match', yellow: 'Partial match' };
+const STATUS_NOTES = { match: 'Same', different: 'Differs' };
+
+const capitalize = (value) => value.charAt(0).toUpperCase() + value.slice(1);
+
+// Data for the bubble card (ReturningCustomerCard.jsx): everything the card
+// shows, already worded, so the component only lays it out.
+export const summarizeReturningCustomer = (flag) => {
+	const level = getReturningCustomerLevel(flag);
+	const fields = flag.fields || {};
+	const values = flag.values || {};
+	const rows = FIELD_ORDER.map((key) => {
+		const status = fields[key] || 'missing';
+		const value = values[key] || {};
+		return {
+			key,
+			label: FIELD_LABELS[key],
+			status,
+			order: value.order || '',
+			quickbooks: value.quickbooks || '',
+			note: STATUS_NOTES[status] || capitalize(`missing ${missingSide(value)}`),
+		};
+	});
+	const count = Number(flag.payment_count);
+	const payments = Number.isFinite(count) && count > 0 ? ` (${count} payment${count === 1 ? '' : 's'})` : '';
+	return {
+		level,
+		levelLabel: LEVEL_LABELS[level] || 'Match',
+		percent: Number(flag.percent) || 0,
+		customerName: flag.customer_name || flag.customer_code,
+		customerCode: flag.customer_code,
+		rows,
+		lastPurchase: flag.last_purchase_date ? `${flag.last_purchase_date}${payments}` : null,
+		snapshot: snapshotLine(flag.snapshot_exported_at),
+		lookupUrl: buildLookupUrl(flag),
+	};
+};

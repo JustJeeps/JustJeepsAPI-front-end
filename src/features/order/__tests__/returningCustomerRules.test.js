@@ -5,6 +5,7 @@ import {
 	getReturningCustomerLevel,
 	getReturningCustomerColor,
 	describeReturningCustomer,
+	summarizeReturningCustomer,
 	buildLookupUrl,
 } from '../returningCustomerRules';
 
@@ -127,5 +128,35 @@ describe('buildLookupUrl', () => {
 	it('opens the lookup searching by customer code', () => {
 		expect(buildLookupUrl(flag())).toBe('/quickbooks-customer-lookup?q=LAVOIEM&field=code');
 		expect(buildLookupUrl(flag({ customer_code: 'A&B CO' }))).toBe('/quickbooks-customer-lookup?q=A%26B%20CO&field=code');
+	});
+});
+
+describe('summarizeReturningCustomer', () => {
+	it('builds the card data: level, percentage, one row per field, last purchase, snapshot and link', () => {
+		const card = summarizeReturningCustomer(flag());
+		expect(card.levelLabel).toBe('Strong match');
+		expect(card.level).toBe('green');
+		expect(card.percent).toBe(75);
+		expect(card.customerName).toBe('Marc Lavoie');
+		expect(card.customerCode).toBe('LAVOIEM');
+		expect(card.rows).toEqual([
+			{ key: 'email', label: 'E-mail', status: 'match', order: 'marc.l@example.com', quickbooks: 'marc.l@example.com', note: 'Same' },
+			{ key: 'phone', label: 'Phone', status: 'different', order: '(416) 555-0199', quickbooks: '647-555-0000', note: 'Differs' },
+			{ key: 'name', label: 'Name', status: 'match', order: 'Marc Lavoie', quickbooks: 'Marc Lavoie', note: 'Same' },
+			{ key: 'address', label: 'Address', status: 'missing', order: '12 Main Street, Toronto M5V 3L9', quickbooks: '', note: 'Missing in QuickBooks' },
+		]);
+		expect(card.lastPurchase).toBe('2026-03-14 (3 payments)');
+		expect(card.snapshot).toBe('QuickBooks data from 2026-07-16');
+		expect(card.lookupUrl).toBe('/quickbooks-customer-lookup?q=LAVOIEM&field=code');
+	});
+
+	it('labels a yellow flag as partial and tolerates missing values and dates', () => {
+		const card = summarizeReturningCustomer(flag({ level: 'yellow', values: undefined, last_purchase_date: null, snapshot_exported_at: null, customer_name: '' }));
+		expect(card.levelLabel).toBe('Partial match');
+		expect(card.customerName).toBe('LAVOIEM');
+		expect(card.rows.map((row) => row.order)).toEqual(['', '', '', '']);
+		expect(card.rows[3].note).toBe('Missing on both sides');
+		expect(card.lastPurchase).toBeNull();
+		expect(card.snapshot).toBe('QuickBooks export date unknown');
 	});
 });
