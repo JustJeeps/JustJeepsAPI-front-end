@@ -94,6 +94,31 @@ export const stockHint = (product) => {
 // would otherwise become a click-to-run link).
 export const isSafeHttpUrl = (url) => /^https?:\/\//i.test(String(url || ''));
 
+// The lookup (GET /for-sku) answers every part equivalent to a SKU: the pairs
+// registered for it, the pairs that point to it and what those link to (see
+// PRODUCT-REPLACEMENTS.md in the backend). Each row says how it got there.
+
+// Rows registered for the SKU itself. Old payloads carry no `relation`, and
+// in those every row was registered for the SKU.
+export const registeredHere = (rows) => (rows || []).filter((row) => !row.relation || row.relation === 'registered');
+
+// One line under the card of the lookup drawer saying where the link comes
+// from when it was not registered for the SKU being looked up.
+export const relationNote = (row) => {
+	if (!row || !row.registered_as) return '';
+	const { source_sku: source, replacement_sku: replacement } = row.registered_as;
+	const pair = `${source} -> ${replacement}`;
+	if (row.relation === 'reverse') {
+		return `Registered as ${pair}: ${replacement} was registered as the replacement for ${source}, not the other way`;
+	}
+	if (row.relation === 'linked') {
+		return row.via
+			? `Not registered for this SKU. Reached through ${row.via}; registered as ${pair}`
+			: `Not registered for this SKU; registered as ${pair}`;
+	}
+	return '';
+};
+
 // --- "No replacement" marker ------------------------------------------------
 
 // A directory row is a pair or a marker (kind 'none'); old rows are pairs.

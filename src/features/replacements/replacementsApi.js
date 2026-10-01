@@ -43,11 +43,12 @@ export const addReplacementComment = (id, body) =>
 export const removeReplacementComment = (id, commentId) =>
 	apiDelete(`${BASE}/${id}/comments/${commentId}`).then((res) => res.data);
 
-// Orders screen: everything registered for one original SKU.
+// Orders screen: every part equivalent to one SKU (both directions of the
+// registered pairs, linked parts included).
 export const fetchReplacementsForSku = (sku) =>
 	apiGet(`${BASE}/for-sku/${encodeURIComponent(sku)}`).then((res) => res.data);
 
-// { counts: { [sku]: n } }
+// { counts: { [sku]: { replacements, noReplacement } } }, equivalents on both sides.
 export const fetchReplacementCounts = (skus) => {
 	if (!skus || skus.length === 0) return Promise.resolve({});
 	return apiGet(`${BASE}/counts`, { params: { skus: skus.join(',') } }).then((res) => res.data.counts || {});

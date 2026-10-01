@@ -61,7 +61,7 @@ const ReplacementsList = ({ groups = [], user, managers = [], onView, onRemove, 
 									{canRemoveReplacement({ replacement, user, managers }) && (
 										<Popconfirm
 											title="Remove this replacement?"
-											description={`${group.source_sku} will no longer offer ${replacement.replacement_sku} on the Orders screen.`}
+											description={`${group.source_sku} and ${replacement.replacement_sku} will no longer be offered for each other on the Orders screen (parts linked through this pair lose the link too).`}
 											okText="Remove"
 											okButtonProps={{ danger: true }}
 											onConfirm={() => onRemove(replacement)}

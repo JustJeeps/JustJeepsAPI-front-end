@@ -67,8 +67,10 @@ const OrderTable = () => {
   const [form] = Form.useForm();
   const [open, setOpen] = useState(false);
   // Product replacements (docs: PRODUCT-REPLACEMENTS.md in the backend).
-  // counts: { [sku]: activeReplacements }, filled when an order is expanded;
-  // the icon next to the magnifier only shows for SKUs present here.
+  // counts: { [sku]: { replacements, noReplacement } }, filled when an order is
+  // expanded; `replacements` counts the parts linked to the SKU on either side
+  // of the registered pairs. The icon next to the magnifier only shows for
+  // SKUs present here.
   const [replacementCounts, setReplacementCounts] = useState({});
   const [replacementLookupSku, setReplacementLookupSku] = useState(null);
   // Rollout gate (REPLACEMENTS_ALLOWED_USERS): outside it nothing of the
@@ -3083,8 +3085,9 @@ console.log("IS ARRAY?", Array.isArray(orders));
                       }}
                     />
                   </Tooltip>
-                  {/* Replacement options: only rendered when the SKU has an
-                      active replacement registered in /replacements. The
+                  {/* Replacement options: only rendered when the SKU is linked
+                      to an active replacement in /replacements, on either side
+                      of the pair or through linked pairs (GET /counts). The
                       `&&` keeps antd Space from adding an empty item (and its
                       gap) next to the magnifier when there is none. */}
                   {replacementsEnabled && (() => {

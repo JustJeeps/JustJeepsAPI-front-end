@@ -5,7 +5,7 @@ import ProductTable from '../items/ProductTable';
 import ReplacementProductCard from './ReplacementProductCard';
 import ReplacementComments from './ReplacementComments';
 import { fetchReplacementsForSku } from './replacementsApi';
-import { displayName, formatDateTime, replacementErrorMessage } from './replacementsUtils';
+import { displayName, formatDateTime, relationNote, replacementErrorMessage } from './replacementsUtils';
 import './replacements.scss';
 
 const { Title, Text } = Typography;
@@ -48,6 +48,7 @@ const ReplacementLookupDrawer = ({ sourceSku, onClose }) => {
 	// ProductTable needs the catalog's vendor and competitor arrays; a card
 	// without them (the SKU left the catalog) must not reach it.
 	const hasLookupData = Array.isArray(product?.vendorProducts) && Array.isArray(product?.competitorProducts);
+	const note = relationNote(selected);
 
 	return (
 		<Drawer
@@ -102,6 +103,9 @@ const ReplacementLookupDrawer = ({ sourceSku, onClose }) => {
 				{!loading && !error && replacements.length === 0 && (
 					<Alert type="info" showIcon message={`No active replacement is registered for ${sourceSku}.`} />
 				)}
+				{!loading && !error && lookup?.truncated && (
+					<Alert type="info" showIcon message="More parts are linked further down the chain than shown here. Check the directory for the full picture." />
+				)}
 
 				{!loading && !error && replacements.length > 1 && (
 					<div className="replacement-lookup__options">
@@ -131,6 +135,7 @@ const ReplacementLookupDrawer = ({ sourceSku, onClose }) => {
 								<Text type="secondary" style={{ fontSize: 13 }}>Associated by</Text>
 								<Text strong>{displayName(selected.createdBy)}</Text>
 								<Text type="secondary" style={{ fontSize: 13 }}>{formatDateTime(selected.createdAt)}</Text>
+								{note && <Text type="secondary" style={{ fontSize: 12 }}>{note}</Text>}
 							</div>
 						</div>
 

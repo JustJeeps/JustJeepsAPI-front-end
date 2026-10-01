@@ -4,7 +4,7 @@ import { ArrowRightOutlined, CloseOutlined, PlusOutlined } from '@ant-design/ico
 import ProductPicker from './ProductPicker';
 import ReplacementProductCard from './ReplacementProductCard';
 import { createNoReplacement, createReplacements, fetchProductPreview, fetchReplacementsForSku } from './replacementsApi';
-import { displayName, isNoneMarker, replacementErrorMessage, validatePair, withSelectedCandidate } from './replacementsUtils';
+import { displayName, isNoneMarker, replacementErrorMessage, validatePair, withSelectedCandidate, registeredHere } from './replacementsUtils';
 
 const { Text } = Typography;
 
@@ -89,8 +89,10 @@ const NewReplacementModal = ({ open, onClose, onCreated, user, initialSourceSku 
 		fetchReplacementsForSku(source.sku)
 			.then((data) => {
 				if (cancelled) return;
-				// The API keeps the marker apart from the replacement options.
-				setExisting(data?.replacements || []);
+				// The API keeps the marker apart from the replacement options, and
+				// answers every equivalent part; the duplicate check and the marker
+				// gate only care about what is registered for this product.
+				setExisting(registeredHere(data?.replacements));
 				setExistingMarker(data?.noReplacement || null);
 				setExistingError(null);
 			})

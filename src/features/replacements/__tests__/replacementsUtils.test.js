@@ -13,6 +13,8 @@ import {
 	isSafeHttpUrl,
 	isNoneMarker,
 	replacementBadgeFor,
+	relationNote,
+	registeredHere,
 	noReplacementTooltip,
 	withSelectedCandidate,
 } from '../replacementsUtils';
@@ -170,5 +172,39 @@ describe('withSelectedCandidate', () => {
 		expect(withSelectedCandidate({ pending, candidate: { sku: 'B' }, comment: '', pairError: 'A SKU cannot replace itself' })).toEqual(pending);
 		expect(withSelectedCandidate({ pending, candidate: { sku: 'A' }, comment: 'dup', pairError: null })).toEqual(pending);
 		expect(withSelectedCandidate({ pending: [], candidate: { sku: 'B' }, comment: '', pairError: null })).toEqual([{ replacement_sku: 'B', product: { sku: 'B' }, comment: '' }]);
+	});
+});
+
+describe('relationNote', () => {
+	it('says nothing for a pair registered for the SKU being looked up, or for old payloads', () => {
+		expect(relationNote({ relation: 'registered', registered_as: { source_sku: 'A', replacement_sku: 'B' } })).toBe('');
+		expect(relationNote({ relation: 'reverse' })).toBe('');
+		expect(relationNote(undefined)).toBe('');
+		expect(relationNote({})).toBe('');
+	});
+
+	it('explains a reverse link in plain words', () => {
+		expect(relationNote({ relation: 'reverse', registered_as: { source_sku: 'CRO-1', replacement_sku: 'MOO-2' } }))
+			.toBe('Registered as CRO-1 -> MOO-2: MOO-2 was registered as the replacement for CRO-1, not the other way');
+	});
+
+	it('explains a link reached through another part', () => {
+		expect(relationNote({ relation: 'linked', via: 'CRO-1', registered_as: { source_sku: 'CRO-1', replacement_sku: 'OMX-3' } }))
+			.toBe('Not registered for this SKU. Reached through CRO-1; registered as CRO-1 -> OMX-3');
+		expect(relationNote({ relation: 'linked', registered_as: { source_sku: 'CRO-1', replacement_sku: 'OMX-3' } }))
+			.toBe('Not registered for this SKU; registered as CRO-1 -> OMX-3');
+	});
+});
+
+describe('registeredHere', () => {
+	it('keeps only the rows registered for the looked-up SKU, and every row of an old payload', () => {
+		const rows = [
+			{ id: 1, replacement_sku: 'B', relation: 'registered' },
+			{ id: 2, replacement_sku: 'C', relation: 'reverse' },
+			{ id: 3, replacement_sku: 'D', relation: 'linked' },
+			{ id: 4, replacement_sku: 'E' },
+		];
+		expect(registeredHere(rows).map((row) => row.id)).toEqual([1, 4]);
+		expect(registeredHere(undefined)).toEqual([]);
 	});
 });
