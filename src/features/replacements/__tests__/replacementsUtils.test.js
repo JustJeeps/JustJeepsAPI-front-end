@@ -15,6 +15,8 @@ import {
 	replacementBadgeFor,
 	relationNote,
 	registeredHere,
+	listPageSummary,
+	LIST_PAGE_SIZE,
 	noReplacementTooltip,
 	withSelectedCandidate,
 } from '../replacementsUtils';
@@ -206,5 +208,19 @@ describe('registeredHere', () => {
 		];
 		expect(registeredHere(rows).map((row) => row.id)).toEqual([1, 4]);
 		expect(registeredHere(undefined)).toEqual([]);
+	});
+});
+
+describe('listPageSummary', () => {
+	it('tells which original products the page shows', () => {
+		expect(LIST_PAGE_SIZE).toBe(50);
+		expect(listPageSummary({ page: 1, pageSize: 50, total: 1620, totalRows: 1655 })).toBe('1–50 of 1,620 original products, 1,655 replacements');
+		expect(listPageSummary({ page: 33, pageSize: 50, total: 1620, totalRows: 1655 })).toBe('1,601–1,620 of 1,620 original products, 1,655 replacements');
+	});
+
+	it('handles one item, an empty list and a page past the end', () => {
+		expect(listPageSummary({ page: 1, pageSize: 50, total: 1, totalRows: 1 })).toBe('1 original product, 1 replacement');
+		expect(listPageSummary({ page: 1, pageSize: 50, total: 0, totalRows: 0 })).toBe('0 original products, 0 replacements');
+		expect(listPageSummary({ page: 5, pageSize: 50, total: 60, totalRows: 70 })).toBe('0 of 60 original products, 70 replacements');
 	});
 });

@@ -119,6 +119,25 @@ export const relationNote = (row) => {
 	return '';
 };
 
+// --- Directory paging --------------------------------------------------------
+
+// Original products per page of the directory (the backend caps it at 100).
+export const LIST_PAGE_SIZE = 50;
+
+const formatCount = (value) => Number(value || 0).toLocaleString('en-US');
+const plural = (count, word) => `${formatCount(count)} ${word}${count === 1 ? '' : 's'}`;
+
+// "1–50 of 1,620 original products, 1,655 replacements" for the directory
+// header; a list that fits on one page just says how many there are.
+export const listPageSummary = ({ page = 1, pageSize = LIST_PAGE_SIZE, total = 0, totalRows = 0 } = {}) => {
+	const rows = plural(totalRows, 'replacement');
+	if (total <= pageSize && page === 1) return `${plural(total, 'original product')}, ${rows}`;
+	const start = (page - 1) * pageSize + 1;
+	if (start > total) return `0 of ${plural(total, 'original product')}, ${rows}`;
+	const end = Math.min(page * pageSize, total);
+	return `${formatCount(start)}–${formatCount(end)} of ${plural(total, 'original product')}, ${rows}`;
+};
+
 // --- "No replacement" marker ------------------------------------------------
 
 // A directory row is a pair or a marker (kind 'none'); old rows are pairs.

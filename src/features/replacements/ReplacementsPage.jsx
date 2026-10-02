@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Empty, Input, Result, Space, Spin, Typography, message } from 'antd';
+import { Alert, Button, Card, Empty, Input, Pagination, Result, Space, Spin, Typography, message } from 'antd';
 import { PlusOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import { useAuth } from '../../context/AuthContext';
 import { fetchReplacements, fetchReplacementsMetaCached, removeReplacement } from './replacementsApi';
-import { replacementErrorMessage } from './replacementsUtils';
+import { LIST_PAGE_SIZE, listPageSummary, replacementErrorMessage } from './replacementsUtils';
 import ReplacementsList from './ReplacementsList';
 import NewReplacementModal from './NewReplacementModal';
 import ReplacementDetailDrawer from './ReplacementDetailDrawer';
@@ -17,8 +17,9 @@ const { Title, Text } = Typography;
 const ReplacementsPage = () => {
 	const { user } = useAuth();
 	const [groups, setGroups] = useState([]);
-	const [total, setTotal] = useState(0);
-	const [truncated, setTruncated] = useState(false);
+	const [total, setTotal] = useState(0); // original products matching the search
+	const [totalRows, setTotalRows] = useState(0);
+	const [page, setPage] = useState(1);
 	const [magentoStatus, setMagentoStatus] = useState(null); // { configured, degraded }
 	const [managers, setManagers] = useState([]);
 	const [managersError, setManagersError] = useState(null);
@@ -38,13 +39,13 @@ const ReplacementsPage = () => {
 		return () => clearTimeout(timer);
 	}, [search]);
 
-	const load = useCallback(async (term = debouncedSearch, { silent = false } = {}) => {
+	const load = useCallback(async (term = debouncedSearch, { silent = false, pageNumber = page } = {}) => {
 		if (!silent) setLoading(true);
 		try {
-			const data = await fetchReplacements(term);
+			const data = await fetchReplacements(term, pageNumber, LIST_PAGE_SIZE);
 			setGroups(data.groups || []);
 			setTotal(data.total || 0);
-			setTruncated(Boolean(data.truncated));
+			setTotalRows(data.totalRows ?? data.total ?? 0);
 			setMagentoStatus(data.magento || null);
 			setError(null);
 		} catch (loadError) {
@@ -53,6 +54,11 @@ const ReplacementsPage = () => {
 			if (!silent) setLoading(false);
 			setInitialLoading(false);
 		}
+	}, [debouncedSearch, page]);
+
+	// A new search starts from the first page.
+	useEffect(() => {
+		setPage(1);
 	}, [debouncedSearch]);
 
 	// Who may remove other people's associations. A failure hides those
@@ -136,7 +142,6 @@ const ReplacementsPage = () => {
 		);
 	}
 
-	const originals = groups.length;
 
 	return (
 		<div className="replacements-page">
@@ -173,15 +178,6 @@ const ReplacementsPage = () => {
 						: 'Showing catalog data: the live store connection is not configured on this server.'}
 				/>
 			)}
-			{truncated && (
-				<Alert
-					type="warning"
-					showIcon
-					className="replacements-page__error"
-					message="The directory is larger than what this page shows. Use the search to find older associations."
-				/>
-			)}
-
 			<Card size="small" className="replacements-page__search">
 				<Input
 					className="replacements-page__search-input"
@@ -191,9 +187,22 @@ const ReplacementsPage = () => {
 					onChange={(event) => setSearch(event.target.value)}
 					allowClear
 				/>
-				<Text type="secondary" className="replacements-page__count">
-					{originals} original product{originals === 1 ? '' : 's'}, {total} replacement{total === 1 ? '' : 's'}
-				</Text>
+				<div className="replacements-page__paging">
+					<Text type="secondary" className="replacements-page__count">
+						{listPageSummary({ page, pageSize: LIST_PAGE_SIZE, total, totalRows })}
+					</Text>
+					{total > LIST_PAGE_SIZE && (
+						<Pagination
+							size="small"
+							current={page}
+							pageSize={LIST_PAGE_SIZE}
+							total={total}
+							showSizeChanger={false}
+							onChange={(nextPage) => setPage(nextPage)}
+							disabled={loading}
+						/>
+					)}
+				</div>
 			</Card>
 
 			{loading && groups.length === 0 ? (

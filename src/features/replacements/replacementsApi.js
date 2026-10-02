@@ -2,6 +2,7 @@
 // global axios instance (src/utils/api.js): token and interceptors come from
 // AuthContext.
 import { apiGet, apiPost, apiDelete } from '../../utils/api';
+import { LIST_PAGE_SIZE } from './replacementsUtils';
 
 const BASE = '/api/product-replacements';
 
@@ -25,8 +26,9 @@ export const fetchReplacementsMetaCached = (cacheKey) => {
 	return metaCache.promise;
 };
 
-export const fetchReplacements = (search = '') =>
-	apiGet(BASE, { params: search ? { search } : {} }).then((res) => res.data);
+// Directory page: { groups, total, totalRows, page, pageSize, magento }.
+export const fetchReplacements = (search = '', page = 1, pageSize = LIST_PAGE_SIZE) =>
+	apiGet(BASE, { params: { ...(search ? { search } : {}), page, pageSize } }).then((res) => res.data);
 
 // { source_sku, replacements: [{ replacement_sku, comment? }] } -> created rows
 export const createReplacements = (payload) => apiPost(BASE, payload).then((res) => res.data);

@@ -57,8 +57,17 @@
 		max-width: 560px;
 	}
 
-	&__count {
+	&__paging {
 		margin-left: auto;
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+	}
+
+	&__count {
+		white-space: nowrap;
 	}
 
 	&__empty {
