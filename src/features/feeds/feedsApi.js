@@ -3,6 +3,7 @@
 // keep the token and the interceptors from AuthContext. Uploading requires a
 // triage user (the backend validates it).
 import { apiGet, apiPost } from '../../utils/api';
+import { asUploadEntry } from './directUpload';
 
 export const fetchFeeds = () => apiGet('/api/ingest/feeds').then((res) => res.data);
 
@@ -24,9 +25,11 @@ export const fetchFeedRunStatus = (feed) =>
 
 // onProgress receives 0..100: feed spreadsheets go over 30MB and the upload takes
 // long enough that the screen looks frozen without any indication.
+// files: File[] or { file, fileName }[]; the fileName is the canonical name the
+// feed expects, sent as the multipart filename so the server sees that name.
 export const uploadFeedFiles = (feed, files, note, onProgress) => {
 	const formData = new FormData();
-	files.forEach((file) => formData.append('files', file));
+	files.map(asUploadEntry).forEach(({ file, fileName }) => formData.append('files', file, fileName));
 	if (note) formData.append('note', note);
 	return apiPost(`/api/ingest/feeds/${feed}/upload`, formData, {
 		onUploadProgress: (event) => {

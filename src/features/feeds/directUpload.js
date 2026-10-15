@@ -53,11 +53,19 @@ const putPart = async (url, blob, signal, attempt = 1) => {
 	}
 };
 
+// A file travels with the CANONICAL name the feed expects (pricingKit_quad.xlsx),
+// which is rarely the name it arrived with ("gold kit 10.13.26.xlsx"): the
+// modal recognizes the file by its columns and says which name to use. A bare
+// File is still accepted and keeps its own name.
+export const asUploadEntry = (item) => (item instanceof Blob
+	? { file: item, fileName: item.name }
+	: { file: item.file, fileName: item.fileName || item.file.name });
+
 // Sends one file and finishes its multipart. It does NOT catalog: the batch is
 // registered once, by uploadFilesDirect, after every file is in the bucket.
-const uploadOneFile = async ({ feed, file, sha256, signal, onStage }) => {
+const uploadOneFile = async ({ feed, file, fileName, sha256, signal, onStage }) => {
 	const { uploadId, partSizeBytes } = await apiPost(`/api/ingest/feeds/${feed}/uploads`, {
-		fileName: file.name,
+		fileName,
 		sizeBytes: file.size,
 	}).then((res) => res.data);
 
@@ -84,23 +92,27 @@ const uploadOneFile = async ({ feed, file, sha256, signal, onStage }) => {
 };
 
 // Sends the set of files of a feed as ONE batch.
+// files: File[] or { file, fileName }[] (fileName = canonical name for the feed).
 // onStage({ phase, percent, fileName }), phase: hashing | checking | uploading | reusing | finishing
+// The stage messages name the file as the person knows it (its own name).
 export const uploadFilesDirect = async ({ feed, files, note, signal, onStage }) => {
+	const entries = files.map(asUploadEntry);
+
 	// 1) Identify each file and ask the server whether the content already exists.
 	const prepared = [];
-	for (const file of files) {
+	for (const { file, fileName } of entries) {
 		onStage?.({ phase: 'hashing', percent: 0, fileName: file.name });
 		const sha256 = await hashFile(file, (percent) =>
 			onStage?.({ phase: 'hashing', percent, fileName: file.name }));
 		onStage?.({ phase: 'checking', percent: 0, fileName: file.name });
-		const check = await apiPost(`/api/ingest/feeds/${feed}/uploads/check`, { fileName: file.name, sha256 })
+		const check = await apiPost(`/api/ingest/feeds/${feed}/uploads/check`, { fileName, sha256 })
 			.then((res) => res.data);
-		prepared.push({ file, sha256, ...check });
+		prepared.push({ file, fileName, sha256, ...check });
 	}
 
 	// 2) Nothing changed: every file is already exactly the one in use.
 	if (prepared.every((item) => item.duplicate && item.isCurrent)) {
-		return { unchanged: true, files: prepared.map((item) => item.file.name) };
+		return { unchanged: true, files: prepared.map((item) => item.fileName) };
 	}
 
 	// 3) Send the bytes that are missing. Content already in the bucket moves
@@ -113,12 +125,13 @@ export const uploadFilesDirect = async ({ feed, files, note, signal, onStage }) 
 			const position = files.length > 1 ? ` (${index + 1} of ${files.length})` : '';
 			if (item.duplicate) {
 				onStage?.({ phase: 'reusing', percent: 100, fileName: `${item.file.name}${position}` });
-				reuse.push({ fileName: item.file.name, sha256: item.sha256 });
+				reuse.push({ fileName: item.fileName, sha256: item.sha256 });
 				continue;
 			}
 			uploadIds.push(await uploadOneFile({
 				feed,
 				file: item.file,
+				fileName: item.fileName,
 				sha256: item.sha256,
 				signal,
 				onStage: ({ phase, percent }) => onStage?.({ phase, percent, fileName: `${item.file.name}${position}` }),
@@ -135,9 +148,10 @@ export const uploadFilesDirect = async ({ feed, files, note, signal, onStage }) 
 	// 4) One call registers the whole set, or none of it. The file dates go with
 	// it: once the file lives in the bucket, the copy on the server is a symlink
 	// into the download cache and its date is when WE fetched it, so the date the
-	// export actually carries has to travel from the browser.
+	// export actually carries has to travel from the browser. Keyed by the
+	// canonical name, which is what the catalog stores.
 	const sourceModifiedAt = Object.fromEntries(
-		prepared.filter((item) => item.file.lastModified > 0).map((item) => [item.file.name, item.file.lastModified])
+		prepared.filter((item) => item.file.lastModified > 0).map((item) => [item.fileName, item.file.lastModified])
 	);
 
 	onStage?.({ phase: 'finishing', percent: 100, fileName: 'registering the batch' });

@@ -6,6 +6,7 @@ import {
 	Input,
 	Modal,
 	Progress,
+	Select,
 	Space,
 	Spin,
 	Table,
@@ -19,6 +20,7 @@ import { CloudDownloadOutlined, CloudUploadOutlined, EyeOutlined, InboxOutlined,
 import { apiErrorMessage } from '../../utils/api';
 import { fetchFeeds, fetchFeedRuns, uploadFeedFiles, runFeedScript, fetchFeedFromVendor, fetchFeedRunStatus } from './feedsApi';
 import { uploadFilesDirect } from './directUpload';
+import { detectFile, describeRejection } from './detectFeedFile';
 import './feeds.scss';
 
 const { Text } = Typography;
@@ -142,17 +144,76 @@ const FeedRuns = ({ feed }) => {
 	);
 };
 
+// The expected files, as the person knows them: by label when the server
+// publishes the column signatures, by canonical name on an older server.
+const expectedFileLabels = (feed) => (feed.fileSpecs?.length
+	? feed.fileSpecs.map((spec) => spec.label || spec.name)
+	: feed.files);
+
+const labelOfFile = (feed, name) => feed.fileSpecs?.find((spec) => spec.name === name)?.label || name;
+
 // Upload modal. A multi-file feed accepts one file at a time: whatever is not
 // picked is carried forward from the current batch by the server, so the feed
 // always ends up with a complete set without forcing the person to have both
 // files in hand.
+//
+// Each dropped file is recognized by its columns (detectFeedFile.js) and sent
+// under the canonical name of the file it matched, so the name it arrived with
+// does not matter. When two files of the feed share the same columns (Keystone)
+// the person picks which one it is.
 const UploadFeedModal = ({ feed, directEnabled, apiFallbackMaxBytes, onClose, onUploaded }) => {
 	const [fileList, setFileList] = useState([]);
 	const [note, setNote] = useState('');
 	const [uploading, setUploading] = useState(false);
 	const [progress, setProgress] = useState(0);
 	const [stage, setStage] = useState('');
+	const [uploadError, setUploadError] = useState(null);
+	// Detection result per Upload uid, and the type picked for ambiguous files.
+	const [detections, setDetections] = useState({});
+	const [choices, setChoices] = useState({});
 	const abortRef = useRef(null);
+	const detectingRef = useRef(new Set());
+
+	// Reads the header of every file that has not been looked at yet. The
+	// result is keyed by the Upload uid, so a file removed and dropped again is
+	// read again (cheap: a CSV only has its first 64KB read).
+	useEffect(() => {
+		fileList.forEach((item) => {
+			if (detections[item.uid] || detectingRef.current.has(item.uid)) return;
+			detectingRef.current.add(item.uid);
+			detectFile(item.originFileObj || item, feed)
+				.catch((error) => ({ status: 'rejected', reason: `${item.name} could not be read (${error?.message || 'unknown error'})` }))
+				.then((result) => {
+					detectingRef.current.delete(item.uid);
+					setDetections((current) => ({ ...current, [item.uid]: result }));
+				});
+		});
+	}, [fileList, feed, detections]);
+
+	const detecting = fileList.some((item) => !detections[item.uid]);
+
+	// Canonical name each file resolves to (null while unknown or unresolved).
+	// A second file resolving to a name already taken is a duplicate: the batch
+	// has one slot per canonical name.
+	const resolution = useMemo(() => {
+		const taken = new Set();
+		const byUid = {};
+		fileList.forEach((item) => {
+			const detection = detections[item.uid];
+			let name = null;
+			if (detection?.status === 'matched') name = detection.spec.name;
+			else if (detection?.status === 'ambiguous') name = choices[item.uid] || null;
+			if (name && taken.has(name)) {
+				byUid[item.uid] = { name: null, duplicate: name };
+				return;
+			}
+			if (name) taken.add(name);
+			byUid[item.uid] = { name, duplicate: null };
+		});
+		return byUid;
+	}, [fileList, detections, choices]);
+
+	const unresolved = fileList.some((item) => detections[item.uid]?.status === 'ambiguous' && !choices[item.uid]);
 
 	// Limite efetivo por arquivo: o caminho ASSINADO (direto ao bucket) usa o
 	// limite próprio do feed (WheelPros/Keystone chegam a 500-600MB); com o
@@ -168,9 +229,9 @@ const UploadFeedModal = ({ feed, directEnabled, apiFallbackMaxBytes, onClose, on
 	// only case that still needs everything is the very first upload, when there
 	// is nothing to carry forward.
 	const missing = useMemo(() => {
-		const names = fileList.map((file) => file.name);
+		const names = Object.values(resolution).map((entry) => entry.name).filter(Boolean);
 		return feed.files.filter((name) => !names.includes(name));
-	}, [feed, fileList]);
+	}, [feed, resolution]);
 
 	// Per file, not per batch: when a feed gains a file (Quadratec's gold kit,
 	// Oct 2026) there is no complete batch yet, but the files already stored
@@ -182,17 +243,68 @@ const UploadFeedModal = ({ feed, directEnabled, apiFallbackMaxBytes, onClose, on
 
 	const missingWithNothingToKeep = missing.length > keptFromCurrentBatch.length;
 
-	// Names the feed does not expect, and files past the size limit. Both used to
-	// travel all the way to the server before being rejected.
-	const rejected = useMemo(() => fileList.filter((file) => {
-		const size = (file.originFileObj || file).size;
-		return !feed.files.includes(file.name) || (Number.isFinite(size) && size > sizeLimit);
-	}), [feed, fileList, sizeLimit]);
+	// Why a file cannot go: columns the feed does not know, a second file of the
+	// same type, or a size past the limit. All of it used to travel to the
+	// server before being refused.
+	const rejectionOf = useCallback((item) => {
+		const size = (item.originFileObj || item).size;
+		if (Number.isFinite(size) && size > sizeLimit) {
+			return `${item.name} is ${formatBytes(size)}, over the ${formatBytes(sizeLimit)} limit for this feed`;
+		}
+		const detection = detections[item.uid];
+		if (detection?.status === 'rejected') return detection.reason;
+		const duplicate = resolution[item.uid]?.duplicate;
+		if (duplicate) return `${item.name} is a second ${labelOfFile(feed, duplicate)}; only one can go in a batch`;
+		return null;
+	}, [detections, resolution, sizeLimit, feed]);
+
+	const rejected = useMemo(() => fileList.filter((item) => rejectionOf(item)), [fileList, rejectionOf]);
 
 	const handleSelection = ({ fileList: nextList }) => {
 		// Keeping only the last N silently threw away files the person had just
 		// dropped. Everything selected is kept and what does not belong is named.
 		setFileList(nextList);
+		setUploadError(null);
+	};
+
+	// One line under each file in the list: what it was recognized as, what is
+	// wrong with it, or a picker when the columns fit more than one file.
+	const renderDetection = (item) => {
+		const detection = detections[item.uid];
+		if (!detection) return <Text type="secondary" className="feeds-panel__feed-name">Reading the columns...</Text>;
+		const rejection = rejectionOf(item);
+		if (detection.status === 'ambiguous') {
+			return (
+				<Space size={8} wrap className="feeds-panel__detection">
+					<Text type="warning" className="feeds-panel__feed-name">
+						The columns fit more than one file of this feed. Which one is it?
+					</Text>
+					<Select
+						size="small"
+						placeholder="Pick the file type"
+						value={choices[item.uid]}
+						onChange={(value) => setChoices((current) => ({ ...current, [item.uid]: value }))}
+						options={detection.candidates.map((spec) => ({ value: spec.name, label: spec.label || spec.name }))}
+						disabled={uploading}
+						className="feeds-panel__detection-select"
+					/>
+					{rejection && <Text type="danger" className="feeds-panel__feed-name">{rejection}</Text>}
+				</Space>
+			);
+		}
+		if (rejection) {
+			const detail = describeRejection(detection);
+			return (
+				<Text type="danger" className="feeds-panel__feed-name">
+					{rejection}{detail ? `. ${detail}` : ''}
+				</Text>
+			);
+		}
+		return (
+			<Text type="success" className="feeds-panel__feed-name">
+				Detected: {detection.spec.label || detection.spec.name}
+			</Text>
+		);
 	};
 
 	const handleClose = () => {
@@ -215,9 +327,14 @@ const UploadFeedModal = ({ feed, directEnabled, apiFallbackMaxBytes, onClose, on
 		setUploading(true);
 		setProgress(0);
 		setStage('');
+		setUploadError(null);
 		const controller = new AbortController();
 		abortRef.current = controller;
-		const files = fileList.map((file) => file.originFileObj || file);
+		// Each file goes out under the canonical name it was recognized as.
+		const files = fileList.map((item) => ({
+			file: item.originFileObj || item,
+			fileName: resolution[item.uid]?.name || item.name,
+		}));
 
 		// While the bucket CORS is not configured, the browser cannot talk directly
 		// to Spaces. Instead of failing, it falls back to sending through the API.
@@ -225,9 +342,9 @@ const UploadFeedModal = ({ feed, directEnabled, apiFallbackMaxBytes, onClose, on
 			// Fail fast: com o direct upload fora do ar, um arquivo acima do teto
 			// da API seria recusado só DEPOIS de trafegar inteiro.
 			const cap = apiFallbackMaxBytes || Infinity;
-			const tooBig = files.find((file) => file.size > cap);
+			const tooBig = files.find(({ file }) => file.size > cap);
 			if (tooBig) {
-				throw new Error(`${tooBig.name} is ${formatBytes(tooBig.size)} — direct upload to storage is offline and the API path tops out at ${formatBytes(cap)}. Try again when storage is back.`);
+				throw new Error(`${tooBig.file.name} is ${formatBytes(tooBig.file.size)}. Direct upload to storage is offline and the API path tops out at ${formatBytes(cap)}. Try again when storage is back.`);
 			}
 			setStage('Sending through the server');
 			setProgress(0);
@@ -283,7 +400,19 @@ const UploadFeedModal = ({ feed, directEnabled, apiFallbackMaxBytes, onClose, on
 			onUploaded();
 			onClose();
 		} catch (error) {
-			if (!controller.signal.aborted) message.error(apiErrorMessage(error, 'Upload failed'));
+			if (controller.signal.aborted) return;
+			// The server reads the stored file and checks its columns again. A
+			// mismatch is a decision about the file, so it stays on screen next to
+			// the file list instead of vanishing with the toast.
+			if (error?.response?.data?.code === 'FEED_FILE_SIGNATURE_MISMATCH') {
+				const { missing = [], extra = [] } = error.response.data;
+				const parts = [];
+				if (missing.length > 0) parts.push(`missing: ${missing.join(', ')}`);
+				if (extra.length > 0) parts.push(`not expected: ${extra.join(', ')}`);
+				setUploadError(`${apiErrorMessage(error, 'The file does not have the expected columns')}${parts.length > 0 ? ` (${parts.join('; ')})` : ''}`);
+			} else {
+				message.error(apiErrorMessage(error, 'Upload failed'));
+			}
 		} finally {
 			abortRef.current = null;
 			setUploading(false);
@@ -300,12 +429,15 @@ const UploadFeedModal = ({ feed, directEnabled, apiFallbackMaxBytes, onClose, on
 			onOk={handleUpload}
 			okText="Upload"
 			okButtonProps={{
-				disabled: fileList.length === 0 || missingWithNothingToKeep || rejected.length > 0,
+				disabled: fileList.length === 0 || detecting || unresolved || missingWithNothingToKeep || rejected.length > 0,
 				loading: uploading,
 			}}
 		>
 			<Text type="secondary">
-				Expected file{feed.files.length > 1 ? 's' : ''}: {feed.files.join(', ')}.
+				Expected file{feed.files.length > 1 ? 's' : ''}: {expectedFileLabels(feed).join(', ')}.
+				{feed.fileSpecs?.length
+					? ' Each file is recognized by its columns, so any file name works.'
+					: ''}
 				{feed.files.length > 1 && (feed.currentBatch || Object.keys(feed.latestArtifacts || {}).length > 0)
 					? ' You can send just some of them; the others stay as they are.'
 					: ''}
@@ -316,26 +448,36 @@ const UploadFeedModal = ({ feed, directEnabled, apiFallbackMaxBytes, onClose, on
 			</Text>
 			<Upload.Dragger
 				multiple={feed.files.length > 1}
+				accept=".csv,.xlsx,.xls"
 				beforeUpload={() => false}
 				fileList={fileList}
 				onChange={handleSelection}
 				disabled={uploading}
 				className="feeds-panel__dragger"
+				itemRender={(originNode, item) => (
+					<div className="feeds-panel__upload-item">
+						{originNode}
+						<div className="feeds-panel__detection-line">{renderDetection(item)}</div>
+					</div>
+				)}
 			>
 				<p className="ant-upload-drag-icon"><InboxOutlined /></p>
 				<p className="ant-upload-text">Click or drag the vendor file{feed.files.length > 1 ? 's' : ''} here</p>
 			</Upload.Dragger>
+			{uploadError && (
+				<Alert
+					type="error"
+					showIcon
+					className="feeds-panel__modal-alert"
+					message={uploadError}
+				/>
+			)}
 			{rejected.length > 0 && (
 				<Alert
 					type="error"
 					showIcon
 					className="feeds-panel__modal-alert"
-					message={rejected.map((file) => {
-						const size = (file.originFileObj || file).size;
-						return feed.files.includes(file.name)
-							? `${file.name} is ${formatBytes(size)}, over the ${formatBytes(sizeLimit)} limit for this feed`
-							: `${file.name} is not a file this feed expects`;
-					}).join('. ')}
+					message={rejected.map((item) => rejectionOf(item)).join('. ')}
 				/>
 			)}
 			{missingWithNothingToKeep && fileList.length > 0 && (
@@ -345,7 +487,10 @@ const UploadFeedModal = ({ feed, directEnabled, apiFallbackMaxBytes, onClose, on
 					className="feeds-panel__modal-alert"
 					message={`Some files of this feed were never uploaded, so they must be sent now. Missing: ${missing
 						.filter((name) => !keptFromCurrentBatch.some((artifact) => artifact.fileName === name))
-						.join(', ')}. File names must match exactly.`}
+						.map((name) => labelOfFile(feed, name))
+						.join(', ')}.${feed.fileSpecs?.length
+						? ' Files are recognized by their columns, so any file name works.'
+						: ' File names must match exactly.'}`}
 				/>
 			)}
 			{!missingWithNothingToKeep && keptFromCurrentBatch.length > 0 && fileList.length > 0 && (
@@ -356,7 +501,7 @@ const UploadFeedModal = ({ feed, directEnabled, apiFallbackMaxBytes, onClose, on
 					message={`Only what you picked is replaced. ${keptFromCurrentBatch
 						// The date of the FILE, so the person knows how old what they
 						// are keeping actually is, not when it happened to arrive.
-						.map((artifact) => `${artifact.fileName} stays as the one from ${formatDateTime(artifact.sourceModifiedAt || artifact.uploadedAt)}`)
+						.map((artifact) => `${labelOfFile(feed, artifact.fileName)} (${artifact.fileName}) stays as the one from ${formatDateTime(artifact.sourceModifiedAt || artifact.uploadedAt)}`)
 						.join('; ')}.`}
 				/>
 			)}

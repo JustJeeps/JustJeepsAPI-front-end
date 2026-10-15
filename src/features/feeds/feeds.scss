@@ -88,3 +88,15 @@
 		word-break: break-word;
 	}
 }
+
+// One line under each file in the upload list: what it was recognized as, or
+// what is wrong with it. Same small secondary text as the rest of the panel.
+.feeds-panel {
+	&__detection-line {
+		margin: 0 0 8px 22px;
+	}
+
+	&__detection-select {
+		min-width: 220px;
+	}
+}
