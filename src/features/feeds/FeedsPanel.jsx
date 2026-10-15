@@ -163,7 +163,7 @@ const UploadFeedModal = ({ feed, directEnabled, apiFallbackMaxBytes, onClose, on
 		: Math.min(feed.maxUploadBytes, apiFallbackMaxBytes || feed.maxUploadBytes);
 
 	// Files of this feed the person did not pick. They are NOT a blocker: the
-	// server carries each one forward from the current batch, so one file can be
+	// server carries each one forward from its latest stored copy, so one file can be
 	// refreshed on its own (the vendor rarely sends both at the same time). The
 	// only case that still needs everything is the very first upload, when there
 	// is nothing to carry forward.
@@ -172,8 +172,12 @@ const UploadFeedModal = ({ feed, directEnabled, apiFallbackMaxBytes, onClose, on
 		return feed.files.filter((name) => !names.includes(name));
 	}, [feed, fileList]);
 
+	// Per file, not per batch: when a feed gains a file (Quadratec's gold kit,
+	// Oct 2026) there is no complete batch yet, but the files already stored
+	// are still carried forward. Older servers only send currentBatch.
 	const keptFromCurrentBatch = useMemo(() => missing
-		.map((name) => feed.currentBatch?.artifacts.find((artifact) => artifact.fileName === name))
+		.map((name) => feed.latestArtifacts?.[name]
+			|| feed.currentBatch?.artifacts.find((artifact) => artifact.fileName === name))
 		.filter(Boolean), [missing, feed]);
 
 	const missingWithNothingToKeep = missing.length > keptFromCurrentBatch.length;
@@ -302,8 +306,8 @@ const UploadFeedModal = ({ feed, directEnabled, apiFallbackMaxBytes, onClose, on
 		>
 			<Text type="secondary">
 				Expected file{feed.files.length > 1 ? 's' : ''}: {feed.files.join(', ')}.
-				{feed.files.length > 1 && feed.currentBatch
-					? ' You can send just one of them; the other stays as it is.'
+				{feed.files.length > 1 && (feed.currentBatch || Object.keys(feed.latestArtifacts || {}).length > 0)
+					? ' You can send just some of them; the others stay as they are.'
 					: ''}
 				{' '}Max {formatBytes(sizeLimit)} per file.
 				{!directEnabled && sizeLimit < feed.maxUploadBytes
@@ -339,7 +343,7 @@ const UploadFeedModal = ({ feed, directEnabled, apiFallbackMaxBytes, onClose, on
 					type="warning"
 					showIcon
 					className="feeds-panel__modal-alert"
-					message={`This feed has no file yet, so the first upload needs all of them. Missing: ${missing
+					message={`Some files of this feed were never uploaded, so they must be sent now. Missing: ${missing
 						.filter((name) => !keptFromCurrentBatch.some((artifact) => artifact.fileName === name))
 						.join(', ')}. File names must match exactly.`}
 				/>
