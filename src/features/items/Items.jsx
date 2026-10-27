@@ -18,6 +18,7 @@ import { Checkbox } from 'antd';
 import { useAuth } from "../../context/AuthContext";
 import { USD_TO_CAD_RATE } from '../../constants/exchangeRate';
 import { vendorLinks } from '../../constants/vendorLinks';
+import { JRP_EXPORT_COLUMNS, jrpExportFields } from './jrpExportFields';
 
 
 
@@ -381,6 +382,7 @@ const dataForExcel = transformData(brandData);
         { header: "Keystone Inventory", key: "keystone_inventory" },
         { header: "Northridge Price", key: "northridge_price" },
         { header: "Rough Country Cost", key: "rough_country_cost" },
+        ...JRP_EXPORT_COLUMNS,
       ];
 
       // Add rows to the sheet
@@ -414,6 +416,7 @@ const dataForExcel = transformData(brandData);
           rough_country_cost: product.vendorProducts?.find(
             (vp) => vp.vendor.name === "Rough Country"
           )?.vendor_cost,
+          ...jrpExportFields(product),
         };
         sheet.addRow(row);
       });
@@ -484,6 +487,7 @@ const dataForExcel = transformData(brandData);
         { header: "Tire Discounter Cost", key: "tireDiscounter_cost" },
         { header: "Dirty Dog Cost", key: "dirtyDog_cost" },
         { header: "Rough Country Cost", key: "rough_country_cost" },
+        ...JRP_EXPORT_COLUMNS,
         { header: "TDOT Price", key: "tdot_price" },
         { header: "PartsEngine Price", key: "partsEngine_price" },
         { header: "Lowriders Price", key: "lowriders_price" },
@@ -599,6 +603,7 @@ const dataForExcel = transformData(brandData);
           rough_country_cost: product.vendorProducts?.find(
             (vp) => vp.vendor.name === "Rough Country"
           )?.vendor_cost,
+          ...jrpExportFields(product),
           quadratec_sku: product.vendorProducts?.find(
             (vp) => vp.vendor.name === "Quadratec"
           )?.quadratec_sku,
