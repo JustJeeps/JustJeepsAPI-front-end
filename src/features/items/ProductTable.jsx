@@ -658,6 +658,8 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
       } else if (vendorNameLower === 'metalcloak') {
         const metalCloakCode = vendorSKU?.replace(/^MTK-/, '');
         link = vendorLinks.metalcloakSearch(metalCloakCode);
+      } else if (vendorNameLower === 'jrp') {
+        link = vendorLinks.jrpProduct(vendorSKU);
       }
 
       return (

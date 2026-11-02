@@ -25,6 +25,7 @@ export const VENDOR_SITES = Object.freeze({
 	grandwest: 'https://www.grandwestauto.com',
 	amazon: 'https://www.amazon.ca',
 	crown: 'https://www.crownautomotive.net',
+	jrp: 'https://store.jrponline.com',
 });
 
 const code = (value) => String(value ?? '').trim();
@@ -54,5 +55,7 @@ export const vendorLinks = Object.freeze({
 	metalcloakSearch: withCode('metalcloak', (c) => `/catalogsearch/result/?q=${c}`),
 	grandwestSearch: withCode('grandwest', (c) => `/search?keywords=${c}`),
 	amazonSearch: withCode('amazon', (c) => `/s?k=${c}`),
+	// JRP product page by JRPSKU; opens without a dealer login (name, price, stock).
+	jrpProduct: withCode('jrp', (c) => `/webstore/index.php?link=details&wh=00&pn=${c}`),
 	crownSearch: () => `${VENDOR_SITES.crown}/search.html`,
 });

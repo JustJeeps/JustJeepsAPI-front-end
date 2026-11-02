@@ -26,6 +26,7 @@ describe('VENDOR_SITES', () => {
 			grandwest: 'https://www.grandwestauto.com',
 			amazon: 'https://www.amazon.ca',
 			crown: 'https://www.crownautomotive.net',
+			jrp: 'https://store.jrponline.com',
 		});
 	});
 });
@@ -62,6 +63,12 @@ describe('vendorLinks', () => {
 		expect(vendorLinks.keystoneDetail('')).toBeNull();
 		expect(vendorLinks.turn14Search(null)).toBeNull();
 		expect(vendorLinks.amazonSearch('  ')).toBeNull();
+	});
+
+	it('opens the JRP product page by JRPSKU (the vendor_sku of the JRP rows)', () => {
+		expect(vendorLinks.jrpProduct('BIL24-066785'))
+			.toBe('https://store.jrponline.com/webstore/index.php?link=details&wh=00&pn=BIL24-066785');
+		expect(vendorLinks.jrpProduct('')).toBeNull();
 	});
 
 	it('exposes the home page as the fallback of each search', () => {

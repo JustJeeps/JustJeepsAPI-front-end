@@ -1424,6 +1424,8 @@ const handleSetSkuStatusAcrossStoreViews = async (record, targetStatus) => {
       } else if (vendorNameLower === 'metalcloak') {
         const metalCloakCode = vendorSKU?.replace(/^MTK-/, '');
         link = vendorLinks.metalcloakSearch(metalCloakCode);
+      } else if (vendorNameLower === 'jrp') {
+        link = vendorLinks.jrpProduct(vendorSKU);
       }
 
       // Calculate cost and margin
