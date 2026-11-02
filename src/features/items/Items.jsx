@@ -19,6 +19,7 @@ import { useAuth } from "../../context/AuthContext";
 import { USD_TO_CAD_RATE } from '../../constants/exchangeRate';
 import { vendorLinks } from '../../constants/vendorLinks';
 import { JRP_EXPORT_COLUMNS, jrpExportFields } from './jrpExportFields';
+import { storedProductUrl } from './competitorLink';
 
 
 
@@ -1998,6 +1999,9 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
 						} else if (competitorName.includes('northridge')) {
 							const sku = record.sku?.includes('-') ? record.sku.split('-').slice(1).join('-') : record.sku;
 							link = `https://www.northridge4x4.ca/search?q=${encodeURIComponent(sku)}`;
+						} else if (storedProductUrl(competitorProduct)) {
+							// Any competitor whose scraper stored its product page (Lowriders, Niagara Jeeps).
+							link = storedProductUrl(competitorProduct);
 						}
 
 						return (
