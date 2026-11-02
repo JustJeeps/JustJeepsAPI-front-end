@@ -21,6 +21,7 @@ import { apiErrorMessage } from '../../utils/api';
 import { fetchFeeds, fetchFeedRuns, uploadFeedFiles, runFeedScript, fetchFeedFromVendor, fetchFeedRunStatus } from './feedsApi';
 import { uploadFilesDirect } from './directUpload';
 import { detectFile, describeRejection } from './detectFeedFile';
+import { republishedAt } from './republishedAt';
 import './feeds.scss';
 
 const { Text } = Typography;
@@ -838,6 +839,13 @@ const FeedsPanel = () => {
 								data from {formatDateTime(feed.currentBatch.dataAsOf)}
 							</Text>
 						</div>
+						{republishedAt(feed) && (
+							<div>
+								<Text type="secondary" className="feeds-panel__feed-name">
+									same file re-published {formatDateTime(republishedAt(feed))}
+								</Text>
+							</div>
+						)}
 						<div>
 							<Text type="secondary" className="feeds-panel__feed-name">
 								{arrivedLater ? `uploaded ${formatDateTime(feed.currentBatch.uploadedAt)}` : 'uploaded then'}
