@@ -5,6 +5,7 @@ import { TrophyFilled } from '@ant-design/icons';
 import { sizeHeight, width } from '@mui/system';
 import { USD_TO_CAD_RATE } from '../../constants/exchangeRate';
 import { vendorLinks } from '../../constants/vendorLinks';
+import { storedProductUrl } from './competitorLink';
 
 
 const ProductTable = props => {
@@ -266,8 +267,9 @@ console.log("props.orderProductPrice:", props.orderProductPrice);
 					} else if (competitorName.includes('4wp') || competitorName.includes('4 wheel parts')) {
 						const sku = record.sku?.includes('-') ? record.sku.split('-').slice(1).join('-') : record.sku;
 						link = `https://www.4wheelparts.com/search/?Ntt=${encodeURIComponent(sku)}`;
-					} else if (competitorName.includes('lowriders') && competitorProduct.product_url) {
-						link = competitorProduct.product_url;
+					} else if (storedProductUrl(competitorProduct)) {
+						// Any competitor whose scraper stored its product page (Lowriders, Niagara Jeeps).
+						link = storedProductUrl(competitorProduct);
 					}
 
 					// Shorten competitor name for display
