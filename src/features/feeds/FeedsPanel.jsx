@@ -761,6 +761,21 @@ const FeedsPanel = () => {
 	};
 
 	const handleRun = (feed) => {
+		// Scripts that write to the live store carry a warning from the registry:
+		// make the person read it before anything is published.
+		if (feed.runWarning) {
+			Modal.confirm({
+				title: `Publish ${feed.label} to the live store?`,
+				content: feed.stale
+					? `${feed.runWarning} The current file was uploaded ${formatAge(feed.ageHours)} (${formatDateTime(feed.currentBatch?.uploadedAt)}).`
+					: feed.runWarning,
+				okText: 'Run on the live store',
+				okButtonProps: { danger: true },
+				cancelText: 'Cancel',
+				onOk: () => startRun(feed),
+			});
+			return undefined;
+		}
 		// Running against a batch nobody has refreshed in months usually means the
 		// file is not the one the person thinks they are publishing.
 		if (!feed.stale) return startRun(feed);
