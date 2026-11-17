@@ -791,7 +791,8 @@ const FeedsPanel = () => {
 		if (feed.running) return 'This feed is already running';
 		if (data?.busy?.dailySync) return 'The daily sync is running. Wait for it to finish.';
 		if (data?.busy?.feed) return `Another feed is running right now (${data.busy.feed})`;
-		if (!feed.currentBatch) return 'There is no file for this feed yet. Upload one first.';
+		// An API feed has no file to wait for: the script talks to the vendor API.
+		if (!feed.currentBatch && feed.source !== 'api') return 'There is no file for this feed yet. Upload one first.';
 		return null;
 	};
 
@@ -808,13 +809,20 @@ const FeedsPanel = () => {
 		},
 		{
 			title: 'Files',
-			dataIndex: 'files',
-			render: (files) => files.map((name) => <Tag key={name}>{name}</Tag>),
+			key: 'files',
+			render: (feed) => (feed.source === 'api'
+				? <Tag color="blue">Magento API</Tag>
+				: feed.files.map((name) => <Tag key={name}>{name}</Tag>)),
 		},
 		{
 			title: 'Current data',
 			key: 'current',
 			render: (feed) => {
+				// An API feed stores nothing in the bucket: the data is whatever
+				// the vendor API answers at run time.
+				if (feed.source === 'api') {
+					return <Text type="secondary">pulled live from the API at run time</Text>;
+				}
 				if (!feed.currentBatch) return <Tag color="red">no data</Tag>;
 				const source = feed.currentBatch.artifacts[0];
 				// Two different dates, and confusing them is what called a
@@ -912,16 +920,19 @@ const FeedsPanel = () => {
 				const blocked = runBlockedReason(feed);
 				return (
 					<div className="feeds-panel__actions">
-						<Tooltip title={data?.canManage ? '' : MANAGE_HINT}>
-							<Button
-								icon={<CloudUploadOutlined />}
-								size="small"
-								disabled={!data?.storeConfigured || !data?.canManage}
-								onClick={() => setUploadFeed(feed)}
-							>
-								Upload
-							</Button>
-						</Tooltip>
+						{/* Nothing to upload for an API feed: there is no file. */}
+						{feed.source !== 'api' && (
+							<Tooltip title={data?.canManage ? '' : MANAGE_HINT}>
+								<Button
+									icon={<CloudUploadOutlined />}
+									size="small"
+									disabled={!data?.storeConfigured || !data?.canManage}
+									onClick={() => setUploadFeed(feed)}
+								>
+									Upload
+								</Button>
+							</Tooltip>
+						)}
 						{feed.fetchCommand && !feed.running && (
 							<Tooltip title={fetchBlockedReason(feed)
 								|| 'Downloads the file from the vendor now, instead of waiting for the next scheduled fetch'}>
