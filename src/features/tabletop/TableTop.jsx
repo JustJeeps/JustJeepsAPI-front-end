@@ -26,14 +26,23 @@ const TableTop = ({
 }) => {
 
   // Dollar value of sales: only rendered when the backend sent it (restricted
-  // to allowlisted users), so other users see the cards unchanged.
-  const formatSalesTotal = (value) =>
-    value == null
-      ? null
-      : `$${Number(value).toLocaleString('en-CA', {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0,
-        })}`;
+  // to allowlisted users), so other users see the cards unchanged. The backend
+  // sends per-currency sums ({ CAD: 4153, USD: 310 }); each currency gets its
+  // own line so CAD and USD are never mixed.
+  const formatMoney = (value) =>
+    `$${Number(value).toLocaleString('en-CA', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    })}`;
+
+  const formatSalesTotal = (totals) => {
+    if (totals == null || typeof totals !== 'object') return null;
+    const lines = Object.entries(totals)
+      .filter(([, amount]) => Number(amount) !== 0)
+      .sort(([a], [b]) => a.localeCompare(b)) // CAD before USD
+      .map(([currency, amount]) => `${formatMoney(amount)} ${currency}`);
+    return lines.length ? lines : null;
+  };
 
   const metrics = [
     {
@@ -174,16 +183,17 @@ const TableTop = ({
               }}>
                 {metric.value}
               </span>
-              {metric.salesTotal && (
-                <span style={{
+              {metric.salesTotal && metric.salesTotal.map((line) => (
+                <span key={line} style={{
                   fontSize: 'var(--tt-label-size, 11px)',
                   fontWeight: 600,
                   color: metric.color,
                   lineHeight: 1.2,
+                  whiteSpace: 'nowrap',
                 }}>
-                  {metric.salesTotal}
+                  {line}
                 </span>
-              )}
+              ))}
             </>
           )}
         </div>
