@@ -7,6 +7,9 @@ const TableTop = ({
   todayCount,
   yesterdayCount,
   last7DaysCount,
+  todaySalesTotal,
+  yesterdaySalesTotal,
+  last7DaysSalesTotal,
   gwCount,
   pmCount,
   kdCount,
@@ -21,6 +24,16 @@ const TableTop = ({
   activeDateFilter,
   loading = false
 }) => {
+
+  // Dollar value of sales: only rendered when the backend sent it (restricted
+  // to allowlisted users), so other users see the cards unchanged.
+  const formatSalesTotal = (value) =>
+    value == null
+      ? null
+      : `$${Number(value).toLocaleString('en-CA', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        })}`;
 
   const metrics = [
     {
@@ -44,6 +57,7 @@ const TableTop = ({
     {
       label: 'Today',
       value: todayCount,
+      salesTotal: formatSalesTotal(todaySalesTotal),
       color: '#1890ff',
       bgColor: '#e6f7ff',
       borderColor: '#91d5ff',
@@ -53,6 +67,7 @@ const TableTop = ({
     {
       label: 'Yesterday',
       value: yesterdayCount,
+      salesTotal: formatSalesTotal(yesterdaySalesTotal),
       color: '#faad14',
       bgColor: '#fffbe6',
       borderColor: '#ffe58f',
@@ -62,6 +77,7 @@ const TableTop = ({
     {
       label: '7 Days',
       value: last7DaysCount,
+      salesTotal: formatSalesTotal(last7DaysSalesTotal),
       color: '#722ed1',
       bgColor: '#f9f0ff',
       borderColor: '#d3adf7',
@@ -110,7 +126,7 @@ const TableTop = ({
             justifyContent: 'center',
             padding: 'var(--tt-card-padding, 8px 16px)',
             minWidth: 'var(--tt-card-min-width, 80px)',
-            height: 'var(--tt-card-height, 60px)',
+            minHeight: 'var(--tt-card-height, 60px)',
             borderRadius: '8px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
@@ -149,14 +165,26 @@ const TableTop = ({
           {loading ? (
             <Spin size="small" />
           ) : (
-            <span style={{
-              fontSize: 'var(--tt-value-size, 20px)',
-              fontWeight: 700,
-              color: metric.color,
-              lineHeight: 1.2,
-            }}>
-              {metric.value}
-            </span>
+            <>
+              <span style={{
+                fontSize: 'var(--tt-value-size, 20px)',
+                fontWeight: 700,
+                color: metric.color,
+                lineHeight: 1.2,
+              }}>
+                {metric.value}
+              </span>
+              {metric.salesTotal && (
+                <span style={{
+                  fontSize: 'var(--tt-label-size, 11px)',
+                  fontWeight: 600,
+                  color: metric.color,
+                  lineHeight: 1.2,
+                }}>
+                  {metric.salesTotal}
+                </span>
+              )}
+            </>
           )}
         </div>
       ))}

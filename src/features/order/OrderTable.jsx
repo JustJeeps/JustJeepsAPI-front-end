@@ -159,6 +159,9 @@ const OrderTable = () => {
     todayCount: 0,
     yesterdayCount: 0,
     last7DaysCount: 0,
+    todaySalesTotal: null,
+    yesterdaySalesTotal: null,
+    last7DaysSalesTotal: null,
     pmNotSetCount: 0,
     kdNotSetCount: 0,
     gwCount: 0,
@@ -191,11 +194,15 @@ const OrderTable = () => {
   const ORDER_CANCEL_EXECUTE_ALLOWED_USERS = new Set(["tess", "jerry", "jacob", "paula", "karoline"]);
   const ORDER_CANCEL_DRY_RUN_ALLOWED_USERS = new Set(["tess"]);
   const ORDER_PO_INIT_ALLOWED_USERS = new Set(["admin", "tess", "jerry", "jacob", "paula", "karoline"]);
+  // Dollar value of daily sales: visible to these users only. The backend
+  // enforces the same allowlist and omits the totals for everyone else.
+  const SALES_TOTALS_ALLOWED_USERS = new Set(["tess", "jerry", "jacob"]);
   const normalizedUsername = (user?.username || user?.name || "").toLowerCase();
   const canEditSkuStatus = authEnabled && SKU_STATUS_ALLOWED_USERS.has(normalizedUsername);
   const canRunOrderCancelWorkflow = authEnabled && ORDER_CANCEL_EXECUTE_ALLOWED_USERS.has(normalizedUsername);
   const canRunOrderCancelDryRun = authEnabled && ORDER_CANCEL_DRY_RUN_ALLOWED_USERS.has(normalizedUsername);
   const canInitializePoNumber = authEnabled && ORDER_PO_INIT_ALLOWED_USERS.has(normalizedUsername);
+  const canViewSalesTotals = authEnabled && SALES_TOTALS_ALLOWED_USERS.has(normalizedUsername);
   const isPoInitializationTemporarilyDisabled = true;
 
   const getOrderRowKey = (record) => record.entity_id || record.id || record.key;
@@ -3908,6 +3915,9 @@ console.log("IS ARRAY?", Array.isArray(orders));
                 todayCount={metrics.todayCount}
                 yesterdayCount={metrics.yesterdayCount}
                 last7DaysCount={metrics.last7DaysCount}
+                todaySalesTotal={canViewSalesTotals ? metrics.todaySalesTotal : null}
+                yesterdaySalesTotal={canViewSalesTotals ? metrics.yesterdaySalesTotal : null}
+                last7DaysSalesTotal={canViewSalesTotals ? metrics.last7DaysSalesTotal : null}
                 onNotSetClick={() => handleFilterChange('poStatus', filters.poStatus === 'not_set' ? '' : 'not_set')}
                 onNotSet3DaysClick={() => handleFilterChange('poStatus', filters.poStatus === 'not_set_4days' ? '' : 'not_set_4days')}
                 onPmClick={() => handleFilterChange('poStatus', filters.poStatus === 'pm_not_set' ? '' : 'pm_not_set')}
