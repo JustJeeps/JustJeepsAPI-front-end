@@ -7,6 +7,9 @@
     "node": "20.x"
   },
   "scripts": {
+    "generate:brands": "node scripts/generate-brands.js",
+    "predev": "node scripts/generate-brands.js",
+    "prestart": "node scripts/generate-brands.js",
     "dev": "vite",
     "start": "vite",
     "build": "vite build",
