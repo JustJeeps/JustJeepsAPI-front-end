@@ -21,6 +21,7 @@ import { vendorLinks } from '../../constants/vendorLinks';
 import { JRP_EXPORT_COLUMNS, jrpExportFields } from './jrpExportFields';
 import { NIAGARA_EXPORT_COLUMNS, niagaraExportFields } from './niagaraExportFields';
 import { storedProductUrl } from './competitorLink';
+import UsTariffBadge from '../../components/UsTariffBadge';
 import brands from './brands.generated';
 
 
@@ -1187,6 +1188,7 @@ const handleSetSkuStatusAcrossStoreViews = async (record, targetStatus) => {
               Check stock with Jacob
             </Tag>
           ) : null}
+          <UsTariffBadge part={record?.part} style={{ fontSize: 11 }} />
           {record?.replace_oe ? (
             (() => {
               const croVariants = buildCroSkuVariants(record.replace_oe);
@@ -1733,6 +1735,7 @@ const columns_no_img = skuColumnsBase.filter(c => c.dataIndex !== "image");
                   Check stock with Jacob
                 </Tag>
               ) : null}
+              <UsTariffBadge part={record?.part} style={{ fontSize: 11 }} />
             </div>
           ),
         },

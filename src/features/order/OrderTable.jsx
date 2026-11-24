@@ -39,6 +39,7 @@ import { extractItemSkus, normalizeSkuInput, replacementBadgeFor } from "../repl
 import OpenOrdersFlag from "./OpenOrdersFlag";
 import StatusDivergenceFlag from "./StatusDivergenceFlag";
 import ReturningCustomerFlag from "./ReturningCustomerFlag";
+import UsTariffBadge from "../../components/UsTariffBadge";
 import { DEFAULT_ORDER_FILTERS, customerSearchFilters } from "./orderFilters";
 import TableTop from "../tabletop/TableTop";
 import "./order.scss";
@@ -2924,6 +2925,7 @@ console.log("IS ARRAY?", Array.isArray(orders));
                     <Tag color="volcano" style={{ margin: 0 }}>Husky check</Tag>
                   </Tooltip>
                 ) : null}
+                <UsTariffBadge part={record.product?.part} />
               </div>
             );
           }
