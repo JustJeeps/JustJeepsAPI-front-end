@@ -19,7 +19,7 @@ import { useAuth } from "../../context/AuthContext";
 import { USD_TO_CAD_RATE } from '../../constants/exchangeRate';
 import { vendorLinks } from '../../constants/vendorLinks';
 import { JRP_EXPORT_COLUMNS, jrpExportFields } from './jrpExportFields';
-import { NIAGARA_EXPORT_COLUMNS, niagaraExportFields } from './niagaraExportFields';
+import { COMPETITOR_EXPORT_COLUMNS, competitorExportFields } from './competitorExportFields';
 import { storedProductUrl } from './competitorLink';
 import UsTariffBadge from '../../components/UsTariffBadge';
 import brands from './brands.generated';
@@ -387,7 +387,7 @@ const dataForExcel = transformData(brandData);
         { header: "Northridge Price", key: "northridge_price" },
         { header: "Rough Country Cost", key: "rough_country_cost" },
         ...JRP_EXPORT_COLUMNS,
-        ...NIAGARA_EXPORT_COLUMNS,
+        ...COMPETITOR_EXPORT_COLUMNS,
       ];
 
       // Add rows to the sheet
@@ -422,7 +422,7 @@ const dataForExcel = transformData(brandData);
             (vp) => vp.vendor.name === "Rough Country"
           )?.vendor_cost,
           ...jrpExportFields(product),
-          ...niagaraExportFields(product),
+          ...competitorExportFields(product),
         };
         sheet.addRow(row);
       });
@@ -497,7 +497,7 @@ const dataForExcel = transformData(brandData);
         { header: "TDOT Price", key: "tdot_price" },
         { header: "PartsEngine Price", key: "partsEngine_price" },
         { header: "Lowriders Price", key: "lowriders_price" },
-        ...NIAGARA_EXPORT_COLUMNS,
+        ...COMPETITOR_EXPORT_COLUMNS,
         { header: "Status", key: "status" },
         { header: "Name", key: "name" },
         { header: "Part Status Meyer", key: "partStatus_meyer" },
@@ -611,7 +611,7 @@ const dataForExcel = transformData(brandData);
             (vp) => vp.vendor.name === "Rough Country"
           )?.vendor_cost,
           ...jrpExportFields(product),
-          ...niagaraExportFields(product),
+          ...competitorExportFields(product),
           quadratec_sku: product.vendorProducts?.find(
             (vp) => vp.vendor.name === "Quadratec"
           )?.quadratec_sku,
